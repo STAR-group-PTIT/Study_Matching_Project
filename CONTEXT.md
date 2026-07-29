@@ -3,7 +3,7 @@
 Theo dõi tiến độ, quyết định kỹ thuật, và những gì đã/chưa làm. Đọc kèm [PLAN.md](PLAN.md) và [README.md](README.md).
 
 ## Trạng thái hiện tại
-**Giai đoạn đang làm:** Giai đoạn 1 hoàn tất (6/6 màn) → tiếp theo là Giai đoạn 2 (logic & state phía client nâng cao — phần lớn đã làm sẵn trong lúc dựng UI, xem ghi chú bên dưới) hoặc Giai đoạn 3 (Supabase Auth & schema)
+**Giai đoạn đang làm:** Giai đoạn 3 (Supabase Auth & schema) — đã chuẩn bị xong schema/RLS + code kết nối, **đang chờ user tạo project Supabase và cung cấp URL + anon key** trước khi nối Auth thật vào màn Auth.tsx.
 
 ## Nhật ký
 - **2026-07-29** — Đọc README.md + toàn bộ design/*.dc.html, thống nhất plan 9 giai đoạn (0-8) với user. Chốt stack: React+TS+Tailwind+Vite, Supabase, LiveKit. Tạo PLAN.md + CONTEXT.md.
@@ -48,6 +48,14 @@ Theo dõi tiến độ, quyết định kỹ thuật, và những gì đã/chưa
 
 ## Lưu ý công cụ (tooling quirk)
 - Browser pane preview (`mcp__Claude_Browser__resize_window`) có bug: sau khi resize viewport (vd 1280x800), `computer` click theo toạ độ pixel và `screenshot` không đồng bộ với kích thước mới (chỉ vẽ/nhận click đúng trong vùng ~viewport mặc định ban đầu, phần còn lại "chết"). **Không phải lỗi code.** Đã verify bằng `getBoundingClientRect()` qua `javascript_tool` — layout DOM luôn đúng 100%. Cách kiểm tra tin cậy khi cần verify UI ở kích thước lớn: dùng `javascript_tool` để `.click()` trực tiếp lên element + đọc `getComputedStyle`/`getBoundingClientRect`, thay vì dựa vào `computer` coordinate-click hay `screenshot` sau resize.
+
+## Giai đoạn 3 — chuẩn bị xong, chờ key thật
+- **2026-07-29** — Đã viết sẵn (chưa chạy được vì chưa có project thật):
+  - [app/supabase/migrations/0001_init.sql](app/supabase/migrations/0001_init.sql) — schema đầy đủ: `profiles` (+ trigger tự tạo khi signup), `todos`, `focus_sessions`, `wallpapers`, `tracks`, `rooms`, `room_members`, `room_messages`, RLS cho từng bảng, hàm helper `is_room_participant()`, bật Realtime cho `rooms`/`room_members`/`room_messages`.
+  - [app/src/lib/supabase.ts](app/src/lib/supabase.ts) — client init từ `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`, throw lỗi rõ ràng nếu thiếu env.
+  - [app/.env.example](app/.env.example) — template biến môi trường.
+  - [app/src/vite-env.d.ts](app/src/vite-env.d.ts) — type augmentation cho `import.meta.env`.
+- **Đang chờ user:** tạo project tại supabase.com, dán URL + anon key vào `app/.env` (copy từ `.env.example`, file này đã nằm trong `.gitignore`). Sau khi có key: chạy migration SQL trong Supabase SQL Editor, bật Google OAuth provider trong Authentication → Providers, rồi mình sẽ nối màn Auth.tsx với `supabase.auth.signInWithPassword`/`signInWithOAuth` thật.
 
 ## Việc cần quyết định sau (chưa chốt)
 - Chọn provider Google OAuth cụ thể (credentials) — cần user cung cấp khi tới Giai đoạn 3.

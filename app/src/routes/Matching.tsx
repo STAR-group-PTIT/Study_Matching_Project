@@ -77,7 +77,6 @@ const HINTS = [
 ]
 
 const HOST_NAME = 'Nhật Minh'
-const ACCENT = 'var(--ff-accent)'
 const ACCENT_SOFT = 'var(--ff-accent-soft)'
 const ACCENT_CHIP_ACTIVE = 'var(--ff-accent-chip-active)'
 const ACCENT_BORDER = 'var(--ff-accent-border)'
