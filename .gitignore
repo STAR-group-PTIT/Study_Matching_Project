@@ -1,6 +1,7 @@
 app/node_modules
 app/dist
 app/dist-ssr
+app/supabase/.temp
 *.local
 .env
 .env.local
