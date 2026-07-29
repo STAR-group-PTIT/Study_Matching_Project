@@ -13,9 +13,9 @@ export default function App() {
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<Dashboard />} />
-      <Route path="/matching" element={<Matching />} />
       <Route path="/room/:id" element={<Room />} />
       <Route element={<RequireAuth />}>
+        <Route path="/matching" element={<Matching />} />
         <Route path="/stats" element={<Stats />} />
         <Route path="/settings" element={<Settings />} />
       </Route>

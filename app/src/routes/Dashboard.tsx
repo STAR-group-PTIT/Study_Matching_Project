@@ -230,6 +230,19 @@ export default function Dashboard() {
         </div>
 
         <div className="flex items-center gap-[10px]">
+          {!user && (
+            <Link
+              to="/auth"
+              className="rounded-[18px] px-4 py-[10px] font-sans text-[13px] font-extrabold text-[#1e3549] no-underline"
+              style={{
+                ...chromeStyle,
+                background: 'var(--ff-accent-soft)',
+                boxShadow: '0 6px 20px rgba(64,102,128,0.09)',
+              }}
+            >
+              Đăng nhập
+            </Link>
+          )}
           <div
             className="flex gap-1 rounded-[20px] p-[5px]"
             style={{
