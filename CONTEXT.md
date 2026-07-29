@@ -3,7 +3,7 @@
 Theo dõi tiến độ, quyết định kỹ thuật, và những gì đã/chưa làm. Đọc kèm [PLAN.md](PLAN.md) và [README.md](README.md).
 
 ## Trạng thái hiện tại
-**Giai đoạn đang làm:** Giai đoạn 0 hoàn tất → tiếp theo là Giai đoạn 1 (dựng UI tĩnh pixel-perfect)
+**Giai đoạn đang làm:** Giai đoạn 1 hoàn tất (6/6 màn) → tiếp theo là Giai đoạn 2 (logic & state phía client nâng cao — phần lớn đã làm sẵn trong lúc dựng UI, xem ghi chú bên dưới) hoặc Giai đoạn 3 (Supabase Auth & schema)
 
 ## Nhật ký
 - **2026-07-29** — Đọc README.md + toàn bộ design/*.dc.html, thống nhất plan 9 giai đoạn (0-8) với user. Chốt stack: React+TS+Tailwind+Vite, Supabase, LiveKit. Tạo PLAN.md + CONTEXT.md.
@@ -18,7 +18,13 @@ Theo dõi tiến độ, quyết định kỹ thuật, và những gì đã/chưa
   - **Lưu ý:** `npm audit` báo 2 high severity trên `react-router-dom@7.18.2` (GHSA-qwww-vcr4-c8h2 — CSRF bypass trong **RSC Mode**). Không áp dụng vì dự án là Vite SPA thuần, không dùng RSC. Không downgrade (bản fix là hạ về 7.11.0, cũ hơn). Theo dõi lại khi có bản vá mới trong 7.x.
 - **2026-07-29** — Giai đoạn 1 (đang làm), đã xong 2/6 màn:
   - **Auth** ([app/src/routes/Auth.tsx](app/src/routes/Auth.tsx)) — test tab login/signup, toggle hiện mật khẩu, đều hoạt động đúng, khớp thiết kế.
-  - **Dashboard** ([app/src/routes/Dashboard.tsx](app/src/routes/Dashboard.tsx)) — đồng hồ Pomodoro (setInterval + phase focus/break tự chuyển), Ẩn UI, Focus/Dashboard mode, camera toggle, 3 popup (wallpaper/nhạc/to-do), to-do CRUD local. Timer dùng pattern: 1 effect đếm giây (ref để tránh stale closure với `running`), 1 effect riêng theo dõi đổi `phase` để set lại `left` đúng theo tổng giây phase mới (tránh nhấp nháy giá trị sai khi chuyển phase).
+  - **Dashboard** ([app/src/routes/Dashboard.tsx](app/src/routes/Dashboard.tsx)) — đồng hồ Pomodoro (setInterval + phase focus/break tự chuyển), Ẩn UI, Focus/Dashboard mode, camera toggle, 3 popup (wallpaper/nhạc/to-do), to-do CRUD local. Timer dùng pattern: 1 effect đếm giây (ref để tránh stale closure với `running`), 1 effect riêng theo dõi đổi `phase` để set lại `left` đúng theo tổng giây phase mới (tránh nhấp nháy giá trị sai khi chuyển phase). Pattern timer này lặp lại y hệt ở Room.tsx.
+  - **Matching** ([app/src/routes/Matching.tsx](app/src/routes/Matching.tsx)) — 3 state (filters/searching/rooms) chuyển bằng fade 200ms, modal tạo phòng sinh mã 6 ký tự ngẫu nhiên + copy clipboard (timeout 1.8s reset label), danh sách phòng công khai mock với phòng đầy bị disable. Nút "Tham gia"/"Vào phòng" điều hướng sang `/room/:id` (id tạm là tên phòng/mã phòng, chưa có backend thật).
+  - **Study Room** ([app/src/routes/Room.tsx](app/src/routes/Room.tsx)) — màn phức tạp nhất: lưới video tự tính `cols/rows` theo `Math.ceil(Math.sqrt(n))`, panel phải 3 tab (chat/nhạc/quản lý — quản lý chỉ hiện khi `IS_HOST=true`, hardcode), toggle demo 2/5 người đổi lại `members` mock, hàng chờ duyệt + kick. `IS_HOST` là hằng số hardcode true, cần thay bằng giá trị thật khi có backend room membership.
+  - **Stats** ([app/src/routes/Stats.tsx](app/src/routes/Stats.tsx)) — dựng bằng div thuần (không dùng Recharts) vì file thiết kế gốc cũng chỉ dùng CSS bar/grid, không phải chart library thật — pixel-perfect hơn là ép Recharts vào shape tuỳ biến này. Recharts vẫn có trong `package.json` cho nhu cầu chart phức tạp hơn sau này nếu cần. Heatmap 12 tuần dùng hàm density giả-ngẫu-nhiên xác định (deterministic pseudo-random) y hệt bản gốc để mock data ổn định giữa các lần render.
+  - **Settings** ([app/src/routes/Settings.tsx](app/src/routes/Settings.tsx)) — wallpaper grid + nhạc list CRUD local, 2 slider Pomodoro dùng class CSS riêng `ff-range-lg` (thumb 24px, khác `ff-range` 18px dùng ở Room cho slider volume). Toggle "tự động bắt đầu phiên" tự viết switch component (không dùng input checkbox) để khớp pixel thiết kế.
+  - Tất cả 6 màn đã test tương tác qua browser preview (state transitions, popup/modal, toggle, timer) — xem mục "Lưu ý công cụ" bên dưới về cách test đáng tin cậy.
+  - **Việc còn để mock/hardcode, cần thay khi nối backend:** accent color (hardcode preset mint `--ff-accent`, chưa có 4-preset switcher như thiết kế đề cập), `IS_HOST` ở Room, tên phòng dùng làm room id tạm, toàn bộ dữ liệu (tasks, messages, members, tracks, wallpapers, stats) đều là mock cứng trong từng component, chưa có i18n thật (dùng chuỗi tiếng Việt cứng dù đã setup i18next skeleton ở GĐ0).
 
 ## Quyết định kỹ thuật quan trọng
 | Quyết định | Lý do | Ngày |

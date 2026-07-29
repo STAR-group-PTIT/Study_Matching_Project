@@ -26,14 +26,14 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [ ] Git init + commit đầu tiên
 - [ ] Tạo project Supabase (lấy URL + anon key, chưa cần schema)
 
-## Giai đoạn 1 — Dựng UI tĩnh pixel-perfect (mock data)
-Đối chiếu từng file `.dc.html` tương ứng, dựng bằng React component + Tailwind, dùng mock data cứng:
-- [ ] Auth (`design/FocusFlow Auth.dc.html`)
-- [ ] Dashboard (`design/FocusFlow.dc.html`)
-- [ ] Matching — 3 state filters/searching/rooms + modal tạo phòng (`design/FocusFlow Matching.dc.html`)
-- [ ] Study Room — video grid, Pomodoro nổi, panel phải 3 tab, control bar (`design/FocusFlow Room.dc.html`)
-- [ ] Stats — KPI, bar chart, heatmap, to-do list (`design/FocusFlow Stats.dc.html`)
-- [ ] Settings — profile, wallpaper grid, nhạc, slider Pomodoro (`design/FocusFlow Settings.dc.html`)
+## Giai đoạn 1 — Dựng UI tĩnh pixel-perfect (mock data) ✅ Hoàn tất 2026-07-29
+Đối chiếu từng file `.dc.html` tương ứng, dựng bằng React component + Tailwind, dùng mock data cứng. Tất cả đã có state/logic client-side đầy đủ (không chỉ tĩnh) — xem chi tiết ở CONTEXT.md:
+- [x] Auth (`design/FocusFlow Auth.dc.html`) → [app/src/routes/Auth.tsx](app/src/routes/Auth.tsx)
+- [x] Dashboard (`design/FocusFlow.dc.html`) → [app/src/routes/Dashboard.tsx](app/src/routes/Dashboard.tsx)
+- [x] Matching — 3 state filters/searching/rooms + modal tạo phòng (`design/FocusFlow Matching.dc.html`) → [app/src/routes/Matching.tsx](app/src/routes/Matching.tsx)
+- [x] Study Room — video grid, Pomodoro nổi, panel phải 3 tab, control bar (`design/FocusFlow Room.dc.html`) → [app/src/routes/Room.tsx](app/src/routes/Room.tsx)
+- [x] Stats — KPI, bar chart, heatmap, to-do list (`design/FocusFlow Stats.dc.html`) → [app/src/routes/Stats.tsx](app/src/routes/Stats.tsx)
+- [x] Settings — profile, wallpaper grid, nhạc, slider Pomodoro (`design/FocusFlow Settings.dc.html`) → [app/src/routes/Settings.tsx](app/src/routes/Settings.tsx)
 
 ## Giai đoạn 2 — Logic & state phía client
 - [ ] Pomodoro timer (setInterval, phase focus↔break, session count, cleanup)
