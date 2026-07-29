@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #eef6f8; }
+  * { box-sizing: border-box; }
+  a { color: oklch(0.58 0.075 220); }
+  a:hover { color: oklch(0.5 0.08 220); }
+  input::placeholder { color: rgba(51,71,94,0.38); font-weight: 600; }
+</style>
+</helmet>
+<div style="position: relative; width: 100%; minHeight: 100vh; overflow: hidden; fontFamily: Nunito, system-ui, sans-serif; color: #33475e; -webkit-font-smoothing: antialiased;">
+
+  <div style="position: absolute; inset: 0; background: {{ wallpaperCss }}; transition: background 900ms ease;"></div>
+  <div style="position: absolute; inset: 0; backdropFilter: blur(3px); background: rgba(255,255,255,0.18);"></div>
+
+  <div style="position: relative; minHeight: 100vh; display: flex; flexDirection: column; alignItems: center; justifyContent: center; gap: 22px; padding: 48px 24px 40px;">
+
+    <div style="display: flex; alignItems: center; gap: 11px;">
+      <div style="width: 22px; height: 22px; borderRadius: 9px; background: linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235));"></div>
+      <span style="fontSize: 18px; fontWeight: 800; letterSpacing: -0.2px; color: #2f4459;">FocusFlow</span>
+    </div>
+
+    <div style="width: 100%; maxWidth: 900px; display: flex; flexWrap: wrap; gap: 20px; alignItems: stretch; justifyContent: center;">
+
+      <!-- card -->
+      <div style="flex: 1 1 380px; maxWidth: 456px; padding: 30px 32px 32px; borderRadius: 32px; background: rgba(255,255,255,0.78); backdropFilter: blur(22px); boxShadow: 0 20px 52px rgba(58,98,126,0.13);">
+        <div style="display: flex; gap: 4px; padding: 5px; borderRadius: 20px; background: rgba(238,246,248,0.9);">
+          <button onClick="{{ setLogin }}" style="flex: 1; border: none; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; padding: 11px 0; borderRadius: 16px; color: {{ loginTabColor }}; background: {{ loginTabBg }}; boxShadow: {{ loginTabShadow }}; transition: all 280ms ease;">Đăng nhập</button>
+          <button onClick="{{ setSignup }}" style="flex: 1; border: none; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; padding: 11px 0; borderRadius: 16px; color: {{ signupTabColor }}; background: {{ signupTabBg }}; boxShadow: {{ signupTabShadow }}; transition: all 280ms ease;">Đăng ký</button>
+        </div>
+
+        <div style="marginTop: 24px; opacity: {{ formOpacity }}; transform: translateY({{ formShift }}); transition: opacity 360ms ease, transform 360ms cubic-bezier(0.22,1,0.36,1);">
+          <h1 style="margin: 0; fontSize: 24px; fontWeight: 800; letterSpacing: -0.4px; color: #2c3f55;">{{ heading }}</h1>
+          <p style="margin: 7px 0 0; fontSize: 14px; fontWeight: 600; lineHeight: 1.55; color: rgba(51,71,94,0.58);">{{ subheading }}</p>
+
+          <div style="display: flex; flexDirection: column; gap: 12px; marginTop: 22px;">
+            <label style="display: {{ nameDisplay }}; flexDirection: column; gap: 7px;">
+              <span style="fontSize: 12.5px; fontWeight: 700; letterSpacing: 0.3px; color: rgba(51,71,94,0.62);">Tên của bạn</span>
+              <input type="text" placeholder="Minh Anh" style="border: 1.5px solid rgba(51,71,94,0.12); outline: none; borderRadius: 18px; background: rgba(255,255,255,0.9); fontFamily: inherit; fontSize: 15px; fontWeight: 600; color: #2c3f55; padding: 14px 16px; transition: border-color 200ms ease, box-shadow 200ms ease;" style-focus="border-color: rgba(126,201,198,0.9); box-shadow: 0 0 0 4px rgba(126,201,198,0.18);" />
+            </label>
+            <label style="display: flex; flexDirection: column; gap: 7px;">
+              <span style="fontSize: 12.5px; fontWeight: 700; letterSpacing: 0.3px; color: rgba(51,71,94,0.62);">Email</span>
+              <input type="email" placeholder="ban@email.com" style="border: 1.5px solid rgba(51,71,94,0.12); outline: none; borderRadius: 18px; background: rgba(255,255,255,0.9); fontFamily: inherit; fontSize: 15px; fontWeight: 600; color: #2c3f55; padding: 14px 16px; transition: border-color 200ms ease, box-shadow 200ms ease;" style-focus="border-color: rgba(126,201,198,0.9); box-shadow: 0 0 0 4px rgba(126,201,198,0.18);" />
+            </label>
+            <label style="display: flex; flexDirection: column; gap: 7px;">
+              <span style="fontSize: 12.5px; fontWeight: 700; letterSpacing: 0.3px; color: rgba(51,71,94,0.62);">Mật khẩu</span>
+              <div style="position: relative; display: flex; alignItems: center;">
+                <input type="{{ pwType }}" placeholder="Ít nhất 8 ký tự" style="flex: 1; border: 1.5px solid rgba(51,71,94,0.12); outline: none; borderRadius: 18px; background: rgba(255,255,255,0.9); fontFamily: inherit; fontSize: 15px; fontWeight: 600; color: #2c3f55; padding: 14px 82px 14px 16px; transition: border-color 200ms ease, box-shadow 200ms ease;" style-focus="border-color: rgba(126,201,198,0.9); box-shadow: 0 0 0 4px rgba(126,201,198,0.18);" />
+                <button onClick="{{ togglePw }}" style="position: absolute; right: 8px; border: none; cursor: pointer; fontFamily: inherit; fontSize: 12.5px; fontWeight: 700; color: rgba(51,71,94,0.6); padding: 8px 12px; borderRadius: 13px; background: rgba(238,246,248,0.95);">{{ pwToggleLabel }}</button>
+              </div>
+            </label>
+          </div>
+
+          <div style="display: {{ forgotDisplay }}; justifyContent: flex-end; marginTop: 10px;">
+            <a href="#" style="fontSize: 13px; fontWeight: 700; textDecoration: none;">Quên mật khẩu?</a>
+          </div>
+
+          <button onClick="{{ submit }}" style="width: 100%; marginTop: 18px; border: none; cursor: pointer; fontFamily: inherit; fontSize: 16px; fontWeight: 800; color: #1e3549; padding: 16px 0; borderRadius: 22px; background: {{ accentSoft }}; boxShadow: 0 10px 24px rgba(58,98,126,0.14); transition: transform 200ms ease, box-shadow 200ms ease;" style-hover="transform: translateY(-2px); box-shadow: 0 14px 30px rgba(58,98,126,0.2);">{{ submitLabel }}</button>
+
+          <div style="display: flex; alignItems: center; gap: 14px; margin: 20px 0;">
+            <div style="flex: 1; height: 1px; background: rgba(51,71,94,0.13);"></div>
+            <span style="fontSize: 12.5px; fontWeight: 700; color: rgba(51,71,94,0.45);">hoặc</span>
+            <div style="flex: 1; height: 1px; background: rgba(51,71,94,0.13);"></div>
+          </div>
+
+          <button onClick="{{ submit }}" style="width: 100%; display: flex; alignItems: center; justifyContent: center; gap: 11px; border: 1.5px solid rgba(51,71,94,0.12); cursor: pointer; fontFamily: inherit; fontSize: 15px; fontWeight: 700; color: #33475e; padding: 14px 0; borderRadius: 22px; background: rgba(255,255,255,0.92); transition: background 200ms ease, border-color 200ms ease;" style-hover="background: #ffffff; border-color: rgba(51,71,94,0.22);">
+            <span style="width: 22px; height: 22px; borderRadius: 999px; background: rgba(238,246,248,0.95); display: flex; alignItems: center; justifyContent: center; fontSize: 13px; fontWeight: 800; color: #5b7a92;">G</span>
+            {{ googleLabel }}
+          </button>
+
+          <div style="marginTop: 18px; textAlign: center;">
+            <a href="./FocusFlow.dc.html" style="display: inline-block; fontSize: 13.5px; fontWeight: 700; textDecoration: none; padding: 11px 18px; borderRadius: 18px; background: rgba(238,246,248,0.7); transition: background 200ms ease;" style-hover="background: rgba(238,246,248,1);">Dùng thử không cần đăng nhập →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- why sign in -->
+      <div style="flex: 1 1 280px; maxWidth: 360px; display: flex; flexDirection: column; gap: 14px;">
+        <div style="padding: 26px 26px 24px; borderRadius: 30px; background: rgba(255,255,255,0.58); backdropFilter: blur(18px); boxShadow: 0 14px 36px rgba(58,98,126,0.1);">
+          <div style="fontSize: 12px; fontWeight: 700; letterSpacing: 1.2px; textTransform: uppercase; color: rgba(51,71,94,0.48);">Không bắt buộc</div>
+          <p style="margin: 12px 0 0; fontSize: 15.5px; fontWeight: 700; lineHeight: 1.55; color: #2c3f55;">Đăng nhập để lưu to-do vĩnh viễn, dùng wallpaper &amp; nhạc riêng của bạn, và ghép cặp học cùng người khác.</p>
+          <p style="margin: 10px 0 0; fontSize: 13.5px; fontWeight: 600; lineHeight: 1.6; color: rgba(51,71,94,0.55);">Chưa muốn thì cứ vào học trước — mọi phiên Pomodoro vẫn chạy bình thường ở chế độ khách.</p>
+        </div>
+        <div style="display: flex; flexDirection: column; gap: 10px;">
+          <sc-for list="{{ perks }}" as="p" hint-placeholder-count="3">
+            <div style="display: flex; alignItems: center; gap: 13px; padding: 15px 18px; borderRadius: 24px; background: rgba(255,255,255,0.52); backdropFilter: blur(14px); boxShadow: 0 8px 20px rgba(58,98,126,0.07);">
+              <div style="width: 34px; height: 34px; flexShrink: 0; borderRadius: 13px; background: {{ p.bg }}; display: flex; alignItems: center; justifyContent: center; color: #35566b;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{ p.icon }}"></path></svg>
+              </div>
+              <div style="display: flex; flexDirection: column; gap: 2px;">
+                <span style="fontSize: 14px; fontWeight: 700; color: #2c3f55;">{{ p.title }}</span>
+                <span style="fontSize: 12.5px; fontWeight: 600; color: rgba(51,71,94,0.5);">{{ p.desc }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <p style="margin: 4px 0 0; fontSize: 12.5px; fontWeight: 600; color: rgba(51,71,94,0.45); textAlign: center; maxWidth: 420px; lineHeight: 1.6;">Khi tiếp tục, bạn đồng ý với Điều khoản &amp; Chính sách riêng tư của FocusFlow.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:860},&quot;startTab&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;login&quot;,&quot;tsType&quot;:&quot;'login' | 'signup'&quot;,&quot;options&quot;:[&quot;login&quot;,&quot;signup&quot;],&quot;section&quot;:&quot;Hiển thị&quot;},&quot;wallpaper&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:0,&quot;max&quot;:5,&quot;step&quot;:1,&quot;section&quot;:&quot;Hiển thị&quot;},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;oklch(0.74 0.085 195)&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;oklch(0.74 0.085 195)&quot;,&quot;oklch(0.72 0.08 235)&quot;,&quot;oklch(0.78 0.08 170)&quot;,&quot;oklch(0.7 0.07 260)&quot;],&quot;section&quot;:&quot;Hiển thị&quot;}}">
+const WALLPAPERS = [
+  'linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)',
+  'linear-gradient(150deg, #e8f4f0 0%, #d5e9f4 100%)',
+  'linear-gradient(200deg, #d9ecf5 0%, #eaf5f1 60%, #dceef0 100%)',
+  'linear-gradient(135deg, #eef3f8 0%, #dbeaf0 50%, #cfe4e6 100%)',
+  'radial-gradient(120% 100% at 20% 10%, #e9f6f2 0%, #d3e6f0 70%)',
+  'linear-gradient(175deg, #f0f6f7 0%, #d8eaf0 55%, #cde5df 100%)'
+];
+
+class Component extends DCLogic {
+  state = { tab: this.props.startTab || 'login', showPw: false, fade: 1 };
+
+  switchTo(tab) {
+    if (tab === this.state.tab) return;
+    this.setState({ fade: 0 });
+    setTimeout(() => this.setState({ tab, fade: 1 }), 160);
+  }
+
+  renderVals() {
+    const st = this.state;
+    const isLogin = st.tab === 'login';
+    const accent = this.props.accentColor || 'oklch(0.74 0.085 195)';
+    const tab = on => ({
+      bg: on ? 'rgba(255,255,255,0.98)' : 'transparent',
+      color: on ? '#25415c' : 'rgba(51,71,94,0.55)',
+      shadow: on ? '0 4px 12px rgba(58,98,126,0.1)' : 'none'
+    });
+    const l = tab(isLogin), s = tab(!isLogin);
+
+    return {
+      wallpaperCss: WALLPAPERS[Math.min(5, Math.max(0, (this.props.wallpaper ?? 1)))],
+      accentSoft: 'color-mix(in oklab, ' + accent + ' 62%, white)',
+      loginTabBg: l.bg, loginTabColor: l.color, loginTabShadow: l.shadow,
+      signupTabBg: s.bg, signupTabColor: s.color, signupTabShadow: s.shadow,
+      setLogin: () => this.switchTo('login'),
+      setSignup: () => this.switchTo('signup'),
+      formOpacity: st.fade,
+      formShift: st.fade ? '0px' : '6px',
+      heading: isLogin ? 'Chào bạn trở lại' : 'Tạo tài khoản mới',
+      subheading: isLogin
+        ? 'Tiếp tục chuỗi phiên học của bạn ở đúng nơi bạn dừng lại.'
+        : 'Mất khoảng 20 giây. Không cần thẻ, không quảng cáo.',
+      nameDisplay: isLogin ? 'none' : 'flex',
+      forgotDisplay: isLogin ? 'flex' : 'none',
+      submitLabel: isLogin ? 'Đăng nhập' : 'Tạo tài khoản',
+      googleLabel: isLogin ? 'Đăng nhập với Google' : 'Đăng ký với Google',
+      pwType: st.showPw ? 'text' : 'password',
+      pwToggleLabel: st.showPw ? 'Ẩn' : 'Hiện',
+      togglePw: e => { e.preventDefault(); this.setState(p => ({ showPw: !p.showPw })); },
+      submit: e => e.preventDefault(),
+      perks: [
+        { title: 'To-do được lưu lại', desc: 'Đóng tab vẫn còn nguyên danh sách', bg: 'rgba(140,205,196,0.3)', icon: 'M4 7.5l2 2 3-3.5M4 16.5l2 2 3-3.5M13 8h7M13 17h7' },
+        { title: 'Wallpaper & nhạc riêng', desc: 'Tải lên bộ của bạn, dùng trên mọi máy', bg: 'rgba(160,200,225,0.32)', icon: 'M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3z M4 18l5.5-5 4 3.4 3-2.4L20 18' },
+        { title: 'Học cùng bạn khác', desc: 'Ghép cặp phiên Pomodoro theo giờ', bg: 'rgba(150,210,205,0.3)', icon: 'M9 11a3 3 0 100-6 3 3 0 000 6zM3 20c0-3 2.7-5 6-5s6 2 6 5M17 8a2.6 2.6 0 010 5M19 20c0-2-.7-3.4-2-4.4' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

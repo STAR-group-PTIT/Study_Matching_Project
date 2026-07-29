@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #eef6f8; }
+  * { box-sizing: border-box; }
+  a { color: oklch(0.58 0.075 220); }
+  a:hover { color: oklch(0.5 0.08 220); }
+  @keyframes ffRipple {
+    0% { transform: scale(0.72); opacity: 0.55; }
+    70% { opacity: 0; }
+    100% { transform: scale(1.35); opacity: 0; }
+  }
+  @keyframes ffBreathe { 0%, 100% { transform: scale(0.94); } 50% { transform: scale(1.04); } }
+  @keyframes ffDrift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+  @keyframes ffPop { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: none; } }
+  input { font-family: Nunito, system-ui, sans-serif; }
+</style>
+</helmet>
+<div style="position: relative; width: 100%; minHeight: 100vh; overflow: hidden; fontFamily: Nunito, system-ui, sans-serif; color: #33475e; -webkit-font-smoothing: antialiased;">
+
+  <div style="position: absolute; inset: 0; background: linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%);"></div>
+  <div style="position: absolute; inset: 0; backdropFilter: blur(3px); background: rgba(255,255,255,0.16);"></div>
+
+  <div style="position: relative; minHeight: 100vh; display: flex; flexDirection: column; alignItems: center; justifyContent: center; gap: 20px; padding: 46px 24px;">
+
+    <div style="display: flex; alignItems: center; gap: 11px;">
+      <div style="width: 22px; height: 22px; borderRadius: 9px; background: linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235));"></div>
+      <span style="fontSize: 18px; fontWeight: 800; letterSpacing: -0.2px; color: #2f4459;">FocusFlow</span>
+      <span style="fontSize: 14px; fontWeight: 600; color: rgba(51,71,94,0.5);">· Ghép cặp học chung</span>
+    </div>
+
+    <!-- STATE 1: filters -->
+    <div style="width: 100%; maxWidth: 560px; padding: 32px 34px 30px; borderRadius: 34px; background: rgba(255,255,255,0.8); backdropFilter: blur(22px); boxShadow: 0 22px 56px rgba(58,98,126,0.13); display: {{ filtersDisplay }}; flexDirection: column; gap: 24px; opacity: {{ filtersOpacity }}; transform: translateY({{ filtersShift }}); transition: opacity 420ms ease, transform 420ms cubic-bezier(0.22,1,0.36,1);">
+      <div>
+        <h1 style="margin: 0; fontSize: 26px; fontWeight: 800; letterSpacing: -0.5px; color: #2c3f55;">Tìm bạn học cùng</h1>
+        <p style="margin: 8px 0 0; fontSize: 14.5px; fontWeight: 600; lineHeight: 1.55; color: rgba(51,71,94,0.58);">Chọn loại phòng và vài tiêu chí, chúng mình ghép bạn với người đang học cùng nhịp.</p>
+      </div>
+
+      <div style="display: flex; flexDirection: column; gap: 11px;">
+        <div style="display: flex; alignItems: baseline; justifyContent: space-between; gap: 12px;">
+          <span style="fontSize: 12.5px; fontWeight: 800; letterSpacing: 0.8px; textTransform: uppercase; color: rgba(51,71,94,0.5);">Loại phòng</span>
+          <span style="fontSize: 12.5px; fontWeight: 600; color: rgba(51,71,94,0.42);">chọn 1</span>
+        </div>
+        <div style="display: flex; flexWrap: wrap; gap: 8px;">
+          <sc-for list="{{ roomTypes }}" as="r" hint-placeholder-count="5">
+            <button onClick="{{ r.pick }}" style="display: flex; alignItems: center; gap: 8px; border: 1.5px solid {{ r.border }}; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; color: {{ r.color }}; padding: 10px 16px; borderRadius: 18px; background: {{ r.bg }}; transition: all 220ms ease;" style-hover="transform: translateY(-1px);">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <sc-for list="{{ r.paths }}" as="p" hint-placeholder-count="2">
+                  <path d="{{ p.d }}"></path>
+                </sc-for>
+                <sc-if value="{{ r.circle }}" hint-placeholder-val="{{ true }}">
+                  <circle cx="{{ r.cx }}" cy="{{ r.cy }}" r="{{ r.cr }}"></circle>
+                </sc-if>
+              </svg>
+              {{ r.name }}
+            </button>
+          </sc-for>
+        </div>
+        <div style="display: flex; alignItems: flex-start; gap: 9px; padding: 12px 15px; borderRadius: 18px; background: rgba(255,255,255,0.66); boxShadow: inset 0 0 0 1.5px rgba(51,71,94,0.07);">
+          <span style="marginTop: 1px; color: {{ ruleIconColor }}; flexShrink: 0; display: flex;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 7.7v.2"></path></svg>
+          </span>
+          <span style="fontSize: 13.5px; fontWeight: 650; lineHeight: 1.5; color: rgba(51,71,94,0.72);">{{ roomRule }}</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flexWrap: wrap; gap: 20px;">
+        <div style="flex: 1 1 200px; display: flex; flexDirection: column; gap: 11px;">
+          <span style="fontSize: 12.5px; fontWeight: 800; letterSpacing: 0.8px; textTransform: uppercase; color: rgba(51,71,94,0.5);">Thời lượng phiên</span>
+          <div style="display: flex; gap: 8px;">
+            <sc-for list="{{ durations }}" as="d" hint-placeholder-count="2">
+              <button onClick="{{ d.pick }}" style="flex: 1; border: 1.5px solid {{ d.border }}; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; color: {{ d.color }}; padding: 11px 0; borderRadius: 18px; background: {{ d.bg }}; transition: all 220ms ease;">{{ d.name }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="flex: 1 1 200px; display: flex; flexDirection: column; gap: 11px;">
+          <span style="fontSize: 12.5px; fontWeight: 800; letterSpacing: 0.8px; textTransform: uppercase; color: rgba(51,71,94,0.5);">Ngôn ngữ</span>
+          <div style="display: flex; gap: 8px;">
+            <sc-for list="{{ languages }}" as="l" hint-placeholder-count="2">
+              <button onClick="{{ l.pick }}" style="flex: 1; border: 1.5px solid {{ l.border }}; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; color: {{ l.color }}; padding: 11px 0; borderRadius: 18px; background: {{ l.bg }}; transition: all 220ms ease;">{{ l.name }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flexWrap: wrap; gap: 10px;">
+        <button onClick="{{ startSearch }}" style="flex: 1 1 180px; border: 1.5px solid transparent; cursor: pointer; fontFamily: inherit; fontSize: 15.5px; fontWeight: 800; color: #1e3549; padding: 15px 12px; borderRadius: 22px; background: {{ accentSoft }}; boxShadow: 0 12px 26px rgba(58,98,126,0.16); transition: transform 200ms ease, box-shadow 200ms ease;" style-hover="transform: translateY(-2px); box-shadow: 0 16px 32px rgba(58,98,126,0.22);">Ghép ngẫu nhiên</button>
+        <button onClick="{{ openCreate }}" style="flex: 1 1 180px; border: 1.5px solid {{ accentBorder }}; cursor: pointer; fontFamily: inherit; fontSize: 15.5px; fontWeight: 800; color: #22483f; padding: 15px 12px; borderRadius: 22px; background: #ffffff; transition: transform 200ms ease, background 200ms ease;" style-hover="transform: translateY(-2px); background: rgba(255,255,255,0.86);">Tạo phòng mới</button>
+        <button onClick="{{ openRooms }}" style="flex: 1 1 180px; border: 1.5px solid rgba(51,71,94,0.16); cursor: pointer; fontFamily: inherit; fontSize: 15.5px; fontWeight: 800; color: #43596f; padding: 15px 12px; borderRadius: 22px; background: #ffffff; transition: transform 200ms ease, background 200ms ease;" style-hover="transform: translateY(-2px); background: rgba(255,255,255,0.86);">Danh sách phòng</button>
+      </div>
+    </div>
+
+    <!-- STATE 2: searching -->
+    <div style="width: 100%; maxWidth: 560px; padding: 34px; borderRadius: 34px; background: rgba(255,255,255,0.72); backdropFilter: blur(22px); boxShadow: 0 22px 56px rgba(58,98,126,0.12); display: {{ searchDisplay }}; flexDirection: column; alignItems: center; gap: 26px; opacity: {{ searchOpacity }}; transform: translateY({{ searchShift }}); transition: opacity 420ms ease, transform 420ms cubic-bezier(0.22,1,0.36,1);">
+
+      <div style="display: flex; flexWrap: wrap; justifyContent: center; gap: 7px;">
+        <sc-for list="{{ summary }}" as="c" hint-placeholder-count="3">
+          <span style="fontSize: 12.5px; fontWeight: 700; color: #35566b; padding: 7px 14px; borderRadius: 999px; background: rgba(255,255,255,0.8); boxShadow: 0 3px 10px rgba(58,98,126,0.07);">{{ c.text }}</span>
+        </sc-for>
+      </div>
+
+      <div style="position: relative; width: 240px; height: 240px; display: flex; alignItems: center; justifyContent: center;">
+        <div style="position: absolute; width: 240px; height: 240px; borderRadius: 999px; border: 2px solid rgba(126,201,198,0.55); animation: ffRipple 3.4s cubic-bezier(0.24,0.6,0.3,1) infinite;"></div>
+        <div style="position: absolute; width: 240px; height: 240px; borderRadius: 999px; border: 2px solid rgba(150,190,220,0.5); animation: ffRipple 3.4s cubic-bezier(0.24,0.6,0.3,1) infinite; animationDelay: 1.13s;"></div>
+        <div style="position: absolute; width: 240px; height: 240px; borderRadius: 999px; border: 2px solid rgba(126,201,198,0.4); animation: ffRipple 3.4s cubic-bezier(0.24,0.6,0.3,1) infinite; animationDelay: 2.26s;"></div>
+        <div style="position: absolute; width: 150px; height: 150px; borderRadius: 999px; background: rgba(255,255,255,0.72); boxShadow: 0 12px 34px rgba(58,98,126,0.13); animation: ffBreathe 3.4s ease-in-out infinite;"></div>
+        <div style="position: relative; display: flex; flexDirection: column; alignItems: center; gap: 2px; animation: ffDrift 3.4s ease-in-out infinite;">
+          <span style="fontSize: 34px; fontWeight: 800; lineHeight: 1; color: #2c3f55; fontVariantNumeric: tabular-nums;">{{ waited }}</span>
+          <span style="fontSize: 12.5px; fontWeight: 700; color: rgba(51,71,94,0.5);">giây</span>
+        </div>
+      </div>
+
+      <div style="textAlign: center; display: flex; flexDirection: column; gap: 7px;">
+        <span style="fontSize: 19px; fontWeight: 800; letterSpacing: -0.2px; color: #2c3f55;">Đang tìm người phù hợp…</span>
+        <span style="fontSize: 14px; fontWeight: 600; color: rgba(51,71,94,0.55);">{{ hintText }}</span>
+      </div>
+
+      <div style="display: flex; alignItems: center; gap: 10px;">
+        <button onClick="{{ cancelSearch }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 15px; fontWeight: 800; color: #43596f; padding: 14px 30px; borderRadius: 22px; background: rgba(255,255,255,0.85); boxShadow: 0 8px 20px rgba(58,98,126,0.1); transition: background 200ms ease;" style-hover="background: #ffffff;">Huỷ tìm</button>
+        <button onClick="{{ cancelSearch }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 15px; fontWeight: 700; color: rgba(51,71,94,0.6); padding: 14px 22px; borderRadius: 22px; background: transparent;" style-hover="color: #2c3f55;">Sửa bộ lọc</button>
+      </div>
+    </div>
+
+    <!-- STATE 3: public room list -->
+    <div style="width: 100%; maxWidth: 660px; padding: 30px 32px 28px; borderRadius: 34px; background: rgba(255,255,255,0.8); backdropFilter: blur(22px); boxShadow: 0 22px 56px rgba(58,98,126,0.13); display: {{ roomsDisplay }}; flexDirection: column; gap: 20px; opacity: {{ roomsOpacity }}; transform: translateY({{ roomsShift }}); transition: opacity 420ms ease, transform 420ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="display: flex; alignItems: flex-start; justifyContent: space-between; gap: 16px;">
+        <div>
+          <h2 style="margin: 0; fontSize: 23px; fontWeight: 800; letterSpacing: -0.4px; color: #2c3f55;">Phòng công khai đang mở</h2>
+          <p style="margin: 7px 0 0; fontSize: 14px; fontWeight: 600; color: rgba(51,71,94,0.55);">{{ roomCountLabel }}</p>
+        </div>
+        <button onClick="{{ backToFilters }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 800; color: #43596f; padding: 10px 18px; borderRadius: 18px; background: rgba(255,255,255,0.8); boxShadow: 0 6px 16px rgba(58,98,126,0.09); flexShrink: 0;" style-hover="background: #ffffff;">← Quay lại</button>
+      </div>
+
+      <div style="display: flex; flexDirection: column; gap: 10px;">
+        <sc-for list="{{ publicRooms }}" as="p" hint-placeholder-count="5">
+          <div style="display: flex; alignItems: center; flexWrap: wrap; gap: 12px; padding: 15px 18px; borderRadius: 24px; background: rgba(255,255,255,0.74); boxShadow: 0 8px 20px rgba(58,98,126,0.08);">
+            <div style="flex: 1 1 230px; display: flex; flexDirection: column; gap: 7px; minWidth: 0;">
+              <div style="display: flex; alignItems: center; gap: 9px; flexWrap: wrap;">
+                <span style="fontSize: 15.5px; fontWeight: 800; color: #2c3f55;">{{ p.name }}</span>
+                <span style="fontSize: 11.5px; fontWeight: 800; letterSpacing: 0.3px; padding: 4px 11px; borderRadius: 999px; background: {{ p.badgeBg }}; color: {{ p.badgeColor }};">{{ p.type }}</span>
+              </div>
+              <span style="fontSize: 13px; fontWeight: 650; color: rgba(51,71,94,0.55);">Host {{ p.host }} · {{ p.duration }}</span>
+            </div>
+            <div style="display: flex; alignItems: center; gap: 12px;">
+              <div style="display: flex; alignItems: center; gap: 6px; fontSize: 13.5px; fontWeight: 800; color: {{ p.countColor }};">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="9" cy="8.5" r="3.2"></circle><path d="M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19"></path><path d="M16.4 5.6a3.2 3.2 0 010 5.8"></path><path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1"></path></svg>
+                {{ p.countLabel }}
+              </div>
+              <button onClick="{{ p.join }}" disabled="{{ p.full }}" style="border: none; cursor: {{ p.joinCursor }}; fontFamily: inherit; fontSize: 14px; fontWeight: 800; color: {{ p.joinColor }}; padding: 11px 22px; borderRadius: 18px; background: {{ p.joinBg }}; transition: transform 200ms ease;" style-hover="transform: translateY(-1px);">{{ p.joinLabel }}</button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <a href="./FocusFlow.dc.html" style="fontSize: 13.5px; fontWeight: 700; textDecoration: none;">← Về màn hình học</a>
+  </div>
+
+  <!-- create-room modal -->
+  <div style="position: fixed; inset: 0; zIndex: 60; display: {{ modalDisplay }}; alignItems: center; justifyContent: center; padding: 24px; background: rgba(38,66,86,0.28); backdropFilter: blur(6px);">
+    <div onClick="{{ closeCreate }}" style="position: absolute; inset: 0;"></div>
+    <div style="position: relative; width: 100%; maxWidth: 400px; padding: 28px 28px 24px; borderRadius: 30px; background: #ffffff; boxShadow: 0 30px 70px rgba(38,66,86,0.28); display: flex; flexDirection: column; gap: 18px; animation: ffPop 320ms cubic-bezier(0.22,1,0.36,1);">
+
+      <div style="display: {{ createFormDisplay }}; flexDirection: column; gap: 18px;">
+        <div>
+          <h3 style="margin: 0; fontSize: 20px; fontWeight: 800; letterSpacing: -0.3px; color: #2c3f55;">Tạo phòng mới</h3>
+          <p style="margin: 6px 0 0; fontSize: 13.5px; fontWeight: 650; color: rgba(51,71,94,0.55);">Host: {{ hostName }} · Loại phòng: {{ roomTypeName }}</p>
+        </div>
+
+        <div style="display: flex; flexDirection: column; gap: 8px;">
+          <span style="fontSize: 12.5px; fontWeight: 800; letterSpacing: 0.8px; textTransform: uppercase; color: rgba(51,71,94,0.5);">Tên phòng</span>
+          <input value="{{ roomName }}" onChange="{{ setRoomName }}" placeholder="VD: Deep work 8h tối" style="width: 100%; border: 1.5px solid rgba(51,71,94,0.14); outline: none; fontSize: 15px; fontWeight: 700; color: #2c3f55; padding: 13px 16px; borderRadius: 18px; background: rgba(240,248,250,0.7);" style-focus="border-color: rgba(126,201,198,0.9); background: #ffffff;" />
+        </div>
+
+        <div style="display: flex; flexDirection: column; gap: 8px;">
+          <div style="display: flex; alignItems: baseline; justifyContent: space-between; gap: 12px;">
+            <span style="fontSize: 12.5px; fontWeight: 800; letterSpacing: 0.8px; textTransform: uppercase; color: rgba(51,71,94,0.5);">Số người tối đa</span>
+            <span style="fontSize: 13.5px; fontWeight: 800; color: #2c5b53;">{{ capacityLabel }}</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <sc-for list="{{ capacities }}" as="c" hint-placeholder-count="5">
+              <button onClick="{{ c.pick }}" style="flex: 1; border: 1.5px solid {{ c.border }}; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; color: {{ c.color }}; padding: 11px 0; borderRadius: 18px; background: {{ c.bg }}; transition: all 220ms ease;">{{ c.name }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display: flex; flexDirection: column; gap: 8px;">
+          <span style="fontSize: 12.5px; fontWeight: 800; letterSpacing: 0.8px; textTransform: uppercase; color: rgba(51,71,94,0.5);">Quyền riêng tư</span>
+          <div style="display: flex; gap: 8px;">
+            <sc-for list="{{ visibilities }}" as="v" hint-placeholder-count="2">
+              <button onClick="{{ v.pick }}" style="flex: 1; border: 1.5px solid {{ v.border }}; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; color: {{ v.color }}; padding: 11px 0; borderRadius: 18px; background: {{ v.bg }}; transition: all 220ms ease;">{{ v.name }}</button>
+            </sc-for>
+          </div>
+          <span style="fontSize: 12.5px; fontWeight: 650; color: rgba(51,71,94,0.5);">{{ visibilityHint }}</span>
+        </div>
+
+        <button onClick="{{ createRoom }}" style="width: 100%; border: none; cursor: pointer; fontFamily: inherit; fontSize: 16px; fontWeight: 800; color: #1e3549; padding: 15px 0; borderRadius: 22px; background: {{ accentSoft }}; boxShadow: 0 12px 26px rgba(58,98,126,0.16); transition: transform 200ms ease;" style-hover="transform: translateY(-2px);">Tạo phòng</button>
+      </div>
+
+      <div style="display: {{ createdDisplay }}; flexDirection: column; alignItems: center; gap: 16px; textAlign: center;">
+        <span style="display: flex; alignItems: center; justifyContent: center; width: 54px; height: 54px; borderRadius: 999px; background: rgba(140,205,196,0.3); color: #2c5b53;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+        </span>
+        <div>
+          <h3 style="margin: 0; fontSize: 20px; fontWeight: 800; color: #2c3f55;">Đã tạo “{{ createdName }}”</h3>
+          <p style="margin: 6px 0 0; fontSize: 13.5px; fontWeight: 650; color: rgba(51,71,94,0.55);">{{ createdMeta }} · Chia sẻ mã này để bạn bè vào phòng.</p>
+        </div>
+        <div style="display: flex; alignItems: center; gap: 10px; width: 100%; padding: 12px 12px 12px 18px; borderRadius: 20px; background: rgba(240,248,250,0.9); boxShadow: inset 0 0 0 1.5px rgba(51,71,94,0.08);">
+          <span style="flex: 1; textAlign: left; fontSize: 22px; fontWeight: 800; letterSpacing: 3px; color: #2c3f55;">{{ roomId }}</span>
+          <button onClick="{{ copyId }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 13.5px; fontWeight: 800; color: #22483f; padding: 10px 16px; borderRadius: 15px; background: {{ accentSoft }};" style-hover="filter: brightness(0.97);">{{ copyLabel }}</button>
+        </div>
+        <div style="display: flex; gap: 9px; width: 100%;">
+          <button onClick="{{ closeCreate }}" style="flex: 1; border: 1.5px solid rgba(51,71,94,0.16); cursor: pointer; fontFamily: inherit; fontSize: 14.5px; fontWeight: 800; color: #43596f; padding: 13px 0; borderRadius: 20px; background: #ffffff;" style-hover="background: rgba(240,248,250,0.8);">Đóng</button>
+          <a href="./FocusFlow Room.dc.html" style="flex: 1; textAlign: center; textDecoration: none; fontSize: 14.5px; fontWeight: 800; color: #1e3549; padding: 13px 0; borderRadius: 20px; background: {{ accentSoft }};">Vào phòng</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:900},&quot;defaultDuration&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;25 phút&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;25 phút&quot;,&quot;50 phút&quot;],&quot;section&quot;:&quot;Ghép cặp&quot;},&quot;hostName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Nhật Minh&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Ghép cặp&quot;},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;oklch(0.74 0.085 195)&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;oklch(0.74 0.085 195)&quot;,&quot;oklch(0.72 0.08 235)&quot;,&quot;oklch(0.78 0.08 170)&quot;,&quot;oklch(0.7 0.07 260)&quot;],&quot;section&quot;:&quot;Hiển thị&quot;}}">
+const ROOM_TYPES = [
+  { key: 'chill', name: 'Chill', rule: 'Bật nhạc, tự do bật/tắt cam và mic.', hue: 195,
+    paths: [{ d: 'M9 18V6l10-2v12' }], circle: true, cx: 6.5, cy: 18, cr: 2.6 },
+  { key: 'hardcore', name: 'Hardcore', rule: 'Bắt buộc bật cam, tắt nhạc và mic.', hue: 45,
+    paths: [{ d: 'M12 3c2.5 3 1 5 0 6-1.2-1-2.6-.6-2.6 1.2 0 1.1-1.4 1-1.4-1C6.4 11 5.5 13 5.5 15a6.5 6.5 0 1013 0c0-4-3-8.5-6.5-12z' }], circle: false, cx: 0, cy: 0, cr: 0 },
+  { key: 'silent', name: 'Im lặng', rule: 'Không nhạc, không cam, không mic — chỉ đồng hồ chung.', hue: 265,
+    paths: [{ d: 'M20.5 14.5A8.5 8.5 0 019.5 3.5a8.5 8.5 0 1011 11z' }], circle: false, cx: 0, cy: 0, cr: 0 },
+  { key: 'discuss', name: 'Thảo luận', rule: 'Bật cam và mic để trao đổi, không nhạc.', hue: 235,
+    paths: [{ d: 'M3 15V6.5A2.5 2.5 0 015.5 4h8A2.5 2.5 0 0116 6.5V11a2.5 2.5 0 01-2.5 2.5H7L3 15z' }, { d: 'M9 17.5a2.5 2.5 0 002.5 2.5h4l3.5 1.5-.8-2.2A2.5 2.5 0 0021 17v-3' }], circle: false, cx: 0, cy: 0, cr: 0 },
+  { key: 'watch', name: 'Giám sát', rule: 'Bắt buộc bật cam để giám sát nhau, tắt nhạc và mic.', hue: 150,
+    paths: [{ d: 'M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z' }], circle: true, cx: 12, cy: 12, cr: 2.8 }
+];
+
+const PUBLIC_ROOMS = [
+  { name: 'Deep work 8h tối', type: 'hardcore', host: 'Minh Anh', now: 3, max: 4, duration: '50 phút' },
+  { name: 'Quán cà phê ảo', type: 'chill', host: 'Trâm', now: 5, max: 8, duration: '25 phút' },
+  { name: 'Thư viện im lặng', type: 'silent', host: 'Duy Khang', now: 6, max: 6, duration: '50 phút' },
+  { name: 'Ôn IELTS speaking', type: 'discuss', host: 'Hà Vy', now: 2, max: 4, duration: '25 phút' },
+  { name: 'Cày deadline cùng nhau', type: 'watch', host: 'Bảo Long', now: 4, max: 6, duration: '50 phút' },
+  { name: 'Sáng sớm 6AM club', type: 'chill', host: 'Ngọc', now: 2, max: 8, duration: '25 phút' }
+];
+
+const HINTS = [
+  'Đang xem ai đang mở phòng cùng loại với bạn…',
+  'Ưu tiên người chọn cùng thời lượng phiên.',
+  'Sắp xong rồi, giữ máy giúp mình nhé.',
+  'Nếu lâu quá, thử đổi sang loại phòng khác cho dễ ghép.'
+];
+
+class Component extends DCLogic {
+  state = {
+    stage: 'filters',
+    fade: 1,
+    roomType: 'chill',
+    duration: this.props.defaultDuration || '25 phút',
+    language: 'Tiếng Việt',
+    waited: 0,
+    modal: false,
+    created: false,
+    roomName: '',
+    visibility: 'Công khai',
+    capacity: 4,
+    roomId: '',
+    copied: false
+  };
+
+  componentDidMount() {
+    this.timer = setInterval(() => {
+      if (this.state.stage === 'searching') this.setState(s => ({ waited: s.waited + 1 }));
+    }, 1000);
+  }
+  componentWillUnmount() { clearInterval(this.timer); clearTimeout(this.copyTimer); }
+
+  go(stage) {
+    this.setState({ fade: 0 });
+    setTimeout(() => this.setState({ stage, fade: 1, waited: 0 }), 200);
+  }
+
+  renderVals() {
+    const st = this.state;
+    const accent = this.props.accentColor || 'oklch(0.74 0.085 195)';
+    const accentSoft = 'color-mix(in oklab, ' + accent + ' 62%, white)';
+    const host = this.props.hostName || 'Nhật Minh';
+    const chip = on => ({
+      bg: on ? 'color-mix(in oklab, ' + accent + ' 32%, white)' : 'rgba(255,255,255,0.72)',
+      border: on ? 'color-mix(in oklab, ' + accent + ' 60%, white)' : 'rgba(51,71,94,0.12)',
+      color: on ? '#22483f' : 'rgba(51,71,94,0.68)'
+    });
+    const current = ROOM_TYPES.find(r => r.key === st.roomType) || ROOM_TYPES[0];
+
+    return {
+      accentSoft,
+      accentBorder: 'color-mix(in oklab, ' + accent + ' 58%, white)',
+      hostName: host,
+      filtersDisplay: st.stage === 'filters' ? 'flex' : 'none',
+      searchDisplay: st.stage === 'searching' ? 'flex' : 'none',
+      roomsDisplay: st.stage === 'rooms' ? 'flex' : 'none',
+      filtersOpacity: st.fade, searchOpacity: st.fade, roomsOpacity: st.fade,
+      filtersShift: st.fade ? '0px' : '8px',
+      searchShift: st.fade ? '0px' : '8px',
+      roomsShift: st.fade ? '0px' : '8px',
+
+      roomTypes: ROOM_TYPES.map(r => Object.assign(
+        { name: r.name, paths: r.paths, circle: r.circle, cx: r.cx, cy: r.cy, cr: r.cr,
+          pick: () => this.setState({ roomType: r.key }) },
+        chip(st.roomType === r.key)
+      )),
+      roomRule: current.rule,
+      roomTypeName: current.name,
+      ruleIconColor: 'oklch(0.62 0.09 ' + current.hue + ')',
+
+      durations: ['25 phút', '50 phút'].map(name => Object.assign(
+        { name, pick: () => this.setState({ duration: name }) }, chip(st.duration === name)
+      )),
+      languages: ['Tiếng Việt', 'English'].map(name => Object.assign(
+        { name, pick: () => this.setState({ language: name }) }, chip(st.language === name)
+      )),
+
+      startSearch: () => this.go('searching'),
+      cancelSearch: () => this.go('filters'),
+      openRooms: () => this.go('rooms'),
+      backToFilters: () => this.go('filters'),
+      waited: st.waited,
+      hintText: HINTS[Math.min(HINTS.length - 1, Math.floor(st.waited / 8))],
+      summary: [{ text: current.name }, { text: st.duration }, { text: st.language }],
+
+      roomCountLabel: PUBLIC_ROOMS.length + ' phòng đang mở · cập nhật liên tục',
+      publicRooms: PUBLIC_ROOMS.map(p => {
+        const t = ROOM_TYPES.find(r => r.key === p.type);
+        const full = p.now >= p.max;
+        return {
+          name: p.name, host: p.host, duration: p.duration, type: t.name,
+          badgeBg: 'oklch(0.93 0.045 ' + t.hue + ')',
+          badgeColor: 'oklch(0.42 0.08 ' + t.hue + ')',
+          countLabel: p.now + '/' + p.max,
+          countColor: full ? 'rgba(51,71,94,0.42)' : '#2c5b53',
+          full,
+          joinLabel: full ? 'Đầy' : 'Tham gia',
+          joinBg: full ? 'rgba(51,71,94,0.08)' : accentSoft,
+          joinColor: full ? 'rgba(51,71,94,0.42)' : '#1e3549',
+          joinCursor: full ? 'not-allowed' : 'pointer',
+          join: () => { if (!full) window.location.href = './FocusFlow Room.dc.html'; }
+        };
+      }),
+
+      modalDisplay: st.modal ? 'flex' : 'none',
+      createFormDisplay: st.created ? 'none' : 'flex',
+      createdDisplay: st.created ? 'flex' : 'none',
+      openCreate: () => this.setState({ modal: true, created: false, copied: false, roomName: '' }),
+      closeCreate: () => this.setState({ modal: false }),
+      roomName: st.roomName,
+      setRoomName: e => this.setState({ roomName: e.target.value }),
+      capacities: [2, 4, 6, 8, 12].map(n => Object.assign(
+        { name: String(n), pick: () => this.setState({ capacity: n }) }, chip(st.capacity === n)
+      )),
+      capacityLabel: st.capacity + ' người (gồm bạn)',
+      visibilities: ['Công khai', 'Riêng tư'].map(name => Object.assign(
+        { name, pick: () => this.setState({ visibility: name }) }, chip(st.visibility === name)
+      )),
+      visibilityHint: st.visibility === 'Công khai'
+        ? 'Phòng hiện trong danh sách công khai, ai cũng có thể tham gia.'
+        : 'Chỉ người có mã phòng mới vào được.',
+      createRoom: () => {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let id = '';
+        for (let i = 0; i < 6; i++) id += chars[Math.floor(Math.random() * chars.length)];
+        this.setState(s => ({ created: true, roomId: id, roomName: s.roomName.trim() || 'Phòng của ' + host }));
+      },
+      createdName: st.roomName || 'Phòng của ' + host,
+      createdMeta: st.visibility + ' · tối đa ' + st.capacity + ' người',
+      roomId: st.roomId,
+      copyLabel: st.copied ? 'Đã chép ✓' : 'Sao chép',
+      copyId: () => {
+        if (navigator.clipboard) navigator.clipboard.writeText(st.roomId).catch(() => {});
+        this.setState({ copied: true });
+        clearTimeout(this.copyTimer);
+        this.copyTimer = setTimeout(() => this.setState({ copied: false }), 1800);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

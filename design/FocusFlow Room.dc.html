@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #eef6f8; }
+  * { box-sizing: border-box; }
+  a { color: oklch(0.58 0.075 220); }
+  a:hover { color: oklch(0.5 0.08 220); }
+  input::placeholder { color: rgba(51,71,94,0.38); font-weight: 600; }
+  input[type=range] { -webkit-appearance: none; appearance: none; height: 26px; background: none; }
+  input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: rgba(51,71,94,0.14); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6px; border-radius: 999px; background: #ffffff; border: 3.5px solid rgba(126,201,198,0.95); box-shadow: 0 3px 9px rgba(58,98,126,0.2); cursor: pointer; }
+  @keyframes ffEq { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+</style>
+</helmet>
+<div style="position: relative; width: 100%; height: 100vh; overflow: hidden; fontFamily: Nunito, system-ui, sans-serif; color: #33475e; -webkit-font-smoothing: antialiased; background: linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%);">
+
+  <!-- top bar -->
+  <div style="position: absolute; zIndex: 42; top: 22px; left: 26px; right: 26px; display: flex; alignItems: center; justifyContent: space-between; flexWrap: wrap; gap: 10px;">
+    <div style="display: flex; alignItems: center; gap: 11px; padding: 9px 18px 9px 13px; borderRadius: 22px; background: rgba(255,255,255,0.66); backdropFilter: blur(16px); boxShadow: 0 6px 20px rgba(64,102,128,0.09);">
+      <div style="width: 20px; height: 20px; borderRadius: 8px; background: linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235));"></div>
+      <span style="fontSize: 16px; fontWeight: 800; letterSpacing: -0.2px; color: #2f4459;">FocusFlow</span>
+      <span style="fontSize: 13px; fontWeight: 600; color: rgba(51,71,94,0.5);">· Phòng học chung</span>
+    </div>
+    <div style="display: flex; alignItems: center; gap: 10px;">
+      <div style="display: flex; alignItems: center; gap: 5px; padding: 5px; borderRadius: 20px; background: rgba(255,255,255,0.66); backdropFilter: blur(16px); boxShadow: 0 6px 20px rgba(64,102,128,0.09);">
+        <sc-for list="{{ demoSets }}" as="d" hint-placeholder-count="2">
+          <button onClick="{{ d.pick }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 12.5px; fontWeight: 800; color: {{ d.color }}; padding: 8px 14px; borderRadius: 15px; background: {{ d.bg }}; boxShadow: {{ d.shadow }}; transition: all 220ms ease;">{{ d.name }}</button>
+        </sc-for>
+      </div>
+      <div style="display: flex; alignItems: center; gap: 9px; padding: 9px 17px; borderRadius: 20px; background: rgba(255,255,255,0.66); backdropFilter: blur(16px); boxShadow: 0 6px 20px rgba(64,102,128,0.09);">
+        <span style="width: 8px; height: 8px; borderRadius: 999px; background: oklch(0.76 0.09 170);"></span>
+        <span style="fontSize: 13.5px; fontWeight: 700; color: #35566b;">{{ syncLabel }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- video stage -->
+  <div style="position: absolute; inset: 0; padding: 84px 26px 112px; paddingRight: {{ stagePadRight }}; transition: padding 420ms cubic-bezier(0.22,1,0.36,1);">
+    <div style="position: relative; width: 100%; height: 100%; borderRadius: 34px; overflow: hidden; border: 2px solid rgba(140,205,196,0.4); boxShadow: 0 22px 56px rgba(58,98,126,0.15); background: repeating-linear-gradient(135deg, #dbe9ef 0 14px, #d2e3ea 14px 28px); padding: 16px;">
+      <div style="width: 100%; height: 100%; display: grid; gap: 14px; gridTemplateColumns: {{ gridCols }}; gridTemplateRows: {{ gridRows }}; placeContent: stretch;">
+        <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="5">
+          <div style="position: relative; width: 100%; maxWidth: 100%; maxHeight: 100%; aspectRatio: 16 / 9; margin: auto; borderRadius: 24px; overflow: hidden; border: {{ t.tileBorder }}; boxShadow: {{ t.tileShadow }}; background: repeating-linear-gradient(135deg, #e3eef2 0 12px, #dae8ee 12px 24px);">
+            <div style="position: absolute; inset: 0; display: flex; flexDirection: column; alignItems: center; justifyContent: center; gap: 6px;">
+              <span style="fontFamily: 'IBM Plex Mono', monospace; fontSize: 12px; letterSpacing: 0.5px; color: rgba(51,71,94,0.5); padding: 7px 12px; borderRadius: 11px; background: rgba(255,255,255,0.7);">{{ t.feedLabel }}</span>
+            </div>
+            <div style="position: absolute; top: 12px; left: 12px; display: flex; alignItems: center; gap: 8px; padding: 6px 13px 6px 7px; borderRadius: 18px; background: rgba(255,255,255,0.82); backdropFilter: blur(14px); boxShadow: 0 5px 15px rgba(58,98,126,0.1);">
+              <span style="width: 26px; height: 26px; borderRadius: 10px; background: {{ t.avatarBg }}; display: flex; alignItems: center; justifyContent: center; fontSize: 11.5px; fontWeight: 800; color: {{ t.avatarColor }};">{{ t.initials }}</span>
+              <span style="fontSize: 13px; fontWeight: 800; color: #2c3f55;">{{ t.name }}</span>
+              <span style="fontSize: 11.5px; fontWeight: 700; color: {{ t.statusColor }};">{{ t.status }}</span>
+            </div>
+            <span style="position: absolute; top: 14px; right: 14px; display: {{ t.selfDotDisplay }}; alignItems: center; gap: 6px; padding: 5px 11px; borderRadius: 999px; background: rgba(255,255,255,0.82); fontSize: 11px; fontWeight: 800; letterSpacing: 0.4px; color: #22483f;">
+              <span style="width: 7px; height: 7px; borderRadius: 999px; background: oklch(0.72 0.11 165);"></span>
+              Bạn
+            </span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- floating pomodoro -->
+  <div style="position: absolute; zIndex: 40; top: 106px; left: 50%; transform: translateX(-50%); display: flex; alignItems: center; gap: 18px; padding: 14px 24px 14px 16px; borderRadius: 30px; background: rgba(255,255,255,0.62); backdropFilter: blur(18px); boxShadow: 0 16px 40px rgba(58,98,126,0.16);">
+    <div style="position: relative; width: 92px; height: 92px; display: flex; alignItems: center; justifyContent: center;">
+      <svg viewBox="0 0 100 100" style="position: absolute; width: 92px; height: 92px; transform: rotate(-90deg);">
+        <circle cx="50" cy="50" r="43" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="8"></circle>
+        <circle cx="50" cy="50" r="43" fill="none" stroke="{{ accent }}" stroke-width="8" stroke-linecap="round" stroke-dasharray="270.2" style="strokeDashoffset: {{ dashOffset }}; transition: strokeDashoffset 980ms linear;"></circle>
+      </svg>
+      <span style="position: relative; fontSize: 21px; fontWeight: 800; color: #2c3f55; fontVariantNumeric: tabular-nums;">{{ timeText }}</span>
+    </div>
+    <div style="display: flex; flexDirection: column; gap: 8px;">
+      <div style="display: flex; flexDirection: column; gap: 1px;">
+        <span style="fontSize: 12px; fontWeight: 800; letterSpacing: 1.2px; textTransform: uppercase; color: rgba(51,71,94,0.5);">{{ phaseLabel }}</span>
+        <span style="fontSize: 13.5px; fontWeight: 700; color: #2c3f55;">Phiên {{ roundLabel }} · cả hai cùng chạy</span>
+      </div>
+      <div style="display: flex; gap: 7px;">
+        <button onClick="{{ toggleRun }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 13px; fontWeight: 800; color: #1e3549; padding: 9px 18px; borderRadius: 16px; background: {{ accentSoft }}; transition: transform 200ms ease;" style-hover="transform: translateY(-1px);">{{ playLabel }}</button>
+        <button onClick="{{ reset }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 13px; fontWeight: 700; color: #4a637d; padding: 9px 16px; borderRadius: 16px; background: rgba(255,255,255,0.7);" style-hover="background: #ffffff;">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- controls -->
+  <div style="position: absolute; zIndex: 30; bottom: 28px; left: 50%; transform: translateX(-50%); display: flex; alignItems: center; gap: 8px; padding: 10px; borderRadius: 26px; background: rgba(255,255,255,0.7); backdropFilter: blur(18px); boxShadow: 0 14px 34px rgba(58,98,126,0.15);">
+    <button onClick="{{ toggleCam }}" style="display: flex; alignItems: center; gap: 9px; border: none; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; color: {{ camColor }}; padding: 12px 20px; borderRadius: 19px; background: {{ camBg }}; transition: all 220ms ease;" style-hover="filter: brightness(1.03);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="2.5" y="6.5" width="13" height="11" rx="3.5"></rect><path d="M15.5 11.5l6-3v7l-6-3z"></path><path d="{{ camSlash }}"></path></svg>
+      {{ camLabel }}
+    </button>
+    <button onClick="{{ toggleMic }}" style="display: flex; alignItems: center; gap: 9px; border: none; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; color: {{ micColor }}; padding: 12px 20px; borderRadius: 19px; background: {{ micBg }}; transition: all 220ms ease;" style-hover="filter: brightness(1.03);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5.5 12a6.5 6.5 0 0013 0M12 18.5V21"></path><path d="{{ micSlash }}"></path></svg>
+      {{ micLabel }}
+    </button>
+    <button onClick="{{ toggleChat }}" style="display: flex; alignItems: center; gap: 9px; border: none; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; color: #354c65; padding: 12px 20px; borderRadius: 19px; background: {{ chatBtnBg }}; transition: all 220ms ease;" style-hover="background: rgba(255,255,255,0.95);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M20 12.5c0 3.6-3.6 6.5-8 6.5-1 0-2-.15-2.9-.42L4.5 20l1.1-3.3A6.7 6.7 0 014 12.5C4 8.9 7.6 6 12 6s8 2.9 8 6.5z"></path></svg>
+      Chat
+    </button>
+    <button onClick="{{ openMusicTab }}" style="display: flex; alignItems: center; gap: 9px; border: none; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; color: #354c65; padding: 12px 20px; borderRadius: 19px; background: {{ musicBtnBg }}; transition: all 220ms ease;" style-hover="background: rgba(255,255,255,0.95);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M9 18V6l10-2v12"></path><circle cx="6.5" cy="18" r="2.6"></circle><circle cx="19" cy="16" r="2.6"></circle></svg>
+      Nhạc
+    </button>
+    <button onClick="{{ openHostTab }}" style="display: {{ hostBtnDisplay }}; alignItems: center; gap: 9px; border: none; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; color: #354c65; padding: 12px 20px; borderRadius: 19px; background: {{ hostBtnBg }}; transition: all 220ms ease;" style-hover="background: rgba(255,255,255,0.95);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19"></path><circle cx="9" cy="8.5" r="3.2"></circle><path d="M17 4.5l1.15 2.4 2.6.36-1.9 1.82.46 2.58L17 10.44l-2.31 1.22.46-2.58-1.9-1.82 2.6-.36z"></path></svg>
+      Quản lý
+      <span style="display: {{ pendingBadgeDisplay }}; fontSize: 12px; fontWeight: 800; padding: 2px 8px; borderRadius: 999px; background: oklch(0.87 0.075 55); color: #7a4a2c;">{{ pendingCount }}</span>
+    </button>
+    <div style="width: 1px; height: 26px; background: rgba(51,71,94,0.13); margin: 0 4px;"></div>
+    <button onClick="{{ leave }}" style="display: flex; alignItems: center; gap: 9px; border: none; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 800; color: #7a3f2c; padding: 12px 22px; borderRadius: 19px; background: oklch(0.86 0.055 45); transition: all 220ms ease;" style-hover="background: oklch(0.82 0.065 45);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M15 5.5V4a2 2 0 00-2-2H6a2 2 0 00-2 2v16a2 2 0 002 2h7a2 2 0 002-2v-1.5"></path><path d="M11 12h10m-3.5-3.5L21 12l-3.5 3.5"></path></svg>
+      Rời phòng
+    </button>
+  </div>
+
+  <!-- side panel: chat + host tabs -->
+  <div style="position: absolute; zIndex: 28; top: 84px; right: 26px; bottom: 112px; width: 340px; padding: 18px; borderRadius: 30px; background: rgba(255,255,255,0.84); backdropFilter: blur(22px); boxShadow: 0 18px 46px rgba(58,98,126,0.15); display: flex; flexDirection: column; gap: 14px; transform: translateX({{ chatShift }}); opacity: {{ chatOpacity }}; pointerEvents: {{ chatEvents }}; transition: transform 440ms cubic-bezier(0.22,1,0.36,1), opacity 340ms ease;">
+
+    <div style="display: flex; alignItems: center; gap: 8px;">
+      <div style="flex: 1; display: flex; gap: 5px; padding: 5px; borderRadius: 20px; background: rgba(238,246,248,0.9);">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2">
+          <button onClick="{{ t.pick }}" style="display: {{ t.display }}; flex: 1; alignItems: center; justifyContent: center; gap: 7px; border: none; cursor: pointer; fontFamily: inherit; fontSize: 13px; fontWeight: 800; color: {{ t.color }}; padding: 9px 6px; borderRadius: 16px; background: {{ t.bg }}; boxShadow: {{ t.shadow }}; transition: all 220ms ease;">
+            {{ t.name }}
+            <span style="display: {{ t.badgeDisplay }}; fontSize: 11px; fontWeight: 800; padding: 2px 7px; borderRadius: 999px; background: oklch(0.87 0.075 55); color: #7a4a2c;">{{ t.badge }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <button onClick="{{ collapsePanel }}" style="border: none; background: none; cursor: pointer; fontFamily: inherit; fontSize: 13px; fontWeight: 700; color: rgba(51,71,94,0.5); padding: 6px 4px;">Thu gọn</button>
+    </div>
+
+    <!-- tab: chat -->
+    <div style="display: {{ chatTabDisplay }}; flexDirection: column; gap: 12px; flex: 1; minHeight: 0;">
+      <div style="display: flex; flexDirection: column; gap: 9px; overflowY: auto; flex: 1;">
+        <sc-for list="{{ messages }}" as="m" hint-placeholder-count="4">
+          <div style="alignSelf: {{ m.align }}; maxWidth: 84%; display: flex; flexDirection: column; gap: 3px;">
+            <span style="fontSize: 11.5px; fontWeight: 700; color: rgba(51,71,94,0.42); paddingLeft: 4px;">{{ m.who }}</span>
+            <span style="fontSize: 13.5px; fontWeight: 600; lineHeight: 1.5; color: #2c3f55; padding: 11px 14px; borderRadius: 18px; background: {{ m.bg }};">{{ m.text }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display: flex; alignItems: center; gap: 8px; padding: 5px 5px 5px 15px; borderRadius: 20px; background: rgba(255,255,255,0.9); boxShadow: 0 4px 14px rgba(58,98,126,0.08);">
+        <input value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onDraftKey }}" placeholder="Nhắn nhẹ một câu…" style="flex: 1; minWidth: 0; border: none; outline: none; background: none; fontFamily: inherit; fontSize: 13.5px; fontWeight: 600; color: #2c3f55; padding: 10px 0;" />
+        <button onClick="{{ send }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 13px; fontWeight: 800; color: #1e3549; padding: 10px 16px; borderRadius: 15px; background: {{ accentSoft }};">Gửi</button>
+      </div>
+    </div>
+
+    <!-- tab: music -->
+    <div style="display: {{ musicTabDisplay }}; flexDirection: column; gap: 16px; flex: 1; minHeight: 0; overflowY: auto;">
+      <div style="display: flex; alignItems: center; gap: 13px; padding: 15px 16px; borderRadius: 24px; background: rgba(238,246,248,0.9);">
+        <span style="display: flex; alignItems: flex-end; gap: 3px; width: 34px; height: 30px; flexShrink: 0;">
+          <span style="flex: 1; height: 100%; borderRadius: 3px; background: {{ eqColor }}; transformOrigin: bottom; animation: {{ eqAnim1 }};"></span>
+          <span style="flex: 1; height: 100%; borderRadius: 3px; background: {{ eqColor }}; transformOrigin: bottom; animation: {{ eqAnim2 }};"></span>
+          <span style="flex: 1; height: 100%; borderRadius: 3px; background: {{ eqColor }}; transformOrigin: bottom; animation: {{ eqAnim3 }};"></span>
+        </span>
+        <div style="flex: 1; minWidth: 0; display: flex; flexDirection: column; gap: 2px;">
+          <span style="fontSize: 14px; fontWeight: 800; color: #2c3f55;">{{ trackName }}</span>
+          <span style="fontSize: 12px; fontWeight: 650; color: rgba(51,71,94,0.5);">{{ musicStatus }}</span>
+        </div>
+        <button onClick="{{ toggleMusic }}" style="display: flex; alignItems: center; justifyContent: center; width: 40px; height: 40px; flexShrink: 0; border: none; cursor: pointer; borderRadius: 15px; background: {{ accentSoft }}; color: #1e3549;" style-hover="filter: brightness(0.97);">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="{{ playIcon }}"></path></svg>
+        </button>
+      </div>
+
+      <div style="display: flex; alignItems: center; gap: 11px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(51,71,94,0.45)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9.5h3.5L13 5.5v13L8.5 14.5H5z"></path><path d="{{ volIcon }}"></path></svg>
+        <input type="range" min="0" max="100" step="1" value="{{ volume }}" onChange="{{ setVolume }}" style="flex: 1; minWidth: 0;" />
+        <span style="fontSize: 12.5px; fontWeight: 800; color: rgba(51,71,94,0.55); width: 34px; textAlign: right;">{{ volumeLabel }}</span>
+      </div>
+
+      <div style="display: flex; flexDirection: column; gap: 8px;">
+        <div style="display: flex; alignItems: baseline; justifyContent: space-between; gap: 10px;">
+          <span style="fontSize: 12px; fontWeight: 800; letterSpacing: 0.8px; textTransform: uppercase; color: rgba(51,71,94,0.5);">Danh sách phát</span>
+          <span style="fontSize: 12px; fontWeight: 650; color: rgba(51,71,94,0.45);">{{ musicScopeLabel }}</span>
+        </div>
+        <sc-for list="{{ tracks }}" as="t" hint-placeholder-count="5">
+          <button onClick="{{ t.pick }}" style="display: flex; alignItems: center; gap: 11px; textAlign: left; border: none; cursor: pointer; fontFamily: inherit; padding: 11px 13px; borderRadius: 20px; background: {{ t.bg }}; boxShadow: {{ t.shadow }}; transition: all 200ms ease;" style-hover="filter: brightness(0.98);">
+            <span style="width: 30px; height: 30px; borderRadius: 11px; flexShrink: 0; display: flex; alignItems: center; justifyContent: center; background: {{ t.iconBg }}; color: {{ t.iconColor }};">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M9 18V6l10-2v12"></path><circle cx="6.5" cy="18" r="2.6"></circle><circle cx="19" cy="16" r="2.6"></circle></svg>
+            </span>
+            <span style="flex: 1; minWidth: 0; display: flex; flexDirection: column;">
+              <span style="fontSize: 13.5px; fontWeight: 800; color: {{ t.nameColor }};">{{ t.name }}</span>
+              <span style="fontSize: 11.5px; fontWeight: 650; color: rgba(51,71,94,0.48);">{{ t.mood }}</span>
+            </span>
+            <span style="fontSize: 11.5px; fontWeight: 800; color: rgba(51,71,94,0.42);">{{ t.length }}</span>
+          </button>
+        </sc-for>
+      </div>
+
+      <span style="fontSize: 12.5px; fontWeight: 650; lineHeight: 1.5; color: rgba(51,71,94,0.5);">{{ musicHint }}</span>
+    </div>
+
+    <!-- tab: host -->
+    <div style="display: {{ hostTabDisplay }}; flexDirection: column; gap: 16px; flex: 1; minHeight: 0; overflowY: auto;">
+
+    <div style="display: flex; flexDirection: column; gap: 9px;">
+      <span style="fontSize: 12px; fontWeight: 800; letterSpacing: 0.8px; textTransform: uppercase; color: rgba(51,71,94,0.5);">Chế độ vào phòng</span>
+      <div style="display: flex; gap: 7px; padding: 5px; borderRadius: 20px; background: rgba(238,246,248,0.9);">
+        <sc-for list="{{ admitModes }}" as="a" hint-placeholder-count="2">
+          <button onClick="{{ a.pick }}" style="flex: 1; border: none; cursor: pointer; fontFamily: inherit; fontSize: 13px; fontWeight: 800; color: {{ a.color }}; padding: 10px 6px; borderRadius: 16px; background: {{ a.bg }}; boxShadow: {{ a.shadow }}; transition: all 220ms ease;">{{ a.name }}</button>
+        </sc-for>
+      </div>
+      <span style="fontSize: 12.5px; fontWeight: 650; lineHeight: 1.5; color: rgba(51,71,94,0.58);">{{ admitHint }}</span>
+    </div>
+
+    <div style="display: {{ queueDisplay }}; flexDirection: column; gap: 9px;">
+      <div style="display: flex; alignItems: baseline; justifyContent: space-between; gap: 10px;">
+        <span style="fontSize: 12px; fontWeight: 800; letterSpacing: 0.8px; textTransform: uppercase; color: rgba(51,71,94,0.5);">Hàng chờ duyệt</span>
+        <button onClick="{{ approveAll }}" style="display: {{ approveAllDisplay }}; border: none; background: none; cursor: pointer; fontFamily: inherit; fontSize: 12.5px; fontWeight: 800; color: #2c5b53;">Duyệt tất cả</button>
+      </div>
+      <span style="display: {{ emptyQueueDisplay }}; fontSize: 13px; fontWeight: 650; color: rgba(51,71,94,0.45); padding: 14px; borderRadius: 18px; background: rgba(238,246,248,0.8); textAlign: center;">Chưa có ai đang chờ.</span>
+      <sc-for list="{{ pending }}" as="p" hint-placeholder-count="2">
+        <div style="display: flex; alignItems: center; gap: 10px; padding: 10px 12px; borderRadius: 20px; background: rgba(255,246,238,0.9); boxShadow: inset 0 0 0 1.5px rgba(196,142,96,0.18);">
+          <span style="width: 32px; height: 32px; borderRadius: 12px; flexShrink: 0; background: rgba(226,190,150,0.45); display: flex; alignItems: center; justifyContent: center; fontSize: 12.5px; fontWeight: 800; color: #7a4a2c;">{{ p.initials }}</span>
+          <div style="flex: 1; minWidth: 0; display: flex; flexDirection: column;">
+            <span style="fontSize: 13.5px; fontWeight: 800; color: #2c3f55;">{{ p.name }}</span>
+            <span style="fontSize: 11.5px; fontWeight: 650; color: rgba(51,71,94,0.5);">chờ {{ p.wait }}</span>
+          </div>
+          <button onClick="{{ p.approve }}" title="Cho vào" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 12.5px; fontWeight: 800; color: #1e3549; padding: 8px 13px; borderRadius: 14px; background: {{ accentSoft }};" style-hover="filter: brightness(0.97);">Duyệt</button>
+          <button onClick="{{ p.reject }}" title="Từ chối" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 12.5px; fontWeight: 800; color: rgba(51,71,94,0.55); padding: 8px 11px; borderRadius: 14px; background: rgba(255,255,255,0.9);" style-hover="color: #7a3f2c;">Bỏ</button>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flexDirection: column; gap: 9px;">
+      <span style="fontSize: 12px; fontWeight: 800; letterSpacing: 0.8px; textTransform: uppercase; color: rgba(51,71,94,0.5);">Trong phòng · {{ memberCountLabel }}</span>
+      <sc-for list="{{ members }}" as="u" hint-placeholder-count="3">
+        <div style="display: flex; alignItems: center; gap: 10px; padding: 10px 12px; borderRadius: 20px; background: rgba(238,246,248,0.85);">
+          <span style="width: 32px; height: 32px; borderRadius: 12px; flexShrink: 0; background: {{ u.avatarBg }}; display: flex; alignItems: center; justifyContent: center; fontSize: 12.5px; fontWeight: 800; color: {{ u.avatarColor }};">{{ u.initials }}</span>
+          <div style="flex: 1; minWidth: 0; display: flex; flexDirection: column;">
+            <span style="fontSize: 13.5px; fontWeight: 800; color: #2c3f55;">{{ u.name }}</span>
+            <span style="fontSize: 11.5px; fontWeight: 650; color: rgba(51,71,94,0.5);">{{ u.status }}</span>
+          </div>
+          <button onClick="{{ u.kick }}" style="display: {{ u.kickDisplay }}; border: none; cursor: pointer; fontFamily: inherit; fontSize: 12.5px; fontWeight: 800; color: #7a3f2c; padding: 8px 13px; borderRadius: 14px; background: oklch(0.9 0.045 45);" style-hover="background: oklch(0.86 0.055 45);">Kick</button>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:840},&quot;isHost&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Quyền&quot;},&quot;focusMinutes&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:25,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:5,&quot;max&quot;:60,&quot;step&quot;:5,&quot;unit&quot;:&quot;min&quot;,&quot;section&quot;:&quot;Pomodoro&quot;},&quot;chatOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Hiển thị&quot;},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;oklch(0.74 0.085 195)&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;oklch(0.74 0.085 195)&quot;,&quot;oklch(0.72 0.08 235)&quot;,&quot;oklch(0.78 0.08 170)&quot;,&quot;oklch(0.7 0.07 260)&quot;],&quot;section&quot;:&quot;Hiển thị&quot;}}">
+const TRACKS = [
+  { name: 'Lofi mưa đêm', mood: 'lofi · êm', length: '42:10' },
+  { name: 'Quán cà phê 8h', mood: 'jazz nhẹ', length: '58:24' },
+  { name: 'Tiếng mưa rơi', mood: 'tiếng động nền', length: '1:20:00' },
+  { name: 'Piano tập trung', mood: 'piano · trầm', length: '35:47' },
+  { name: 'Sóng biển xa', mood: 'thiên nhiên', length: '1:05:12' }
+];
+
+const ME = { id: 12, name: 'Bạn', status: 'chủ phòng', host: true, me: true };
+const DEMO_SETS = {
+  two: [
+    { id: 10, name: 'Minh Anh', status: 'đang tập trung', host: false },
+    ME
+  ],
+  five: [
+    { id: 10, name: 'Minh Anh', status: 'đang tập trung', host: false },
+    { id: 11, name: 'Hà Vy', status: 'mic tắt', host: false },
+    { id: 13, name: 'Gia Bảo', status: 'đang tập trung', host: false },
+    { id: 14, name: 'Thanh Trúc', status: 'cam tắt', host: false },
+    ME
+  ]
+};
+
+function initials(name) {
+  const parts = String(name).trim().split(/\s+/);
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+
+class Component extends DCLogic {
+  state = {
+    running: true,
+    phase: 'focus',
+    left: (this.props.focusMinutes ?? 25) * 60 - 512,
+    round: 2,
+    cam: true,
+    mic: false,
+    chat: this.props.chatOpen ?? true,
+    tab: 'chat',
+    musicOn: true,
+    trackIndex: 0,
+    volume: 45,
+    admit: 'manual',
+    pending: [
+      { id: 1, name: 'Thanh Trúc', wait: '20 giây' },
+      { id: 2, name: 'Gia Bảo', wait: '1 phút 05' }
+    ],
+    demo: 'five',
+    members: DEMO_SETS.five.slice(),
+    draft: '',
+    messages: [
+      { who: 'Minh Anh', me: false, text: 'Mình vào rồi nha, bắt đầu phiên 25 phút nhé!' },
+      { who: 'Bạn', me: true, text: 'Ok, mình tắt mic để tập trung, cần gì thì nhắn chat.' },
+      { who: 'Minh Anh', me: false, text: 'Ừ, hết phiên nghỉ 5 phút rồi kể chương 4 tới đâu.' }
+    ]
+  };
+
+  focusSecs() { return (this.props.focusMinutes ?? 25) * 60; }
+  breakSecs() { return 5 * 60; }
+
+  componentDidMount() {
+    this.timer = setInterval(() => {
+      if (!this.state.running) return;
+      this.setState(s => {
+        if (s.left <= 1) {
+          const next = s.phase === 'focus' ? 'break' : 'focus';
+          return { phase: next, left: next === 'focus' ? this.focusSecs() : this.breakSecs(), round: next === 'focus' ? s.round + 1 : s.round };
+        }
+        return { left: s.left - 1 };
+      });
+    }, 1000);
+  }
+  componentWillUnmount() { clearInterval(this.timer); }
+
+  send() {
+    const text = this.state.draft.trim();
+    if (!text) return;
+    this.setState(s => ({ draft: '', messages: s.messages.concat([{ who: 'Bạn', me: true, text }]) }));
+  }
+
+  renderVals() {
+    const st = this.state;
+    const accent = this.props.accentColor || 'oklch(0.74 0.085 195)';
+    const total = st.phase === 'focus' ? this.focusSecs() : this.breakSecs();
+    const progress = Math.min(1, Math.max(0, 1 - st.left / total));
+    const m = Math.floor(st.left / 60), s = st.left % 60;
+    const isHost = this.props.isHost ?? true;
+    const queued = st.admit === 'manual' && st.pending.length > 0;
+    const tab = st.tab === 'host' && !isHost ? 'chat' : st.tab;
+    const track = TRACKS[st.trackIndex] || TRACKS[0];
+    const n = Math.max(1, st.members.length);
+    const cols = Math.ceil(Math.sqrt(n));
+    const rows = Math.ceil(n / cols);
+
+    return {
+      accent,
+      accentSoft: 'color-mix(in oklab, ' + accent + ' 62%, white)',
+      dashOffset: 270.2 * (1 - progress),
+      timeText: String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0'),
+      phaseLabel: st.phase === 'focus' ? 'Đang tập trung' : 'Nghỉ ngắn',
+      roundLabel: st.round + ' / 4',
+      playLabel: st.running ? 'Tạm dừng' : 'Tiếp tục',
+      toggleRun: () => this.setState(p => ({ running: !p.running })),
+      reset: () => this.setState({ left: total, running: false }),
+
+      cam: st.cam,
+      camLabel: st.cam ? 'Camera' : 'Camera tắt',
+      camSlash: st.cam ? 'M12 12' : 'M3 20L21 4',
+      camBg: st.cam ? 'rgba(255,255,255,0.4)' : 'rgba(206,222,232,0.85)',
+      camColor: st.cam ? '#354c65' : 'rgba(51,71,94,0.62)',
+      toggleCam: () => this.setState(p => ({ cam: !p.cam })),
+      micLabel: st.mic ? 'Mic' : 'Mic tắt',
+      micSlash: st.mic ? 'M12 12' : 'M3 20L21 4',
+      micBg: st.mic ? 'rgba(255,255,255,0.4)' : 'rgba(206,222,232,0.85)',
+      micColor: st.mic ? '#354c65' : 'rgba(51,71,94,0.62)',
+      toggleMic: () => this.setState(p => ({ mic: !p.mic })),
+      micHint: st.mic ? 'mic bật' : 'mic tắt',
+      micHintColor: st.mic ? '#2c5b53' : 'rgba(51,71,94,0.45)',
+      selfFeedLabel: st.cam ? 'webcam · Bạn' : 'camera đang tắt',
+
+      demoSets: [
+        { key: 'two', name: '2 người' },
+        { key: 'five', name: '5 người' }
+      ].map(x => ({
+        name: x.name,
+        pick: () => this.setState({ demo: x.key, members: DEMO_SETS[x.key].slice() }),
+        bg: st.demo === x.key ? '#ffffff' : 'transparent',
+        color: st.demo === x.key ? '#22483f' : 'rgba(51,71,94,0.55)',
+        shadow: st.demo === x.key ? '0 4px 12px rgba(58,98,126,0.12)' : 'none'
+      })),
+      syncLabel: st.members.length > 2
+        ? 'Đồng bộ với ' + (st.members.length - 1) + ' người'
+        : 'Đồng bộ với ' + ((st.members.find(u => !u.me) || {}).name || 'phòng'),
+
+      gridCols: 'repeat(' + cols + ', minmax(0, 1fr))',
+      gridRows: 'repeat(' + rows + ', minmax(0, 1fr))',
+      tiles: st.members.map(u => {
+        const me = !!u.me;
+        const camOff = me ? !st.cam : u.status.indexOf('cam tắt') >= 0;
+        return {
+          name: u.name,
+          initials: initials(u.name),
+          status: me ? (st.mic ? 'mic bật' : 'mic tắt') : u.status,
+          statusColor: me ? (st.mic ? '#2c5b53' : 'rgba(51,71,94,0.45)') : 'rgba(51,71,94,0.45)',
+          feedLabel: camOff ? 'camera đang tắt' : 'webcam · ' + u.name,
+          avatarBg: me ? 'rgba(140,205,196,0.55)' : 'rgba(160,200,225,0.5)',
+          avatarColor: me ? '#22483f' : '#2b4d68',
+          tileBorder: me ? '2.5px solid rgba(126,201,198,0.95)' : '2px solid rgba(140,205,196,0.45)',
+          tileShadow: me ? '0 14px 32px rgba(58,98,126,0.18)' : '0 10px 24px rgba(58,98,126,0.1)',
+          selfDotDisplay: me ? 'flex' : 'none'
+        };
+      }),
+
+      hostBtnDisplay: isHost ? 'flex' : 'none',
+      hostBtnBg: st.chat && st.tab === 'host' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)',
+      pendingCount: st.pending.length,
+      pendingBadgeDisplay: queued ? 'inline-block' : 'none',
+      openHostTab: () => this.setState(s => ({ chat: s.chat && s.tab === 'host' ? false : true, tab: 'host' })),
+      tabs: [
+        { key: 'chat', name: 'Chat', show: true, badge: '' },
+        { key: 'music', name: 'Nhạc', show: true, badge: '' },
+        { key: 'host', name: 'Quản lý', show: isHost, badge: queued ? String(st.pending.length) : '' }
+      ].map(x => ({
+        name: x.name,
+        display: x.show ? 'flex' : 'none',
+        badge: x.badge,
+        badgeDisplay: x.badge ? 'inline-block' : 'none',
+        pick: () => this.setState({ tab: x.key }),
+        bg: st.tab === x.key ? '#ffffff' : 'transparent',
+        color: st.tab === x.key ? '#22483f' : 'rgba(51,71,94,0.55)',
+        shadow: st.tab === x.key ? '0 4px 12px rgba(58,98,126,0.12)' : 'none'
+      })),
+      chatTabDisplay: tab === 'chat' ? 'flex' : 'none',
+      musicTabDisplay: tab === 'music' ? 'flex' : 'none',
+      hostTabDisplay: tab === 'host' ? 'flex' : 'none',
+
+      musicBtnBg: st.chat && tab === 'music' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)',
+      openMusicTab: () => this.setState(s => ({ chat: s.chat && s.tab === 'music' ? false : true, tab: 'music' })),
+      trackName: track.name,
+      musicStatus: st.musicOn ? 'đang phát · ' + track.mood : 'đã tạm dừng',
+      playIcon: st.musicOn ? 'M8 5h3.2v14H8zM12.8 5H16v14h-3.2z' : 'M8 5l11 7-11 7z',
+      toggleMusic: () => this.setState(s => ({ musicOn: !s.musicOn })),
+      eqColor: st.musicOn ? 'color-mix(in oklab, ' + accent + ' 78%, white)' : 'rgba(51,71,94,0.18)',
+      eqAnim1: st.musicOn ? 'ffEq 900ms ease-in-out infinite' : 'none',
+      eqAnim2: st.musicOn ? 'ffEq 900ms ease-in-out infinite 300ms' : 'none',
+      eqAnim3: st.musicOn ? 'ffEq 900ms ease-in-out infinite 600ms' : 'none',
+      volume: st.volume,
+      volumeLabel: st.volume + '%',
+      volIcon: st.volume === 0 ? 'M16.5 9.5l4 5m0-5l-4 5' : 'M16.5 9a4 4 0 010 6',
+      setVolume: e => this.setState({ volume: Number(e.target.value) }),
+      tracks: TRACKS.map(t => {
+        const on = t.name === track.name;
+        return {
+          name: t.name, mood: t.mood, length: t.length,
+          pick: () => this.setState({ trackIndex: TRACKS.indexOf(t), musicOn: true }),
+          bg: on ? 'color-mix(in oklab, ' + accent + ' 20%, white)' : 'rgba(238,246,248,0.8)',
+          shadow: on ? 'inset 0 0 0 1.5px color-mix(in oklab, ' + accent + ' 55%, white)' : 'none',
+          iconBg: on ? 'rgba(255,255,255,0.85)' : 'rgba(160,200,225,0.35)',
+          iconColor: on ? '#22483f' : '#2b4d68',
+          nameColor: on ? '#22483f' : '#2c3f55'
+        };
+      }),
+      musicScopeLabel: isHost ? 'phát cho cả phòng' : 'chỉ mình bạn nghe',
+      musicHint: isHost
+        ? 'Bạn là host nên nhạc bạn chọn sẽ phát đồng bộ cho mọi người; ai muốn yên tĩnh có thể kéo âm lượng về 0.'
+        : 'Host đang chọn nhạc cho phòng — bạn chỉ chỉnh được âm lượng của mình.',
+
+      admitModes: [
+        { key: 'auto', name: 'Tự động duyệt' },
+        { key: 'manual', name: 'Duyệt thủ công' }
+      ].map(x => ({
+        name: x.name,
+        pick: () => this.setState({ admit: x.key }),
+        bg: st.admit === x.key ? '#ffffff' : 'transparent',
+        color: st.admit === x.key ? '#22483f' : 'rgba(51,71,94,0.55)',
+        shadow: st.admit === x.key ? '0 4px 12px rgba(58,98,126,0.12)' : 'none'
+      })),
+      admitHint: st.admit === 'auto'
+        ? 'Ai có link hoặc mã phòng sẽ vào thẳng, không cần bạn duyệt.'
+        : 'Người mới sẽ nằm ở hàng chờ cho tới khi bạn bấm Duyệt.',
+      queueDisplay: st.admit === 'manual' ? 'flex' : 'none',
+      emptyQueueDisplay: st.pending.length ? 'none' : 'block',
+      approveAllDisplay: st.pending.length > 1 ? 'block' : 'none',
+      approveAll: () => this.setState(s => ({
+        pending: [],
+        members: s.members.concat(s.pending.map(p => ({ id: p.id, name: p.name, status: 'vừa vào phòng', host: false })))
+      })),
+      pending: st.pending.map(p => ({
+        name: p.name,
+        wait: p.wait,
+        initials: initials(p.name),
+        approve: () => this.setState(s => ({
+          pending: s.pending.filter(x => x.id !== p.id),
+          members: s.members.concat([{ id: p.id, name: p.name, status: 'vừa vào phòng', host: false }])
+        })),
+        reject: () => this.setState(s => ({ pending: s.pending.filter(x => x.id !== p.id) }))
+      })),
+      memberCountLabel: st.members.length + ' người',
+      members: st.members.map(u => ({
+        name: u.name,
+        status: u.status,
+        initials: initials(u.name),
+        avatarBg: u.host ? 'rgba(140,205,196,0.5)' : 'rgba(160,200,225,0.5)',
+        avatarColor: u.host ? '#22483f' : '#2b4d68',
+        kickDisplay: isHost && !u.host ? 'block' : 'none',
+        kick: () => this.setState(s => ({ members: s.members.filter(x => x.id !== u.id) }))
+      })),
+
+      chatBtnBg: st.chat && st.tab === 'chat' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)',
+      collapsePanel: () => this.setState({ chat: false }),
+      chatShift: st.chat ? '0px' : '380px',
+      chatOpacity: st.chat ? 1 : 0,
+      chatEvents: st.chat ? 'auto' : 'none',
+      stagePadRight: st.chat ? '392px' : '26px',
+      chatBtnActive: st.chat && st.tab === 'chat',
+      toggleChat: () => this.setState(s => ({ chat: s.chat && s.tab === 'chat' ? false : true, tab: 'chat' })),
+
+      messages: st.messages.map(x => ({
+        who: x.who,
+        text: x.text,
+        align: x.me ? 'flex-end' : 'flex-start',
+        bg: x.me ? 'color-mix(in oklab, ' + accent + ' 26%, white)' : 'rgba(238,246,248,0.95)'
+      })),
+      draft: st.draft,
+      onDraft: e => this.setState({ draft: e.target.value }),
+      onDraftKey: e => { if (e.key === 'Enter') this.send(); },
+      send: () => this.send(),
+      leave: () => { window.location.href = './FocusFlow.dc.html'; }
+    };
+  }
+}
+</script>
+</body>
+</html>

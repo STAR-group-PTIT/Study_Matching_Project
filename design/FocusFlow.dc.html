@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #eef6f8; }
+  * { box-sizing: border-box; }
+  a { color: oklch(0.62 0.09 225); }
+  a:hover { color: oklch(0.55 0.1 225); }
+  @keyframes ffFloatIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes ffPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+</style>
+</helmet>
+<div style="position: relative; width: 100%; height: 100vh; overflow: hidden; font-family: Nunito, system-ui, sans-serif; color: #33475e; -webkit-font-smoothing: antialiased;">
+
+  <div style="position: absolute; inset: 0; background: {{ wallpaperCss }}; transition: background 900ms ease;"></div>
+  <div style="position: absolute; inset: 0; backdropFilter: blur(2px); background: rgba(255,255,255,0.14);"></div>
+
+  <!-- top bar -->
+  <div style="position: absolute; zIndex: 40; top: 26px; left: 32px; right: 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+    <div style="opacity: {{ chromeOpacity }}; transform: translateY({{ chromeShift }}); transition: opacity 480ms ease, transform 480ms ease; pointerEvents: {{ chromeEvents }}; display: flex; align-items: center; gap: 11px; padding: 9px 18px 9px 13px; borderRadius: 22px; background: rgba(255,255,255,0.6); boxShadow: 0 6px 20px rgba(64,102,128,0.09); backdropFilter: blur(14px);">
+      <div style="width: 20px; height: 20px; borderRadius: 8px; background: linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235));"></div>
+      <span style="fontSize: 16px; fontWeight: 800; letterSpacing: -0.2px; color: #2f4459;">FocusFlow</span>
+      <span style="fontSize: 13px; fontWeight: 600; color: rgba(51,71,94,0.5);">· {{ modeLabel }}</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="opacity: {{ chromeOpacity }}; transform: translateY({{ chromeShift }}); transition: opacity 480ms ease, transform 480ms ease; pointerEvents: {{ chromeEvents }}; display: flex; gap: 4px; padding: 5px; borderRadius: 20px; background: rgba(255,255,255,0.6); boxShadow: 0 6px 20px rgba(64,102,128,0.09); backdropFilter: blur(14px);">
+        <button onClick="{{ setFocus }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 13px; fontWeight: 700; padding: 8px 16px; borderRadius: 15px; color: {{ focusTabColor }}; background: {{ focusTabBg }}; transition: all 260ms ease;">Focus</button>
+        <button onClick="{{ setDashboard }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 13px; fontWeight: 700; padding: 8px 16px; borderRadius: 15px; color: {{ dashTabColor }}; background: {{ dashTabBg }}; transition: all 260ms ease;">Dashboard</button>
+      </div>
+      <button onClick="{{ toggleHidden }}" title="Ẩn / hiện giao diện" style="display: flex; alignItems: center; gap: 8px; border: none; cursor: pointer; fontFamily: inherit; fontSize: 13px; fontWeight: 700; color: #3c5470; padding: 10px 15px; borderRadius: 18px; background: rgba(255,255,255,{{ eyeBg }}); boxShadow: 0 6px 18px rgba(64,102,128,0.1); backdropFilter: blur(14px); opacity: {{ eyeOpacity }}; transition: all 400ms ease;" style-hover="opacity: 1; background: rgba(255,255,255,0.85);">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"></path><circle cx="12" cy="12" r="2.6"></circle><path d="{{ eyeSlash }}"></path></svg>
+    <span style="display: {{ eyeLabelDisplay }};">{{ eyeLabel }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- clock -->
+  <div style="position: relative; height: 100%; display: flex; flexDirection: column; alignItems: center; justifyContent: center; gap: clamp(14px, 3vh, 24px); padding: 104px 24px 152px;">
+    <div style="position: relative; display: flex; alignItems: center; justifyContent: center; transform: scale({{ clockScale }}); transition: transform 620ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="position: absolute; width: min(380px, 46vh); height: min(380px, 46vh); borderRadius: 999px; background: rgba(255,255,255,0.42); backdropFilter: blur(18px); boxShadow: 0 24px 70px rgba(58,98,126,0.14);"></div>
+      <svg viewBox="0 0 330 330" style="position: relative; width: min(330px, 40vh); height: min(330px, 40vh); transform: rotate(-90deg);">
+        <circle cx="165" cy="165" r="146" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="14"></circle>
+        <circle cx="165" cy="165" r="146" fill="none" stroke="{{ accent }}" stroke-width="14" stroke-linecap="round" stroke-dasharray="917.3" style="strokeDashoffset: {{ dashOffset }}; transition: strokeDashoffset 980ms linear;"></circle>
+      </svg>
+      <div style="position: absolute; display: flex; flexDirection: column; alignItems: center; gap: 6px;">
+        <span style="fontSize: 13px; fontWeight: 700; letterSpacing: 1.6px; textTransform: uppercase; color: rgba(51,71,94,0.55);">{{ phaseLabel }}</span>
+        <span style="fontSize: clamp(44px, 9.5vh, 82px); fontWeight: 800; lineHeight: 1; letterSpacing: -3px; color: #2c3f55; fontVariantNumeric: tabular-nums;">{{ timeText }}</span>
+        <span style="fontSize: 13px; fontWeight: 600; color: rgba(51,71,94,0.5);">Phiên {{ roundLabel }}</span>
+      </div>
+    </div>
+
+    <div style="display: flex; alignItems: center; gap: 12px; opacity: {{ controlsOpacity }}; pointerEvents: {{ chromeEvents }}; transition: opacity 480ms ease;">
+      <button onClick="{{ toggleRun }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 16px; fontWeight: 800; letterSpacing: 0.2px; color: #21384f; padding: clamp(11px, 2.4vh, 15px) 42px; borderRadius: 22px; background: rgba(255,255,255,0.82); boxShadow: 0 10px 26px rgba(58,98,126,0.14); transition: transform 200ms ease, box-shadow 200ms ease;" style-hover="transform: translateY(-2px); box-shadow: 0 14px 30px rgba(58,98,126,0.18);">{{ playLabel }}</button>
+      <button onClick="{{ reset }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 15px; fontWeight: 700; color: #4a637d; padding: 15px 26px; borderRadius: 22px; background: rgba(255,255,255,0.5); boxShadow: 0 8px 20px rgba(58,98,126,0.09); transition: background 200ms ease;" style-hover="background: rgba(255,255,255,0.75);">Reset</button>
+      <button onClick="{{ skipPhase }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 15px; fontWeight: 700; color: #4a637d; padding: 15px 26px; borderRadius: 22px; background: rgba(255,255,255,0.5); boxShadow: 0 8px 20px rgba(58,98,126,0.09); transition: background 200ms ease;" style-hover="background: rgba(255,255,255,0.75);">{{ skipLabel }}</button>
+    </div>
+  </div>
+
+  <!-- dashboard widgets -->
+  <div style="position: absolute; top: 96px; left: 32px; display: flex; flexDirection: column; gap: 14px; width: 232px; opacity: {{ dashOpacity }}; transform: translateX({{ dashShiftLeft }}); pointerEvents: {{ dashEvents }}; transition: opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1);">
+    <div style="padding: 18px 20px; borderRadius: 24px; background: rgba(255,255,255,0.62); backdropFilter: blur(16px); boxShadow: 0 10px 28px rgba(58,98,126,0.1);">
+      <div style="fontSize: 12px; fontWeight: 700; letterSpacing: 1.2px; textTransform: uppercase; color: rgba(51,71,94,0.5); marginBottom: 12px;">Hôm nay</div>
+      <div style="display: flex; alignItems: baseline; gap: 8px;">
+        <span style="fontSize: 34px; fontWeight: 800; color: #2c3f55; lineHeight: 1;">{{ focusedMinutes }}</span>
+        <span style="fontSize: 14px; fontWeight: 600; color: rgba(51,71,94,0.55);">phút tập trung</span>
+      </div>
+      <div style="display: flex; gap: 6px; marginTop: 16px;">
+        <sc-for list="{{ dots }}" as="d" hint-placeholder-count="4">
+          <div style="height: 7px; flex: 1; borderRadius: 999px; background: {{ d.bg }};"></div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="padding: 18px 20px; borderRadius: 24px; background: rgba(255,255,255,0.62); backdropFilter: blur(16px); boxShadow: 0 10px 28px rgba(58,98,126,0.1);">
+      <div style="fontSize: 12px; fontWeight: 700; letterSpacing: 1.2px; textTransform: uppercase; color: rgba(51,71,94,0.5); marginBottom: 10px;">Đang làm</div>
+      <div style="fontSize: 15px; fontWeight: 700; color: #2c3f55; lineHeight: 1.4;">{{ activeTaskName }}</div>
+      <div style="fontSize: 13px; fontWeight: 600; color: rgba(51,71,94,0.5); marginTop: 6px;">{{ remainingTasksLabel }}</div>
+    </div>
+  </div>
+
+  <!-- right column: self camera + study together -->
+  <div style="position: absolute; zIndex: 20; top: 96px; right: 32px; display: flex; flexDirection: column; gap: 14px; width: 248px; opacity: {{ dashOpacity }}; transform: translateX({{ dashShiftRight }}); pointerEvents: {{ dashEvents }}; transition: opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1);">
+    <div style="padding: 12px; borderRadius: 24px; background: rgba(255,255,255,0.62); backdropFilter: blur(16px); boxShadow: 0 10px 28px rgba(58,98,126,0.1);">
+      <div style="position: relative; height: 148px; borderRadius: 18px; overflow: hidden; background: linear-gradient(150deg, oklch(0.86 0.045 205), oklch(0.79 0.055 235)); display: flex; alignItems: center; justifyContent: center;">
+        <div style="opacity: {{ camPlaceholderOpacity }}; display: flex; flexDirection: column; alignItems: center; gap: 8px; color: rgba(255,255,255,0.9);">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="9" r="3.4"></circle><path d="M5 19.5c1.3-3 4-4.4 7-4.4s5.7 1.4 7 4.4"></path></svg>
+          <span style="fontSize: 12px; fontWeight: 700;">{{ camStateLabel }}</span>
+        </div>
+        <div style="position: absolute; left: 10px; top: 10px; display: flex; alignItems: center; gap: 6px; padding: 4px 9px; borderRadius: 999px; background: rgba(255,255,255,0.82); fontSize: 11px; fontWeight: 800; letterSpacing: 0.4px; color: #2c3f55;">
+          <span style="width: 7px; height: 7px; borderRadius: 999px; background: {{ camDotColor }};"></span>
+          Bạn
+        </div>
+      </div>
+      <button onClick="{{ toggleCamera }}" style="width: 100%; marginTop: 10px; border: none; cursor: pointer; fontFamily: inherit; fontSize: 13px; fontWeight: 800; color: #2c3f55; padding: 10px; borderRadius: 15px; background: rgba(255,255,255,0.72); transition: background 220ms ease;" style-hover="background: #ffffff;">{{ camButtonLabel }}</button>
+    </div>
+
+    <a href="./FocusFlow Matching.dc.html" style="display: flex; alignItems: center; gap: 12px; textDecoration: none; padding: 15px 18px; borderRadius: 24px; background: rgba(255,255,255,0.72); backdropFilter: blur(16px); boxShadow: 0 12px 30px rgba(58,98,126,0.14); transition: transform 260ms cubic-bezier(0.22,1,0.36,1), background 220ms ease;" style-hover="background: #ffffff; transform: translateY(-2px);">
+      <span style="display: flex; alignItems: center; justifyContent: center; width: 38px; height: 38px; borderRadius: 14px; background: rgba(140,205,196,0.32); color: #2c5b53; flexShrink: 0;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="9" cy="8.5" r="3.2"></circle><path d="M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19"></path><path d="M16.4 5.6a3.2 3.2 0 010 5.8"></path><path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1"></path></svg>
+      </span>
+      <span style="display: flex; flexDirection: column; gap: 2px;">
+        <span style="fontSize: 14px; fontWeight: 800; color: #2c3f55;">Học cùng nhau</span>
+        <span style="fontSize: 12px; fontWeight: 600; color: rgba(51,71,94,0.55);">Tìm bạn học online</span>
+      </span>
+    </a>
+  </div>
+
+  <!-- taskbar -->
+  <div style="position: absolute; bottom: 34px; left: 50%; display: flex; alignItems: center; gap: 8px; padding: 10px; borderRadius: 26px; background: rgba(255,255,255,0.66); backdropFilter: blur(18px); boxShadow: 0 14px 34px rgba(58,98,126,0.14); opacity: {{ dashOpacity }}; transform: translate(-50%, {{ barShift }}); pointerEvents: {{ dashEvents }}; transition: opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1);">
+    <button onClick="{{ togglePanelWallpaper }}" title="Đổi hình nền" style="display: flex; alignItems: center; gap: 9px; border: none; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; color: #354c65; padding: 12px 20px; borderRadius: 19px; background: {{ wpBtnBg }}; transition: background 240ms ease;" style-hover="background: rgba(255,255,255,0.9);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="4"></rect><circle cx="9" cy="10" r="1.8"></circle><path d="M4 18l5.5-5 4 3.4 3-2.4L20 18"></path></svg>
+      Hình nền
+    </button>
+    <button onClick="{{ togglePanelMusic }}" title="Nhạc nền" style="display: flex; alignItems: center; gap: 9px; border: none; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; color: #354c65; padding: 12px 20px; borderRadius: 19px; background: {{ musicBtnBg }}; transition: background 240ms ease;" style-hover="background: rgba(255,255,255,0.9);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="7" cy="17" r="3"></circle><circle cx="18" cy="15" r="3"></circle><path d="M10 17V6l11-2v11"></path></svg>
+      Nhạc nền
+    </button>
+    <button onClick="{{ togglePanelTodo }}" title="Danh sách việc" style="display: flex; alignItems: center; gap: 9px; border: none; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; color: #354c65; padding: 12px 20px; borderRadius: 19px; background: {{ todoBtnBg }}; transition: background 240ms ease;" style-hover="background: rgba(255,255,255,0.9);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7.5l2 2 3-3.5"></path><path d="M4 16.5l2 2 3-3.5"></path><path d="M13 8h7"></path><path d="M13 17h7"></path></svg>
+      To-do
+      <span style="fontSize: 12px; fontWeight: 800; padding: 2px 8px; borderRadius: 999px; background: rgba(120,190,180,0.28); color: #2c5b53;">{{ openCount }}</span>
+    </button>
+  </div>
+
+  <!-- wallpaper popup -->
+  <div style="position: absolute; bottom: 108px; left: 50%; width: 340px; padding: 20px; borderRadius: 26px; background: rgba(255,255,255,0.8); backdropFilter: blur(20px); boxShadow: 0 18px 44px rgba(58,98,126,0.16); opacity: {{ wpPanelOpacity }}; transform: translate(-50%, {{ wpPanelShift }}); pointerEvents: {{ wpPanelEvents }}; transition: opacity 320ms ease, transform 320ms cubic-bezier(0.22,1,0.36,1);">
+    <div style="display: flex; alignItems: center; justifyContent: space-between; marginBottom: 14px;">
+      <span style="fontSize: 15px; fontWeight: 800; color: #2c3f55;">Hình nền</span>
+      <button onClick="{{ closePanel }}" style="border: none; background: none; cursor: pointer; fontFamily: inherit; fontSize: 13px; fontWeight: 700; color: rgba(51,71,94,0.5);">Đóng</button>
+    </div>
+    <div style="display: grid; gridTemplateColumns: repeat(3, 1fr); gap: 10px;">
+      <sc-for list="{{ wallpapers }}" as="w" hint-placeholder-count="6">
+        <button onClick="{{ w.pick }}" style="cursor: pointer; height: 66px; borderRadius: 18px; background: {{ w.css }}; border: {{ w.border }}; boxShadow: 0 4px 12px rgba(58,98,126,0.1); transition: transform 200ms ease;" style-hover="transform: translateY(-2px);"></button>
+      </sc-for>
+    </div>
+    <div style="marginTop: 14px; fontSize: 12px; fontWeight: 600; color: rgba(51,71,94,0.5);">Kéo ảnh của bạn vào đây để dùng làm hình nền riêng.</div>
+  </div>
+
+  <!-- music popup -->
+  <div style="position: absolute; bottom: 108px; left: 50%; width: 320px; padding: 20px; borderRadius: 26px; background: rgba(255,255,255,0.8); backdropFilter: blur(20px); boxShadow: 0 18px 44px rgba(58,98,126,0.16); opacity: {{ musicPanelOpacity }}; transform: translate(-50%, {{ musicPanelShift }}); pointerEvents: {{ musicPanelEvents }}; transition: opacity 320ms ease, transform 320ms cubic-bezier(0.22,1,0.36,1);">
+    <div style="display: flex; alignItems: center; justifyContent: space-between; marginBottom: 14px;">
+      <span style="fontSize: 15px; fontWeight: 800; color: #2c3f55;">Nhạc nền</span>
+      <button onClick="{{ closePanel }}" style="border: none; background: none; cursor: pointer; fontFamily: inherit; fontSize: 13px; fontWeight: 700; color: rgba(51,71,94,0.5);">Đóng</button>
+    </div>
+    <div style="display: flex; flexDirection: column; gap: 6px;">
+      <sc-for list="{{ tracks }}" as="t" hint-placeholder-count="4">
+        <button onClick="{{ t.pick }}" style="display: flex; alignItems: center; justifyContent: space-between; gap: 12px; border: none; cursor: pointer; fontFamily: inherit; textAlign: left; padding: 12px 14px; borderRadius: 17px; background: {{ t.bg }}; transition: background 200ms ease;" style-hover="background: rgba(140,200,205,0.16);">
+          <span style="fontSize: 14px; fontWeight: 700; color: #2f4459;">{{ t.name }}</span>
+          <span style="fontSize: 12px; fontWeight: 600; color: rgba(51,71,94,0.45);">{{ t.status }}</span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="display: flex; alignItems: center; gap: 12px; marginTop: 16px;">
+      <button onClick="{{ toggleMusic }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 13px; fontWeight: 800; color: #21384f; padding: 10px 18px; borderRadius: 16px; background: rgba(140,205,196,0.35);">{{ musicLabel }}</button>
+      <div style="flex: 1; height: 6px; borderRadius: 999px; background: rgba(51,71,94,0.12); position: relative;">
+        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 62%; borderRadius: 999px; background: {{ accent }};"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- todo slide-out -->
+  <div style="position: absolute; top: 0; right: 0; bottom: 0; width: 352px; padding: 96px 26px 34px; background: rgba(255,255,255,0.78); backdropFilter: blur(22px); boxShadow: -18px 0 50px rgba(58,98,126,0.14); borderTopLeftRadius: 32px; borderBottomLeftRadius: 32px; display: flex; flexDirection: column; gap: 16px; transform: translateX({{ todoShift }}); opacity: {{ todoOpacity }}; pointerEvents: {{ todoEvents }}; transition: transform 460ms cubic-bezier(0.22,1,0.36,1), opacity 360ms ease;">
+    <div style="display: flex; alignItems: center; justifyContent: space-between;">
+      <span style="fontSize: 20px; fontWeight: 800; color: #2c3f55;">Việc cần làm</span>
+      <button onClick="{{ closePanel }}" style="border: none; background: none; cursor: pointer; fontFamily: inherit; fontSize: 13px; fontWeight: 700; color: rgba(51,71,94,0.5);">Đóng</button>
+    </div>
+    <div style="display: flex; flexDirection: column; gap: 8px; overflowY: auto; flex: 1;">
+      <sc-for list="{{ tasks }}" as="t" hint-placeholder-count="5">
+        <div onClick="{{ t.toggle }}" style="display: flex; alignItems: center; gap: 13px; cursor: pointer; padding: 14px 15px; borderRadius: 20px; background: rgba(255,255,255,0.66); boxShadow: 0 4px 14px rgba(58,98,126,0.07); transition: background 200ms ease;" style-hover="background: rgba(255,255,255,0.95);">
+          <div style="width: 22px; height: 22px; flexShrink: 0; borderRadius: 8px; border: {{ t.boxBorder }}; background: {{ t.boxBg }}; display: flex; alignItems: center; justifyContent: center;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" style="opacity: {{ t.checkOpacity }};"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>
+          </div>
+          <div style="display: flex; flexDirection: column; gap: 2px;">
+            <span style="fontSize: 14px; fontWeight: 700; color: {{ t.color }}; textDecoration: {{ t.strike }};">{{ t.name }}</span>
+            <span style="fontSize: 12px; fontWeight: 600; color: rgba(51,71,94,0.42);">{{ t.meta }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display: flex; alignItems: center; gap: 10px; padding: 6px 6px 6px 16px; borderRadius: 20px; background: rgba(255,255,255,0.7); boxShadow: 0 4px 14px rgba(58,98,126,0.07);">
+      <input value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onDraftKey }}" placeholder="Thêm việc mới…" style="flex: 1; border: none; outline: none; background: none; fontFamily: inherit; fontSize: 14px; fontWeight: 600; color: #2c3f55; padding: 10px 0;" />
+      <button onClick="{{ addTask }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 800; color: #21384f; padding: 10px 18px; borderRadius: 16px; background: rgba(140,205,196,0.38);">Thêm</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;focusMinutes&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:25,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:5,&quot;max&quot;:60,&quot;step&quot;:5,&quot;unit&quot;:&quot;min&quot;,&quot;section&quot;:&quot;Pomodoro&quot;},&quot;breakMinutes&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:5,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:1,&quot;max&quot;:20,&quot;step&quot;:1,&quot;unit&quot;:&quot;min&quot;,&quot;section&quot;:&quot;Pomodoro&quot;},&quot;startMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;dashboard&quot;,&quot;tsType&quot;:&quot;'focus' | 'dashboard'&quot;,&quot;options&quot;:[&quot;focus&quot;,&quot;dashboard&quot;],&quot;section&quot;:&quot;Hiển thị&quot;},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;oklch(0.74 0.085 195)&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;oklch(0.74 0.085 195)&quot;,&quot;oklch(0.72 0.08 235)&quot;,&quot;oklch(0.78 0.08 170)&quot;,&quot;oklch(0.7 0.07 260)&quot;],&quot;section&quot;:&quot;Hiển thị&quot;}}">
+const WALLPAPERS = [
+  { css: 'linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)' },
+  { css: 'linear-gradient(150deg, #e8f4f0 0%, #d5e9f4 100%)' },
+  { css: 'linear-gradient(200deg, #d9ecf5 0%, #eaf5f1 60%, #dceef0 100%)' },
+  { css: 'linear-gradient(135deg, #eef3f8 0%, #dbeaf0 50%, #cfe4e6 100%)' },
+  { css: 'radial-gradient(120% 100% at 20% 10%, #e9f6f2 0%, #d3e6f0 70%)' },
+  { css: 'linear-gradient(175deg, #f0f6f7 0%, #d8eaf0 55%, #cde5df 100%)' }
+];
+
+const TRACKS = ['Mưa nhẹ ngoài cửa sổ', 'Lo-fi bàn học', 'Tiếng quán cà phê', 'Sóng biển chậm', 'Nhiễu trắng mềm'];
+
+class Component extends DCLogic {
+  state = {
+    mode: this.props.startMode || 'dashboard',
+    hidden: false,
+    running: false,
+    phase: 'focus',
+    left: (this.props.focusMinutes ?? 25) * 60,
+    round: 1,
+    focusedMinutes: 75,
+    wp: 0,
+    panel: null,
+    cameraOn: true,
+    track: 1,
+    playing: true,
+    draft: '',
+    tasks: [
+      { id: 1, name: 'Ôn chương 4 – Đạo hàm', meta: '2 phiên · Toán', done: false },
+      { id: 2, name: 'Làm 10 câu trắc nghiệm Lý', meta: '1 phiên · Vật lý', done: false },
+      { id: 3, name: 'Đọc bài Reading Unit 7', meta: '1 phiên · Anh', done: true },
+      { id: 4, name: 'Ghi chú lại lỗi sai đề thi thử', meta: '2 phiên · Ôn tập', done: false }
+    ]
+  };
+
+  focusSecs() { return (this.props.focusMinutes ?? 25) * 60; }
+  breakSecs() { return (this.props.breakMinutes ?? 5) * 60; }
+  totalSecs() { return this.state.phase === 'focus' ? this.focusSecs() : this.breakSecs(); }
+
+  componentDidMount() {
+    this.timer = setInterval(() => {
+      if (!this.state.running) return;
+      this.setState(s => {
+        if (s.left <= 1) {
+          const next = s.phase === 'focus' ? 'break' : 'focus';
+          return {
+            phase: next,
+            left: next === 'focus' ? this.focusSecs() : this.breakSecs(),
+            round: next === 'focus' ? s.round + 1 : s.round,
+            focusedMinutes: s.phase === 'focus' ? s.focusedMinutes + (this.props.focusMinutes ?? 25) : s.focusedMinutes,
+            running: false
+          };
+        }
+        return { left: s.left - 1 };
+      });
+    }, 1000);
+  }
+  componentWillUnmount() { clearInterval(this.timer); }
+
+  fmt(sec) {
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  renderVals() {
+    const st = this.state;
+    const accent = this.props.accentColor || 'oklch(0.74 0.085 195)';
+    const isFocus = st.mode === 'focus';
+    const chromeVisible = !st.hidden;
+    const dashVisible = !st.hidden && !isFocus;
+    const total = this.totalSecs();
+    const progress = Math.min(1, Math.max(0, 1 - st.left / total));
+    const openCount = st.tasks.filter(t => !t.done).length;
+    const active = st.tasks.find(t => !t.done);
+    const doneRounds = st.round;
+
+    const tab = on => ({ bg: on ? 'rgba(255,255,255,0.95)' : 'transparent', color: on ? '#25415c' : 'rgba(51,71,94,0.55)' });
+    const f = tab(isFocus), d = tab(!isFocus);
+
+    return {
+      accent,
+      wallpaperCss: WALLPAPERS[st.wp].css,
+      modeLabel: st.hidden ? 'Zen' : (isFocus ? 'Focus mode' : 'Dashboard mode'),
+      chromeOpacity: chromeVisible ? 1 : 0,
+      chromeShift: chromeVisible ? '0px' : '-12px',
+      chromeEvents: chromeVisible ? 'auto' : 'none',
+      controlsOpacity: chromeVisible ? 1 : 0,
+      dashOpacity: dashVisible ? 1 : 0,
+      dashEvents: dashVisible ? 'auto' : 'none',
+      dashShiftLeft: dashVisible ? '0px' : '-24px',
+      dashShiftRight: dashVisible ? '0px' : '24px',
+      camStateLabel: st.cameraOn ? 'Camera đang bật' : 'Camera đang tắt',
+      camButtonLabel: st.cameraOn ? 'Tắt camera' : 'Bật camera',
+      camDotColor: st.cameraOn ? '#4bbf9a' : 'rgba(51,71,94,0.28)',
+      camPlaceholderOpacity: st.cameraOn ? 0.95 : 0.5,
+      toggleCamera: () => this.setState(s => ({ cameraOn: !s.cameraOn })),
+      barShift: dashVisible ? '0px' : '26px',
+      focusTabBg: f.bg, focusTabColor: f.color,
+      dashTabBg: d.bg, dashTabColor: d.color,
+
+      eyeOpacity: st.hidden ? 0.42 : 1,
+      eyeBg: st.hidden ? 0.32 : 0.6,
+      eyeLabel: st.hidden ? 'Hiện UI' : 'Ẩn UI',
+      eyeLabelDisplay: 'inline',
+      eyeSlash: st.hidden ? 'M4 20L20 4' : 'M12 12',
+      toggleHidden: () => this.setState(s => ({ hidden: !s.hidden, panel: null })),
+      setFocus: () => this.setState({ mode: 'focus', panel: null, hidden: false }),
+      setDashboard: () => this.setState({ mode: 'dashboard', hidden: false }),
+
+      clockScale: isFocus || st.hidden ? 1 : 0.78,
+      dashOffset: 917.3 * (1 - progress),
+      timeText: this.fmt(st.left),
+      phaseLabel: st.phase === 'focus' ? 'Đang tập trung' : 'Nghỉ ngắn',
+      roundLabel: st.round + ' / 4',
+      playLabel: st.running ? 'Tạm dừng' : (st.left === total ? 'Bắt đầu' : 'Tiếp tục'),
+      skipLabel: st.phase === 'focus' ? 'Nghỉ ngắn' : 'Học tiếp',
+      toggleRun: () => this.setState(s => ({ running: !s.running })),
+      reset: () => this.setState({ left: total, running: false }),
+      skipPhase: () => this.setState(s => {
+        const next = s.phase === 'focus' ? 'break' : 'focus';
+        return { phase: next, left: next === 'focus' ? this.focusSecs() : this.breakSecs(), running: false };
+      }),
+
+      focusedMinutes: st.focusedMinutes,
+      dots: [0, 1, 2, 3].map(i => ({ bg: i < doneRounds ? accent : 'rgba(51,71,94,0.13)' })),
+      activeTaskName: active ? active.name : 'Xong hết việc hôm nay 🎉',
+      remainingTasksLabel: openCount + ' việc còn lại · ' + (st.tasks.length - openCount) + ' đã xong',
+      openCount,
+
+      togglePanelWallpaper: () => this.setState(s => ({ panel: s.panel === 'wp' ? null : 'wp' })),
+      togglePanelMusic: () => this.setState(s => ({ panel: s.panel === 'music' ? null : 'music' })),
+      togglePanelTodo: () => this.setState(s => ({ panel: s.panel === 'todo' ? null : 'todo' })),
+      closePanel: () => this.setState({ panel: null }),
+      wpBtnBg: st.panel === 'wp' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)',
+      musicBtnBg: st.panel === 'music' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)',
+      todoBtnBg: st.panel === 'todo' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)',
+
+      wpPanelOpacity: st.panel === 'wp' ? 1 : 0,
+      wpPanelShift: st.panel === 'wp' ? '0px' : '14px',
+      wpPanelEvents: st.panel === 'wp' ? 'auto' : 'none',
+      musicPanelOpacity: st.panel === 'music' ? 1 : 0,
+      musicPanelShift: st.panel === 'music' ? '0px' : '14px',
+      musicPanelEvents: st.panel === 'music' ? 'auto' : 'none',
+      todoShift: st.panel === 'todo' ? '0px' : '380px',
+      todoOpacity: st.panel === 'todo' ? 1 : 0,
+      todoEvents: st.panel === 'todo' ? 'auto' : 'none',
+
+      wallpapers: WALLPAPERS.map((w, i) => ({
+        css: w.css,
+        border: i === st.wp ? '2px solid ' + accent : '2px solid rgba(255,255,255,0.7)',
+        pick: () => this.setState({ wp: i })
+      })),
+      tracks: TRACKS.map((name, i) => ({
+        name,
+        status: i === st.track ? (st.playing ? 'đang phát' : 'đã chọn') : '',
+        bg: i === st.track ? 'rgba(140,200,205,0.22)' : 'rgba(255,255,255,0.55)',
+        pick: () => this.setState({ track: i, playing: true })
+      })),
+      musicLabel: st.playing ? 'Tạm dừng nhạc' : 'Phát nhạc',
+      toggleMusic: () => this.setState(s => ({ playing: !s.playing })),
+
+      tasks: st.tasks.map(t => ({
+        name: t.name,
+        meta: t.meta,
+        color: t.done ? 'rgba(51,71,94,0.42)' : '#2c3f55',
+        strike: t.done ? 'line-through' : 'none',
+        boxBg: t.done ? accent : 'rgba(255,255,255,0.9)',
+        boxBorder: t.done ? '2px solid ' + accent : '2px solid rgba(51,71,94,0.18)',
+        checkOpacity: t.done ? 1 : 0,
+        toggle: () => this.setState(s => ({ tasks: s.tasks.map(x => x.id === t.id ? { ...x, done: !x.done } : x) }))
+      })),
+      draft: st.draft,
+      onDraft: e => this.setState({ draft: e.target.value }),
+      onDraftKey: e => { if (e.key === 'Enter') this.addNew(); },
+      addTask: () => this.addNew()
+    };
+  }
+
+  addNew() {
+    const name = this.state.draft.trim();
+    if (!name) return;
+    this.setState(s => ({
+      draft: '',
+      tasks: s.tasks.concat([{ id: Date.now(), name, meta: '1 phiên · Mới', done: false }])
+    }));
+  }
+}
+</script>
+</body>
+</html>

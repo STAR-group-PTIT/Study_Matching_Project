@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #eef6f8; }
+  * { box-sizing: border-box; }
+  a { color: oklch(0.58 0.075 220); }
+  a:hover { color: oklch(0.5 0.08 220); }
+  input::placeholder { color: rgba(51,71,94,0.38); font-weight: 600; }
+  input[type=range] { -webkit-appearance: none; appearance: none; height: 30px; background: none; width: 100%; }
+  input[type=range]::-webkit-slider-runnable-track { height: 8px; border-radius: 999px; background: rgba(51,71,94,0.13); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -8px; border-radius: 999px; background: #ffffff; border: 4px solid rgba(126,201,198,0.95); box-shadow: 0 4px 12px rgba(58,98,126,0.2); cursor: pointer; }
+</style>
+</helmet>
+<div style="position: relative; width: 100%; minHeight: 100vh; fontFamily: Nunito, system-ui, sans-serif; color: #33475e; -webkit-font-smoothing: antialiased; background: linear-gradient(170deg, #e4f1f4 0%, #dbeaf2 50%, #e6f4ee 100%);">
+  <div style="maxWidth: 880px; margin: 0 auto; padding: 44px 32px 60px; display: flex; flexDirection: column; gap: 18px;">
+
+    <div style="display: flex; alignItems: center; gap: 11px;">
+      <div style="width: 22px; height: 22px; borderRadius: 9px; background: linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235));"></div>
+      <span style="fontSize: 18px; fontWeight: 800; letterSpacing: -0.2px; color: #2f4459;">FocusFlow</span>
+      <span style="fontSize: 14px; fontWeight: 600; color: rgba(51,71,94,0.5);">· Cài đặt &amp; hồ sơ</span>
+    </div>
+
+    <!-- profile -->
+    <div style="padding: 26px 28px; borderRadius: 32px; background: rgba(255,255,255,0.8); backdropFilter: blur(18px); boxShadow: 0 14px 36px rgba(58,98,126,0.1); display: flex; flexWrap: wrap; alignItems: center; gap: 20px;">
+      <div style="width: 84px; height: 84px; borderRadius: 28px; background: linear-gradient(140deg, rgba(140,205,196,0.6), rgba(160,200,225,0.6)); display: flex; alignItems: center; justifyContent: center; fontSize: 28px; fontWeight: 800; color: #294a5f; boxShadow: 0 8px 22px rgba(58,98,126,0.12);">MA</div>
+      <div style="flex: 1 1 200px; display: flex; flexDirection: column; gap: 4px;">
+        <span style="fontSize: 22px; fontWeight: 800; letterSpacing: -0.3px; color: #2c3f55;">Minh Anh</span>
+        <span style="fontSize: 14px; fontWeight: 600; color: rgba(51,71,94,0.55);">minhanh@email.com</span>
+        <span style="fontSize: 13px; fontWeight: 700; color: #2c5b53;">Streak 12 ngày · 34 phiên tuần này</span>
+      </div>
+      <div style="display: flex; flexWrap: wrap; gap: 9px;">
+        <button style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 800; color: #1e3549; padding: 13px 20px; borderRadius: 20px; background: {{ accentSoft }}; transition: transform 200ms ease;" style-hover="transform: translateY(-2px);">Đổi ảnh đại diện</button>
+        <button style="border: 1.5px solid rgba(51,71,94,0.14); cursor: pointer; fontFamily: inherit; fontSize: 14px; fontWeight: 700; color: #445c74; padding: 13px 18px; borderRadius: 20px; background: rgba(255,255,255,0.8); transition: background 200ms ease;" style-hover="background: #ffffff;">Sửa thông tin</button>
+      </div>
+    </div>
+
+    <!-- wallpapers -->
+    <div style="padding: 26px 28px 24px; borderRadius: 32px; background: rgba(255,255,255,0.8); backdropFilter: blur(18px); boxShadow: 0 14px 36px rgba(58,98,126,0.1); display: flex; flexDirection: column; gap: 16px;">
+      <div style="display: flex; alignItems: baseline; justifyContent: space-between; gap: 12px;">
+        <span style="fontSize: 17px; fontWeight: 800; color: #2c3f55;">Wallpaper của tôi</span>
+        <span style="fontSize: 13px; fontWeight: 700; color: rgba(51,71,94,0.48);">{{ wallpaperCount }}</span>
+      </div>
+      <div style="display: grid; gridTemplateColumns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;">
+        <sc-for list="{{ wallpapers }}" as="w" hint-placeholder-count="5">
+          <div style="position: relative; height: 100px; borderRadius: 22px; overflow: hidden; background: {{ w.css }}; boxShadow: 0 6px 16px rgba(58,98,126,0.1); border: {{ w.border }};">
+            <span style="position: absolute; bottom: 9px; left: 11px; fontFamily: 'IBM Plex Mono', monospace; fontSize: 10.5px; color: rgba(51,71,94,0.62); padding: 4px 8px; borderRadius: 9px; background: rgba(255,255,255,0.72);">{{ w.name }}</span>
+            <button onClick="{{ w.remove }}" title="Xoá" style="position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; display: flex; alignItems: center; justifyContent: center; border: none; cursor: pointer; borderRadius: 10px; background: rgba(255,255,255,0.8); color: #7a3f2c; opacity: 0.5; transition: opacity 200ms ease, background 200ms ease;" style-hover="opacity: 1; background: oklch(0.88 0.05 45);">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+            </button>
+          </div>
+        </sc-for>
+        <button onClick="{{ addWallpaper }}" style="height: 100px; display: flex; flexDirection: column; alignItems: center; justifyContent: center; gap: 5px; cursor: pointer; borderRadius: 22px; border: 2px dashed rgba(51,71,94,0.18); background: rgba(238,246,248,0.6); fontFamily: inherit; fontSize: 13px; fontWeight: 700; color: rgba(51,71,94,0.55); transition: all 220ms ease;" style-hover="border-color: rgba(126,201,198,0.9); background: rgba(238,246,248,0.95); color: #2c5b53;">
+          <span style="fontSize: 22px; fontWeight: 700; lineHeight: 1;">+</span>
+          Thêm ảnh
+        </button>
+      </div>
+      <span style="fontSize: 12.5px; fontWeight: 600; color: rgba(51,71,94,0.45);">JPG hoặc PNG, tối đa 5 MB mỗi ảnh. Kéo thả vào ô “Thêm ảnh” cũng được.</span>
+    </div>
+
+    <!-- music -->
+    <div style="padding: 26px 28px 24px; borderRadius: 32px; background: rgba(255,255,255,0.8); backdropFilter: blur(18px); boxShadow: 0 14px 36px rgba(58,98,126,0.1); display: flex; flexDirection: column; gap: 14px;">
+      <div style="display: flex; alignItems: baseline; justifyContent: space-between; gap: 12px;">
+        <span style="fontSize: 17px; fontWeight: 800; color: #2c3f55;">Nhạc của tôi</span>
+        <span style="fontSize: 13px; fontWeight: 700; color: rgba(51,71,94,0.48);">{{ trackCount }}</span>
+      </div>
+      <div style="display: flex; flexDirection: column; gap: 8px;">
+        <sc-for list="{{ tracks }}" as="t" hint-placeholder-count="4">
+          <div style="display: flex; alignItems: center; gap: 13px; padding: 13px 16px; borderRadius: 22px; background: rgba(238,246,248,0.72); transition: background 200ms ease;" style-hover="background: #ffffff;">
+            <div style="width: 32px; height: 32px; flexShrink: 0; borderRadius: 12px; background: rgba(140,205,196,0.34); display: flex; alignItems: center; justifyContent: center; color: #2c5b53;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="7" cy="17" r="3"></circle><circle cx="18" cy="15" r="3"></circle><path d="M10 17V6l11-2v11"></path></svg>
+            </div>
+            <div style="flex: 1; display: flex; flexDirection: column; gap: 2px; minWidth: 0;">
+              <input value="{{ t.name }}" onChange="{{ t.rename }}" style="border: none; outline: none; background: none; fontFamily: inherit; fontSize: 14.5px; fontWeight: 700; color: #2c3f55; padding: 2px 0; width: 100%; borderRadius: 8px;" style-focus="background: rgba(126,201,198,0.14);" />
+              <span style="fontFamily: 'IBM Plex Mono', monospace; fontSize: 11.5px; color: rgba(51,71,94,0.45);">{{ t.meta }}</span>
+            </div>
+            <span style="fontSize: 13px; fontWeight: 700; color: rgba(51,71,94,0.5);">{{ t.duration }}</span>
+            <button onClick="{{ t.remove }}" title="Xoá" style="width: 30px; height: 30px; display: flex; alignItems: center; justifyContent: center; border: none; cursor: pointer; borderRadius: 12px; background: rgba(255,255,255,0.9); color: #7a3f2c; opacity: 0.6; transition: all 200ms ease;" style-hover="opacity: 1; background: oklch(0.88 0.05 45);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+            </button>
+          </div>
+        </sc-for>
+      </div>
+      <button onClick="{{ addTrack }}" style="display: flex; alignItems: center; justifyContent: center; gap: 7px; cursor: pointer; padding: 14px 0; borderRadius: 22px; border: 2px dashed rgba(51,71,94,0.18); background: rgba(238,246,248,0.6); fontFamily: inherit; fontSize: 14px; fontWeight: 700; color: rgba(51,71,94,0.55); transition: all 220ms ease;" style-hover="border-color: rgba(126,201,198,0.9); background: rgba(238,246,248,0.95); color: #2c5b53;">
+        <span style="fontSize: 19px; fontWeight: 700; lineHeight: 1;">+</span>
+        Upload nhạc (MP3, WAV)
+      </button>
+      <span style="fontSize: 12.5px; fontWeight: 600; color: rgba(51,71,94,0.45);">Bấm vào tên bài để đổi tên. Nhạc chỉ phát trong phiên học của bạn.</span>
+    </div>
+
+    <!-- pomodoro defaults -->
+    <div style="padding: 26px 28px 24px; borderRadius: 32px; background: rgba(255,255,255,0.8); backdropFilter: blur(18px); boxShadow: 0 14px 36px rgba(58,98,126,0.1); display: flex; flexDirection: column; gap: 20px;">
+      <span style="fontSize: 17px; fontWeight: 800; color: #2c3f55;">Pomodoro mặc định</span>
+      <div style="display: grid; gridTemplateColumns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px;">
+        <div style="display: flex; flexDirection: column; gap: 6px;">
+          <div style="display: flex; alignItems: baseline; justifyContent: space-between;">
+            <span style="fontSize: 12.5px; fontWeight: 800; letterSpacing: 0.8px; textTransform: uppercase; color: rgba(51,71,94,0.5);">Phút tập trung</span>
+            <span style="fontSize: 15px; fontWeight: 800; color: #2c5b53;">{{ focusLabel }}</span>
+          </div>
+          <input type="range" min="5" max="60" step="5" value="{{ focus }}" onChange="{{ setFocus }}" />
+          <div style="display: flex; justifyContent: space-between; fontSize: 11.5px; fontWeight: 600; color: rgba(51,71,94,0.4);"><span>5</span><span>60</span></div>
+        </div>
+        <div style="display: flex; flexDirection: column; gap: 6px;">
+          <div style="display: flex; alignItems: baseline; justifyContent: space-between;">
+            <span style="fontSize: 12.5px; fontWeight: 800; letterSpacing: 0.8px; textTransform: uppercase; color: rgba(51,71,94,0.5);">Phút nghỉ</span>
+            <span style="fontSize: 15px; fontWeight: 800; color: #2c5b53;">{{ breakLabel }}</span>
+          </div>
+          <input type="range" min="1" max="20" step="1" value="{{ brk }}" onChange="{{ setBreak }}" />
+          <div style="display: flex; justifyContent: space-between; fontSize: 11.5px; fontWeight: 600; color: rgba(51,71,94,0.4);"><span>1</span><span>20</span></div>
+        </div>
+      </div>
+      <div style="display: flex; alignItems: center; justifyContent: space-between; gap: 14px; flexWrap: wrap; padding: 15px 18px; borderRadius: 22px; background: rgba(238,246,248,0.72);">
+        <div style="display: flex; flexDirection: column; gap: 2px;">
+          <span style="fontSize: 14.5px; fontWeight: 700; color: #2c3f55;">Tự động bắt đầu phiên tiếp theo</span>
+          <span style="fontSize: 12.5px; fontWeight: 600; color: rgba(51,71,94,0.48);">Hết giờ nghỉ là vào phiên học luôn</span>
+        </div>
+        <button onClick="{{ toggleAuto }}" style="width: 58px; height: 32px; flexShrink: 0; position: relative; border: none; cursor: pointer; borderRadius: 999px; background: {{ autoTrack }}; transition: background 240ms ease;">
+          <span style="position: absolute; top: 4px; left: {{ autoKnob }}; width: 24px; height: 24px; borderRadius: 999px; background: #ffffff; boxShadow: 0 3px 8px rgba(58,98,126,0.22); transition: left 240ms cubic-bezier(0.22,1,0.36,1);"></span>
+        </button>
+      </div>
+      <div style="display: flex; gap: 9px; flexWrap: wrap;">
+        <button style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 14.5px; fontWeight: 800; color: #1e3549; padding: 14px 26px; borderRadius: 22px; background: {{ accentSoft }}; transition: transform 200ms ease;" style-hover="transform: translateY(-2px);">Lưu thay đổi</button>
+        <button onClick="{{ resetDefaults }}" style="border: 1.5px solid rgba(51,71,94,0.14); cursor: pointer; fontFamily: inherit; fontSize: 14.5px; fontWeight: 700; color: #445c74; padding: 14px 20px; borderRadius: 22px; background: rgba(255,255,255,0.8); transition: background 200ms ease;" style-hover="background: #ffffff;">Về mặc định 25/5</button>
+      </div>
+    </div>
+
+    <!-- logout, clearly separated -->
+    <div style="marginTop: 14px; paddingTop: 22px; borderTop: 1.5px solid rgba(51,71,94,0.1); display: flex; flexWrap: wrap; alignItems: center; justifyContent: space-between; gap: 14px;">
+      <span style="fontSize: 13.5px; fontWeight: 600; color: rgba(51,71,94,0.5); maxWidth: 420px; lineHeight: 1.55;">Đăng xuất sẽ giữ lại wallpaper và nhạc trên tài khoản; máy này chuyển về chế độ khách.</span>
+      <button onClick="{{ logout }}" style="display: flex; alignItems: center; gap: 9px; border: 1.5px solid oklch(0.82 0.06 45); cursor: pointer; fontFamily: inherit; fontSize: 14.5px; fontWeight: 800; color: #7a3f2c; padding: 14px 24px; borderRadius: 22px; background: oklch(0.93 0.03 45); transition: background 220ms ease;" style-hover="background: oklch(0.88 0.05 45);">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M15 5.5V4a2 2 0 00-2-2H6a2 2 0 00-2 2v16a2 2 0 002 2h7a2 2 0 002-2v-1.5"></path><path d="M11 12h10m-3.5-3.5L21 12l-3.5 3.5"></path></svg>
+        Đăng xuất
+      </button>
+    </div>
+
+    <a href="./FocusFlow.dc.html" style="fontSize: 13.5px; fontWeight: 700; textDecoration: none; alignSelf: center; marginTop: 6px;">← Về màn hình học</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:940,&quot;height&quot;:1200},&quot;focusMinutes&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:25,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:5,&quot;max&quot;:60,&quot;step&quot;:5,&quot;unit&quot;:&quot;min&quot;,&quot;section&quot;:&quot;Pomodoro&quot;},&quot;breakMinutes&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:5,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:1,&quot;max&quot;:20,&quot;step&quot;:1,&quot;unit&quot;:&quot;min&quot;,&quot;section&quot;:&quot;Pomodoro&quot;},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;oklch(0.74 0.085 195)&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;oklch(0.74 0.085 195)&quot;,&quot;oklch(0.72 0.08 235)&quot;,&quot;oklch(0.78 0.08 170)&quot;,&quot;oklch(0.7 0.07 260)&quot;],&quot;section&quot;:&quot;Hiển thị&quot;}}">
+const GRADIENTS = [
+  'linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)',
+  'linear-gradient(150deg, #e8f4f0 0%, #d5e9f4 100%)',
+  'linear-gradient(200deg, #d9ecf5 0%, #eaf5f1 60%, #dceef0 100%)',
+  'linear-gradient(135deg, #eef3f8 0%, #dbeaf0 50%, #cfe4e6 100%)',
+  'radial-gradient(120% 100% at 20% 10%, #e9f6f2 0%, #d3e6f0 70%)',
+  'linear-gradient(175deg, #f0f6f7 0%, #d8eaf0 55%, #cde5df 100%)'
+];
+
+class Component extends DCLogic {
+  state = {
+    focus: this.props.focusMinutes ?? 25,
+    brk: this.props.breakMinutes ?? 5,
+    auto: true,
+    wallpapers: [
+      { id: 1, name: 'mint-morning.jpg', g: 0 },
+      { id: 2, name: 'lake-fog.jpg', g: 2 },
+      { id: 3, name: 'desk-window.png', g: 3 },
+      { id: 4, name: 'soft-blue.jpg', g: 4 }
+    ],
+    tracks: [
+      { id: 1, name: 'Mưa nhẹ ngoài cửa sổ', meta: 'rain-window.mp3 · 12.4 MB', duration: '32:10' },
+      { id: 2, name: 'Lo-fi bàn học', meta: 'lofi-desk.mp3 · 18.1 MB', duration: '48:02' },
+      { id: 3, name: 'Tiếng quán cà phê', meta: 'cafe-ambience.wav · 24.6 MB', duration: '25:00' },
+      { id: 4, name: 'Sóng biển chậm', meta: 'slow-waves.mp3 · 9.8 MB', duration: '21:45' }
+    ]
+  };
+
+  renderVals() {
+    const st = this.state;
+    const accent = this.props.accentColor || 'oklch(0.74 0.085 195)';
+    return {
+      accentSoft: 'color-mix(in oklab, ' + accent + ' 62%, white)',
+      wallpaperCount: st.wallpapers.length + ' ảnh · 4 / 20 dung lượng',
+      wallpapers: st.wallpapers.map((w, i) => ({
+        name: w.name,
+        css: GRADIENTS[w.g % GRADIENTS.length],
+        border: i === 0 ? '2px solid color-mix(in oklab, ' + accent + ' 60%, white)' : '2px solid rgba(255,255,255,0.75)',
+        remove: () => this.setState(s => ({ wallpapers: s.wallpapers.filter(x => x.id !== w.id) }))
+      })),
+      addWallpaper: () => this.setState(s => ({
+        wallpapers: s.wallpapers.concat([{ id: Date.now(), name: 'wallpaper-' + (s.wallpapers.length + 1) + '.jpg', g: s.wallpapers.length + 1 }])
+      })),
+
+      trackCount: st.tracks.length + ' bài · 1 giờ 47 phút',
+      tracks: st.tracks.map(t => ({
+        name: t.name,
+        meta: t.meta,
+        duration: t.duration,
+        rename: e => {
+          const v = e.target.value;
+          this.setState(s => ({ tracks: s.tracks.map(x => x.id === t.id ? Object.assign({}, x, { name: v }) : x) }));
+        },
+        remove: () => this.setState(s => ({ tracks: s.tracks.filter(x => x.id !== t.id) }))
+      })),
+      addTrack: () => this.setState(s => ({
+        tracks: s.tracks.concat([{ id: Date.now(), name: 'Bài mới ' + (s.tracks.length + 1), meta: 'upload-' + (s.tracks.length + 1) + '.mp3 · 8.2 MB', duration: '18:30' }])
+      })),
+
+      focus: st.focus,
+      brk: st.brk,
+      focusLabel: st.focus + ' phút',
+      breakLabel: st.brk + ' phút',
+      setFocus: e => this.setState({ focus: Number(e.target.value) }),
+      setBreak: e => this.setState({ brk: Number(e.target.value) }),
+      resetDefaults: () => this.setState({ focus: 25, brk: 5 }),
+      autoTrack: st.auto ? 'color-mix(in oklab, ' + accent + ' 60%, white)' : 'rgba(51,71,94,0.18)',
+      autoKnob: st.auto ? '30px' : '4px',
+      toggleAuto: () => this.setState(s => ({ auto: !s.auto })),
+      logout: () => { window.location.href = './FocusFlow Auth.dc.html'; }
+    };
+  }
+}
+</script>
+</body>
+</html>

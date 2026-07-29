@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #e9f1f4; }
+  * { box-sizing: border-box; }
+  a { color: oklch(0.58 0.075 220); }
+  a:hover { color: oklch(0.5 0.08 220); }
+</style>
+</helmet>
+<div style="padding: 56px 56px 80px; fontFamily: Nunito, system-ui, sans-serif; color: #33475e; display: flex; flexDirection: column; gap: 40px; background: #e9f1f4;">
+
+  <div style="display: flex; alignItems: center; gap: 12px;">
+    <div style="width: 24px; height: 24px; borderRadius: 9px; background: linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235));"></div>
+    <span style="fontSize: 20px; fontWeight: 800; letterSpacing: -0.3px;">FocusFlow · tất cả màn hình</span>
+    <span style="fontSize: 14px; fontWeight: 600; color: rgba(51,71,94,0.5);">Mỗi khung là màn hình thật, bấm trực tiếp được</span>
+  </div>
+
+  <div style="display: flex; flexWrap: wrap; gap: 36px;">
+
+    <div style="display: flex; flexDirection: column; gap: 12px;">
+      <div style="display: flex; alignItems: center; gap: 10px;">
+        <span style="fontSize: 12px; fontWeight: 800; letterSpacing: 0.6px; padding: 5px 11px; borderRadius: 999px; background: rgba(140,205,196,0.32); color: #2c5b53;">01</span>
+        <span style="fontSize: 15px; fontWeight: 800; color: #2c3f55;">Màn hình chính — Dashboard mode</span>
+        <a href="./FocusFlow.dc.html" target="_blank" style="fontSize: 13px; fontWeight: 700; textDecoration: none;">mở riêng ↗</a>
+      </div>
+      <div style="width: 1180px; height: 720px; borderRadius: 30px; overflow: hidden; background: #eef6f8; boxShadow: 0 22px 54px rgba(58,98,126,0.16);">
+        <iframe src="./FocusFlow.dc.html" title="FocusFlow dashboard" style="width: 100%; height: 100%; border: none; display: block;"></iframe>
+      </div>
+      <span style="fontSize: 13px; fontWeight: 600; color: rgba(51,71,94,0.5);">Đồng hồ ở giữa, taskbar 3 nút, panel to-do trượt ra, nút Ẩn UI ở góc trên phải.</span>
+    </div>
+
+    <div style="display: flex; flexDirection: column; gap: 12px;">
+      <div style="display: flex; alignItems: center; gap: 10px;">
+        <span style="fontSize: 12px; fontWeight: 800; letterSpacing: 0.6px; padding: 5px 11px; borderRadius: 999px; background: rgba(160,200,225,0.36); color: #2b4d68;">02</span>
+        <span style="fontSize: 15px; fontWeight: 800; color: #2c3f55;">Đăng nhập / Đăng ký</span>
+        <a href="./FocusFlow Auth.dc.html" target="_blank" style="fontSize: 13px; fontWeight: 700; textDecoration: none;">mở riêng ↗</a>
+      </div>
+      <div style="width: 1180px; height: 870px; borderRadius: 30px; overflow: hidden; background: #eef6f8; boxShadow: 0 22px 54px rgba(58,98,126,0.16);">
+        <iframe src="./FocusFlow Auth.dc.html" title="FocusFlow auth" style="width: 100%; height: 100%; border: none; display: block;"></iframe>
+      </div>
+      <span style="fontSize: 13px; fontWeight: 600; color: rgba(51,71,94,0.5);">Toggle Đăng nhập / Đăng ký trong cùng card, kèm lý do nên đăng nhập và lối vào chế độ khách.</span>
+    </div>
+
+    <div style="display: flex; flexDirection: column; gap: 12px;">
+      <div style="display: flex; alignItems: center; gap: 10px;">
+        <span style="fontSize: 12px; fontWeight: 800; letterSpacing: 0.6px; padding: 5px 11px; borderRadius: 999px; background: rgba(150,210,205,0.32); color: #2c5b53;">03</span>
+        <span style="fontSize: 15px; fontWeight: 800; color: #2c3f55;">Matching — tìm bạn học cùng</span>
+        <a href="./FocusFlow Matching.dc.html" target="_blank" style="fontSize: 13px; fontWeight: 700; textDecoration: none;">mở riêng ↗</a>
+      </div>
+      <div style="width: 1180px; height: 860px; borderRadius: 30px; overflow: hidden; background: #eef6f8; boxShadow: 0 22px 54px rgba(58,98,126,0.16);">
+        <iframe src="./FocusFlow Matching.dc.html" title="FocusFlow matching" style="width: 100%; height: 100%; border: none; display: block;"></iframe>
+      </div>
+      <span style="fontSize: 13px; fontWeight: 600; color: rgba(51,71,94,0.5);">Bấm “Bắt đầu tìm” để xem trạng thái đang tìm với vòng sóng lan toả và bộ đếm giây.</span>
+    </div>
+
+    <div style="display: flex; flexDirection: column; gap: 12px;">
+      <div style="display: flex; alignItems: center; gap: 10px;">
+        <span style="fontSize: 12px; fontWeight: 800; letterSpacing: 0.6px; padding: 5px 11px; borderRadius: 999px; background: rgba(160,200,225,0.36); color: #2b4d68;">04</span>
+        <span style="fontSize: 15px; fontWeight: 800; color: #2c3f55;">Phòng học chung — video + Pomodoro đồng bộ</span>
+        <a href="./FocusFlow Room.dc.html" target="_blank" style="fontSize: 13px; fontWeight: 700; textDecoration: none;">mở riêng ↗</a>
+      </div>
+      <div style="width: 1280px; height: 800px; borderRadius: 30px; overflow: hidden; background: #eef6f8; boxShadow: 0 22px 54px rgba(58,98,126,0.16);">
+        <iframe src="./FocusFlow Room.dc.html" title="FocusFlow study room" style="width: 100%; height: 100%; border: none; display: block;"></iframe>
+      </div>
+      <span style="fontSize: 13px; fontWeight: 600; color: rgba(51,71,94,0.5);">Khung đối phương lớn + PiP của bạn, đồng hồ nổi bán trong suốt, chat thu gọn được, nút Rời phòng tông coral.</span>
+    </div>
+
+    <div style="display: flex; flexDirection: column; gap: 12px;">
+      <div style="display: flex; alignItems: center; gap: 10px;">
+        <span style="fontSize: 12px; fontWeight: 800; letterSpacing: 0.6px; padding: 5px 11px; borderRadius: 999px; background: rgba(150,210,205,0.32); color: #2c5b53;">05</span>
+        <span style="fontSize: 15px; fontWeight: 800; color: #2c3f55;">Thống kê cá nhân</span>
+        <a href="./FocusFlow Stats.dc.html" target="_blank" style="fontSize: 13px; fontWeight: 700; textDecoration: none;">mở riêng ↗</a>
+      </div>
+      <div style="width: 1180px; height: 1270px; borderRadius: 30px; overflow: hidden; background: #eef6f8; boxShadow: 0 22px 54px rgba(58,98,126,0.16);">
+        <iframe src="./FocusFlow Stats.dc.html" title="FocusFlow stats" style="width: 100%; height: 100%; border: none; display: block;"></iframe>
+      </div>
+      <span style="fontSize: 13px; fontWeight: 600; color: rgba(51,71,94,0.5);">3 số liệu lớn, cột phút theo ngày, heatmap 12 tuần tông mint và lịch sử to-do đã xong.</span>
+    </div>
+
+    <div style="display: flex; flexDirection: column; gap: 12px;">
+      <div style="display: flex; alignItems: center; gap: 10px;">
+        <span style="fontSize: 12px; fontWeight: 800; letterSpacing: 0.6px; padding: 5px 11px; borderRadius: 999px; background: rgba(160,200,225,0.36); color: #2b4d68;">06</span>
+        <span style="fontSize: 15px; fontWeight: 800; color: #2c3f55;">Cài đặt &amp; hồ sơ</span>
+        <a href="./FocusFlow Settings.dc.html" target="_blank" style="fontSize: 13px; fontWeight: 700; textDecoration: none;">mở riêng ↗</a>
+      </div>
+      <div style="width: 940px; height: 1630px; borderRadius: 30px; overflow: hidden; background: #eef6f8; boxShadow: 0 22px 54px rgba(58,98,126,0.16);">
+        <iframe src="./FocusFlow Settings.dc.html" title="FocusFlow settings" style="width: 100%; height: 100%; border: none; display: block;"></iframe>
+      </div>
+      <span style="fontSize: 13px; fontWeight: 600; color: rgba(51,71,94,0.5);">Hồ sơ, lưới wallpaper có nút xoá và ô “+”, danh sách nhạc đổi tên/xoá được, slider Pomodoro, và nút Đăng xuất tách riêng dưới đường kẻ.</span>
+    </div>
+
+    <div style="display: flex; flexDirection: column; gap: 12px;">
+      <div style="display: flex; alignItems: center; gap: 10px;">
+        <span style="fontSize: 12px; fontWeight: 800; letterSpacing: 0.6px; padding: 5px 11px; borderRadius: 999px; background: rgba(150,210,205,0.32); color: #2c5b53;">01b</span>
+        <span style="fontSize: 15px; fontWeight: 800; color: #2c3f55;">Màn hình chính — Focus mode</span>
+      </div>
+      <div style="width: 760px; height: 720px; borderRadius: 30px; overflow: hidden; background: #eef6f8; boxShadow: 0 22px 54px rgba(58,98,126,0.16);">
+        <iframe src="./FocusFlow.dc.html" title="FocusFlow focus mode" style="width: 100%; height: 100%; border: none; display: block;"></iframe>
+      </div>
+      <span style="fontSize: 13px; fontWeight: 600; color: rgba(51,71,94,0.5);">Bấm tab “Focus” trong khung để xem chế độ tối giản; bấm “Ẩn UI” để còn wallpaper + đồng hồ.</span>
+    </div>
+
+    <div style="display: flex; flexDirection: column; gap: 12px;">
+      <div style="display: flex; alignItems: center; gap: 10px;">
+        <span style="fontSize: 12px; fontWeight: 800; letterSpacing: 0.6px; padding: 5px 11px; borderRadius: 999px; background: rgba(160,200,225,0.36); color: #2b4d68;">02b</span>
+        <span style="fontSize: 15px; fontWeight: 800; color: #2c3f55;">Đăng ký — khổ hẹp (mobile/tablet)</span>
+      </div>
+      <div style="width: 460px; height: 1350px; borderRadius: 30px; overflow: hidden; background: #eef6f8; boxShadow: 0 22px 54px rgba(58,98,126,0.16);">
+        <iframe src="./FocusFlow Auth.dc.html" title="FocusFlow auth narrow" style="width: 100%; height: 100%; border: none; display: block;"></iframe>
+      </div>
+      <span style="fontSize: 13px; fontWeight: 600; color: rgba(51,71,94,0.5);">Card và panel lý do tự xếp dọc khi màn hình hẹp.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

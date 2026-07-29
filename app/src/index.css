@@ -1,0 +1,99 @@
+@import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+/* FocusFlow design tokens — see README.md#design-tokens */
+:root {
+  --ff-accent-h: 195;
+  --ff-accent: oklch(0.74 0.085 var(--ff-accent-h));
+  --ff-accent-soft: color-mix(in oklab, var(--ff-accent) 62%, white);
+  --ff-accent-chip-active: color-mix(in oklab, var(--ff-accent) 32%, white);
+  --ff-accent-border: color-mix(in oklab, var(--ff-accent) 60%, white);
+
+  --ff-page-bg: #eef6f8;
+  --ff-page-gradient: linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%);
+
+  --ff-text-primary: #2c3f55;
+  --ff-text-body: #33475e;
+  --ff-text-muted: rgba(51, 71, 94, 0.5);
+  --ff-text-on-accent: #1e3549;
+  --ff-text-on-accent-2: #22483f;
+
+  --ff-surface-solid: #ffffff;
+  --ff-neutral-fill: rgba(238, 246, 248, 0.85);
+
+  --ff-danger-bg: oklch(0.86 0.055 45);
+  --ff-danger-text: #7a3f2c;
+  --ff-warning-bg: rgba(255, 246, 238, 0.9);
+  --ff-warning-badge: oklch(0.87 0.075 55);
+  --ff-warning-text: #7a4a2c;
+
+  --ff-video-tile-bg: repeating-linear-gradient(135deg, #e3eef2 0 12px, #dae8ee 12px 24px);
+
+  /* Room-type hues: badge bg oklch(0.93 0.045 H), text oklch(0.42 0.08 H) */
+  --ff-room-hue-chill: 195;
+  --ff-room-hue-hardcore: 45;
+  --ff-room-hue-silent: 265;
+  --ff-room-hue-discuss: 235;
+  --ff-room-hue-watch: 150;
+
+  --ff-shadow-card: 0 10px 28px rgba(58, 98, 126, 0.1);
+  --ff-shadow-card-raised: 0 18px 46px rgba(58, 98, 126, 0.15);
+  --ff-shadow-panel: 0 22px 56px rgba(58, 98, 126, 0.13);
+  --ff-shadow-modal: 0 30px 70px rgba(38, 66, 86, 0.28);
+
+  --ff-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@theme inline {
+  --font-sans: 'Nunito', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --color-accent: var(--ff-accent);
+  --color-accent-soft: var(--ff-accent-soft);
+  --color-accent-chip-active: var(--ff-accent-chip-active);
+  --color-accent-border: var(--ff-accent-border);
+
+  --color-page-bg: var(--ff-page-bg);
+  --color-text-primary: var(--ff-text-primary);
+  --color-text-body: var(--ff-text-body);
+  --color-text-muted: var(--ff-text-muted);
+  --color-text-on-accent: var(--ff-text-on-accent);
+  --color-text-on-accent-2: var(--ff-text-on-accent-2);
+
+  --color-surface-solid: var(--ff-surface-solid);
+  --color-neutral-fill: var(--ff-neutral-fill);
+
+  --color-danger-bg: var(--ff-danger-bg);
+  --color-danger-text: var(--ff-danger-text);
+  --color-warning-bg: var(--ff-warning-bg);
+  --color-warning-badge: var(--ff-warning-badge);
+  --color-warning-text: var(--ff-warning-text);
+
+  /* chip & nút nhỏ 14-19px, input 18-20px, card 24-26px, panel lớn 30-34px */
+  --radius-chip: 16px;
+  --radius-input: 19px;
+  --radius-card: 25px;
+  --radius-panel: 32px;
+  --radius-pill: 999px;
+
+  --shadow-card: var(--ff-shadow-card);
+  --shadow-card-raised: var(--ff-shadow-card-raised);
+  --shadow-panel: var(--ff-shadow-panel);
+  --shadow-modal: var(--ff-shadow-modal);
+
+  --ease-ff: var(--ff-ease);
+}
+
+body {
+  margin: 0;
+  background: var(--ff-page-bg);
+  color: var(--ff-text-body);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100svh;
+}

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #eef6f8; }
+  * { box-sizing: border-box; }
+  a { color: oklch(0.58 0.075 220); }
+  a:hover { color: oklch(0.5 0.08 220); }
+</style>
+</helmet>
+<div style="position: relative; width: 100%; minHeight: 100vh; fontFamily: Nunito, system-ui, sans-serif; color: #33475e; -webkit-font-smoothing: antialiased; background: linear-gradient(170deg, #e4f1f4 0%, #dbeaf2 50%, #e6f4ee 100%);">
+  <div style="maxWidth: 1120px; margin: 0 auto; padding: 44px 32px 64px; display: flex; flexDirection: column; gap: 22px;">
+
+    <div style="display: flex; alignItems: center; justifyContent: space-between; flexWrap: wrap; gap: 14px;">
+      <div style="display: flex; alignItems: center; gap: 11px;">
+        <div style="width: 22px; height: 22px; borderRadius: 9px; background: linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235));"></div>
+        <span style="fontSize: 18px; fontWeight: 800; letterSpacing: -0.2px; color: #2f4459;">FocusFlow</span>
+        <span style="fontSize: 14px; fontWeight: 600; color: rgba(51,71,94,0.5);">· Thống kê cá nhân</span>
+      </div>
+      <div style="display: flex; gap: 4px; padding: 5px; borderRadius: 20px; background: rgba(255,255,255,0.7); boxShadow: 0 6px 18px rgba(58,98,126,0.08);">
+        <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="3">
+          <button onClick="{{ r.pick }}" style="border: none; cursor: pointer; fontFamily: inherit; fontSize: 13px; fontWeight: 700; padding: 9px 17px; borderRadius: 16px; color: {{ r.color }}; background: {{ r.bg }}; boxShadow: {{ r.shadow }}; transition: all 240ms ease;">{{ r.name }}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- overview -->
+    <div style="display: grid; gridTemplateColumns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+      <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="3">
+        <div style="padding: 26px 28px; borderRadius: 30px; background: rgba(255,255,255,0.78); backdropFilter: blur(18px); boxShadow: 0 14px 36px rgba(58,98,126,0.1); display: flex; flexDirection: column; gap: 10px;">
+          <span style="fontSize: 12px; fontWeight: 800; letterSpacing: 1.1px; textTransform: uppercase; color: rgba(51,71,94,0.5);">{{ k.label }}</span>
+          <div style="display: flex; alignItems: baseline; gap: 8px;">
+            <span style="fontSize: 44px; fontWeight: 800; lineHeight: 1; letterSpacing: -1.5px; color: #2c3f55;">{{ k.value }}</span>
+            <span style="fontSize: 14.5px; fontWeight: 700; color: rgba(51,71,94,0.55);">{{ k.unit }}</span>
+          </div>
+          <span style="fontSize: 13px; fontWeight: 700; color: {{ k.deltaColor }};">{{ k.delta }}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: grid; gridTemplateColumns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px;">
+
+      <!-- bar chart -->
+      <div style="padding: 26px 28px 22px; borderRadius: 30px; background: rgba(255,255,255,0.78); backdropFilter: blur(18px); boxShadow: 0 14px 36px rgba(58,98,126,0.1); display: flex; flexDirection: column; gap: 20px;">
+        <div style="display: flex; alignItems: baseline; justifyContent: space-between; gap: 12px;">
+          <span style="fontSize: 16.5px; fontWeight: 800; color: #2c3f55;">Phút tập trung theo ngày</span>
+          <span style="fontSize: 13px; fontWeight: 700; color: rgba(51,71,94,0.48);">{{ weekLabel }}</span>
+        </div>
+        <div style="display: flex; alignItems: flex-end; gap: 12px; height: 208px;">
+          <sc-for list="{{ days }}" as="d" hint-placeholder-count="7">
+            <div style="flex: 1; height: 100%; display: flex; flexDirection: column; justifyContent: flex-end; alignItems: center; gap: 9px;">
+              <span style="fontSize: 12.5px; fontWeight: 800; color: {{ d.valueColor }};">{{ d.minutes }}</span>
+              <div style="width: 100%; height: {{ d.height }}; borderRadius: 14px 14px 8px 8px; background: {{ d.bg }}; boxShadow: 0 6px 14px rgba(58,98,126,0.08); transition: height 600ms cubic-bezier(0.22,1,0.36,1);"></div>
+              <span style="fontSize: 12.5px; fontWeight: 700; color: {{ d.labelColor }};">{{ d.name }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- heatmap -->
+      <div style="padding: 26px 28px 24px; borderRadius: 30px; background: rgba(255,255,255,0.78); backdropFilter: blur(18px); boxShadow: 0 14px 36px rgba(58,98,126,0.1); display: flex; flexDirection: column; gap: 18px;">
+        <div style="display: flex; alignItems: baseline; justifyContent: space-between; gap: 12px;">
+          <span style="fontSize: 16.5px; fontWeight: 800; color: #2c3f55;">Mật độ học 12 tuần</span>
+          <span style="fontSize: 13px; fontWeight: 700; color: rgba(51,71,94,0.48);">{{ heatSummary }}</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <div style="display: flex; flexDirection: column; justifyContent: space-between; paddingTop: 1px; paddingBottom: 1px;">
+            <sc-for list="{{ weekdayLabels }}" as="w" hint-placeholder-count="7">
+              <span style="fontSize: 10.5px; fontWeight: 700; color: rgba(51,71,94,0.4); height: 15px; lineHeight: 15px;">{{ w.text }}</span>
+            </sc-for>
+          </div>
+          <div style="flex: 1; display: grid; gridTemplateRows: repeat(7, 15px); gridAutoFlow: column; gridAutoColumns: 15px; gap: 5px; justifyContent: space-between;">
+            <sc-for list="{{ heat }}" as="c" hint-placeholder-count="84">
+              <div title="{{ c.title }}" style="borderRadius: 5px; background: {{ c.bg }};"></div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display: flex; alignItems: center; justifyContent: flex-end; gap: 7px;">
+          <span style="fontSize: 11.5px; fontWeight: 700; color: rgba(51,71,94,0.42);">ít</span>
+          <sc-for list="{{ legend }}" as="l" hint-placeholder-count="5">
+            <div style="width: 13px; height: 13px; borderRadius: 4px; background: {{ l.bg }};"></div>
+          </sc-for>
+          <span style="fontSize: 11.5px; fontWeight: 700; color: rgba(51,71,94,0.42);">nhiều</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- history -->
+    <div style="padding: 26px 28px 22px; borderRadius: 30px; background: rgba(255,255,255,0.78); backdropFilter: blur(18px); boxShadow: 0 14px 36px rgba(58,98,126,0.1); display: flex; flexDirection: column; gap: 16px;">
+      <div style="display: flex; alignItems: baseline; justifyContent: space-between; gap: 12px;">
+        <span style="fontSize: 16.5px; fontWeight: 800; color: #2c3f55;">Việc đã hoàn thành gần đây</span>
+        <a href="#" style="fontSize: 13px; fontWeight: 700; textDecoration: none;">Xem tất cả</a>
+      </div>
+      <div style="display: flex; flexDirection: column; gap: 8px;">
+        <sc-for list="{{ history }}" as="h" hint-placeholder-count="6">
+          <div style="display: flex; alignItems: center; gap: 14px; padding: 14px 18px; borderRadius: 22px; background: rgba(238,246,248,0.72); transition: background 200ms ease;" style-hover="background: #ffffff;">
+            <div style="width: 26px; height: 26px; flexShrink: 0; borderRadius: 10px; background: {{ accentSoft }}; display: flex; alignItems: center; justifyContent: center;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>
+            </div>
+            <div style="flex: 1; display: flex; flexDirection: column; gap: 2px;">
+              <span style="fontSize: 14.5px; fontWeight: 700; color: #2c3f55;">{{ h.name }}</span>
+              <span style="fontSize: 12.5px; fontWeight: 600; color: rgba(51,71,94,0.48);">{{ h.meta }}</span>
+            </div>
+            <span style="fontSize: 13px; fontWeight: 700; color: rgba(51,71,94,0.5); whiteSpace: nowrap;">{{ h.date }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <a href="./FocusFlow.dc.html" style="fontSize: 13.5px; fontWeight: 700; textDecoration: none; alignSelf: center;">← Về màn hình học</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:1000},&quot;accentColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;oklch(0.74 0.085 195)&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;oklch(0.74 0.085 195)&quot;,&quot;oklch(0.72 0.08 235)&quot;,&quot;oklch(0.78 0.08 170)&quot;,&quot;oklch(0.7 0.07 260)&quot;],&quot;section&quot;:&quot;Hiển thị&quot;}}">
+const WEEK = [
+  { name: 'T2', minutes: 95 }, { name: 'T3', minutes: 140 }, { name: 'T4', minutes: 60 },
+  { name: 'T5', minutes: 175 }, { name: 'T6', minutes: 120 }, { name: 'T7', minutes: 205 },
+  { name: 'CN', minutes: 75 }
+];
+
+const HISTORY = [
+  { name: 'Ôn chương 4 – Đạo hàm', meta: 'Toán · 3 phiên · 75 phút', date: 'Hôm nay 14:20' },
+  { name: 'Làm 10 câu trắc nghiệm Lý', meta: 'Vật lý · 1 phiên · 25 phút', date: 'Hôm nay 10:05' },
+  { name: 'Reading Unit 7 + từ mới', meta: 'Tiếng Anh · 2 phiên · 50 phút', date: 'Hôm qua 21:40' },
+  { name: 'Bài tập thuật toán đệ quy', meta: 'Lập trình · 4 phiên · 100 phút', date: 'Hôm qua 16:10' },
+  { name: 'Ghi chú lỗi sai đề thi thử', meta: 'Ôn tập · 1 phiên · 25 phút', date: '25/07 · 20:15' },
+  { name: 'Học cùng Minh Anh – chương 3', meta: 'Phòng chung · 2 phiên · 50 phút', date: '24/07 · 19:30' }
+];
+
+// deterministic pseudo-random density, 12 weeks × 7 days
+function density(i) {
+  const v = Math.sin(i * 12.9898) * 43758.5453;
+  const f = v - Math.floor(v);
+  const d = i % 7;
+  const weekendBoost = d >= 5 ? 0.15 : 0;
+  return Math.max(0, Math.min(4, Math.round((f + weekendBoost) * 4.4 - 0.4)));
+}
+
+class Component extends DCLogic {
+  state = { range: 'Tuần này' };
+
+  renderVals() {
+    const accent = this.props.accentColor || 'oklch(0.74 0.085 195)';
+    const mix = p => 'color-mix(in oklab, ' + accent + ' ' + p + '%, white)';
+    const max = Math.max.apply(null, WEEK.map(d => d.minutes));
+    const total = WEEK.reduce((a, d) => a + d.minutes, 0);
+    const best = WEEK.reduce((a, d) => d.minutes > a.minutes ? d : a, WEEK[0]);
+    const cells = [];
+    let active = 0;
+    for (let i = 0; i < 84; i++) {
+      const lv = density(i);
+      if (lv > 0) active++;
+      cells.push({
+        bg: lv === 0 ? 'rgba(51,71,94,0.07)' : mix(18 + lv * 20),
+        title: lv === 0 ? 'Không học' : lv * 30 + '–' + (lv * 30 + 30) + ' phút'
+      });
+    }
+
+    return {
+      accentSoft: mix(70),
+      ranges: ['Tuần này', 'Tháng này', 'Tất cả'].map(name => {
+        const on = this.state.range === name;
+        return {
+          name,
+          pick: () => this.setState({ range: name }),
+          bg: on ? 'rgba(255,255,255,0.98)' : 'transparent',
+          color: on ? '#25415c' : 'rgba(51,71,94,0.55)',
+          shadow: on ? '0 4px 12px rgba(58,98,126,0.1)' : 'none'
+        };
+      }),
+      kpis: [
+        { label: 'Phút tập trung tuần này', value: total, unit: 'phút', delta: '+18% so với tuần trước', deltaColor: '#2c5b53' },
+        { label: 'Phiên hoàn thành', value: 34, unit: 'phiên', delta: '5 phiên học cùng bạn', deltaColor: 'rgba(51,71,94,0.55)' },
+        { label: 'Streak liên tiếp', value: 12, unit: 'ngày', delta: 'Kỷ lục của bạn: 19 ngày', deltaColor: 'rgba(51,71,94,0.55)' }
+      ],
+      weekLabel: '21/07 – 27/07 · cao nhất ' + best.name,
+      days: WEEK.map(d => ({
+        name: d.name,
+        minutes: d.minutes,
+        height: Math.round((d.minutes / max) * 100) + '%',
+        bg: d === best ? mix(58) : mix(32),
+        valueColor: d === best ? '#22483f' : 'rgba(51,71,94,0.55)',
+        labelColor: d === best ? '#2c3f55' : 'rgba(51,71,94,0.5)'
+      })),
+      weekdayLabels: ['T2', '', 'T4', '', 'T6', '', 'CN'].map(text => ({ text })),
+      heat: cells,
+      heatSummary: active + '/84 ngày có học',
+      legend: [0, 1, 2, 3, 4].map(lv => ({ bg: lv === 0 ? 'rgba(51,71,94,0.07)' : mix(18 + lv * 20) })),
+      history: HISTORY
+    };
+  }
+}
+</script>
+</body>
+</html>
