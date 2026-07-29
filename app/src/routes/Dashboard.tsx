@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
+import { useAuthStore } from '../store/auth'
 
 const WALLPAPERS = [
   'linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)',
@@ -27,17 +29,17 @@ type Mode = 'dashboard' | 'focus'
 type Panel = 'wp' | 'music' | 'todo' | null
 
 type Task = {
-  id: number
+  id: string
   name: string
   meta: string
   done: boolean
 }
 
 const INITIAL_TASKS: Task[] = [
-  { id: 1, name: 'Ôn chương 4 – Đạo hàm', meta: '2 phiên · Toán', done: false },
-  { id: 2, name: 'Làm 10 câu trắc nghiệm Lý', meta: '1 phiên · Vật lý', done: false },
-  { id: 3, name: 'Đọc bài Reading Unit 7', meta: '1 phiên · Anh', done: true },
-  { id: 4, name: 'Ghi chú lại lỗi sai đề thi thử', meta: '2 phiên · Ôn tập', done: false },
+  { id: 'g1', name: 'Ôn chương 4 – Đạo hàm', meta: '2 phiên · Toán', done: false },
+  { id: 'g2', name: 'Làm 10 câu trắc nghiệm Lý', meta: '1 phiên · Vật lý', done: false },
+  { id: 'g3', name: 'Đọc bài Reading Unit 7', meta: '1 phiên · Anh', done: true },
+  { id: 'g4', name: 'Ghi chú lại lỗi sai đề thi thử', meta: '2 phiên · Ôn tập', done: false },
 ]
 
 function fmt(sec: number) {
@@ -54,6 +56,7 @@ function breakSecs() {
 }
 
 export default function Dashboard() {
+  const user = useAuthStore((s) => s.user)
   const [mode, setMode] = useState<Mode>('dashboard')
   const [hidden, setHidden] = useState(false)
   const [running, setRunning] = useState(false)
@@ -101,6 +104,26 @@ export default function Dashboard() {
     }
   }, [phase])
 
+  // logged in → load real todos from Supabase; guest → keep the local mock list untouched.
+  useEffect(() => {
+    if (!user) {
+      setTasks(INITIAL_TASKS)
+      return
+    }
+    let cancelled = false
+    supabase
+      .from('todos')
+      .select('id, name, meta, done')
+      .order('created_at')
+      .then(({ data, error }) => {
+        if (cancelled || error || !data) return
+        setTasks(data.map((row) => ({ id: row.id, name: row.name, meta: row.meta ?? '', done: row.done })))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
   const total = phase === 'focus' ? focusSecs() : breakSecs()
   const progress = Math.min(1, Math.max(0, 1 - left / total))
   const dashOffset = 917.3 * (1 - progress)
@@ -128,11 +151,36 @@ export default function Dashboard() {
     setPanel((cur) => (cur === p ? null : p))
   }
 
-  function addTask() {
+  async function addTask() {
     const name = draft.trim()
     if (!name) return
-    setTasks((t) => [...t, { id: Date.now(), name, meta: '1 phiên · Mới', done: false }])
     setDraft('')
+    if (!user) {
+      setTasks((t) => [...t, { id: 'g' + Date.now(), name, meta: '1 phiên · Mới', done: false }])
+      return
+    }
+    const { data, error } = await supabase
+      .from('todos')
+      .insert({ user_id: user.id, name, meta: '1 phiên · Mới' })
+      .select('id, name, meta, done')
+      .single()
+    if (!error && data) {
+      setTasks((t) => [...t, { id: data.id, name: data.name, meta: data.meta ?? '', done: data.done }])
+    }
+  }
+
+  function toggleTask(t: Task) {
+    const nextDone = !t.done
+    setTasks((ts) => ts.map((x) => (x.id === t.id ? { ...x, done: nextDone } : x)))
+    if (user) {
+      supabase
+        .from('todos')
+        .update({ done: nextDone })
+        .eq('id', t.id)
+        .then(({ error }) => {
+          if (error) console.error('toggle todo failed', error)
+        })
+    }
   }
 
   const chromeStyle = {
@@ -728,9 +776,7 @@ export default function Dashboard() {
           {tasks.map((t) => (
             <div
               key={t.id}
-              onClick={() =>
-                setTasks((ts) => ts.map((x) => (x.id === t.id ? { ...x, done: !x.done } : x)))
-              }
+              onClick={() => toggleTask(t)}
               className="flex cursor-pointer items-center gap-[13px] rounded-[20px] px-[15px] py-[14px] transition-colors duration-200 hover:!bg-[rgba(255,255,255,0.95)]"
               style={{ background: 'rgba(255,255,255,0.66)', boxShadow: '0 4px 14px rgba(58,98,126,0.07)' }}
             >

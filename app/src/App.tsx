@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 
+import RequireAuth from './components/RequireAuth'
 import Auth from './routes/Auth'
 import Dashboard from './routes/Dashboard'
 import Matching from './routes/Matching'
@@ -14,8 +15,10 @@ export default function App() {
       <Route path="/" element={<Dashboard />} />
       <Route path="/matching" element={<Matching />} />
       <Route path="/room/:id" element={<Room />} />
-      <Route path="/stats" element={<Stats />} />
-      <Route path="/settings" element={<Settings />} />
+      <Route element={<RequireAuth />}>
+        <Route path="/stats" element={<Stats />} />
+        <Route path="/settings" element={<Settings />} />
+      </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

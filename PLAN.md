@@ -42,11 +42,12 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [ ] Zustand store: Dashboard state, Matching state, Room state (theo bảng State Management trong README)
 - [ ] To-do CRUD local, đổi wallpaper/nhạc local
 
-## Giai đoạn 3 — Supabase Auth & schema
-- [ ] Bật Auth email + Google OAuth
-- [ ] Schema: `profiles`, `todos`, `focus_sessions`, `rooms`, `room_members`, `room_messages`, `tracks`, `wallpapers`
-- [ ] RLS policies theo user/room membership
-- [ ] Nối màn Auth thật + route guard theo session
+## Giai đoạn 3 — Supabase Auth & schema ✅ Hoàn tất 2026-07-29
+- [x] Bật Auth email + Google OAuth
+- [x] Schema: `profiles`, `todos`, `focus_sessions`, `rooms`, `room_members`, `room_messages`, `tracks`, `wallpapers`
+- [x] RLS policies theo user/room membership
+- [x] Nối màn Auth thật + route guard theo session (guard áp dụng `/stats`, `/settings`; `/`, `/matching`, `/room/:id` vẫn cho khách dùng được)
+- [x] (thêm ngoài kế hoạch, làm sớm vì đã có Auth) Nối Dashboard to-do + Settings profile/Pomodoro defaults với dữ liệu thật
 
 ## Giai đoạn 4 — Matching & quản lý phòng
 - [ ] Tạo phòng (mã 6 ký tự, capacity, public/private)

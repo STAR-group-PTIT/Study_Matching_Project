@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuthStore } from '../store/auth'
 
 const GRADIENTS = [
   'linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)',
@@ -30,14 +31,51 @@ const INITIAL_TRACKS: Track[] = [
 
 const ACCENT_SOFT = 'var(--ff-accent-soft)'
 
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/)
+  if (!parts[0]) return '?'
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
+}
+
 export default function Settings() {
   const navigate = useNavigate()
+  const user = useAuthStore((s) => s.user)
 
   const [wallpapers, setWallpapers] = useState<Wallpaper[]>(INITIAL_WALLPAPERS)
   const [tracks, setTracks] = useState<Track[]>(INITIAL_TRACKS)
   const [focus, setFocus] = useState(25)
   const [brk, setBrk] = useState(5)
   const [auto, setAuto] = useState(true)
+  const [profileName, setProfileName] = useState('')
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('profiles')
+      .select('name, focus_minutes, break_minutes, auto_start_next')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (!data) return
+        setProfileName(data.name)
+        setFocus(data.focus_minutes)
+        setBrk(data.break_minutes)
+        setAuto(data.auto_start_next)
+      })
+  }, [user])
+
+  async function saveDefaults() {
+    if (!user) return
+    const { error } = await supabase
+      .from('profiles')
+      .update({ focus_minutes: focus, break_minutes: brk, auto_start_next: auto })
+      .eq('id', user.id)
+    if (!error) {
+      setSaved(true)
+      setTimeout(() => setSaved(false), 1800)
+    }
+  }
 
   function removeWallpaper(id: number) {
     setWallpapers((ws) => ws.filter((w) => w.id !== id))
@@ -89,11 +127,13 @@ export default function Settings() {
               boxShadow: '0 8px 22px rgba(58,98,126,0.12)',
             }}
           >
-            MA
+            {initials(profileName || user?.email || '?')}
           </div>
           <div className="flex flex-[1_1_200px] flex-col gap-1">
-            <span className="text-[22px] font-extrabold tracking-[-0.3px] text-[#2c3f55]">Minh Anh</span>
-            <span className="text-sm font-semibold text-[rgba(51,71,94,0.55)]">minhanh@email.com</span>
+            <span className="text-[22px] font-extrabold tracking-[-0.3px] text-[#2c3f55]">
+              {profileName || 'Người dùng mới'}
+            </span>
+            <span className="text-sm font-semibold text-[rgba(51,71,94,0.55)]">{user?.email}</span>
             <span className="text-[13px] font-bold text-[#2c5b53]">Streak 12 ngày · 34 phiên tuần này</span>
           </div>
           <div className="flex flex-wrap gap-[9px]">
@@ -299,10 +339,11 @@ export default function Settings() {
           </div>
           <div className="flex flex-wrap gap-[9px]">
             <button
+              onClick={saveDefaults}
               className="rounded-[22px] border-none px-[26px] py-[14px] font-sans text-[14.5px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
               style={{ background: ACCENT_SOFT }}
             >
-              Lưu thay đổi
+              {saved ? 'Đã lưu ✓' : 'Lưu thay đổi'}
             </button>
             <button
               onClick={resetDefaults}
