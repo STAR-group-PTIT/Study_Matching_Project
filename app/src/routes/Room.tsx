@@ -1,7 +1,759 @@
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+
+type Member = { id: number; name: string; status: string; host: boolean; me?: boolean }
+type Pending = { id: number; name: string; wait: string }
+type ChatMsg = { who: string; me: boolean; text: string }
+
+const TRACKS = [
+  { name: 'Lofi mưa đêm', mood: 'lofi · êm', length: '42:10' },
+  { name: 'Quán cà phê 8h', mood: 'jazz nhẹ', length: '58:24' },
+  { name: 'Tiếng mưa rơi', mood: 'tiếng động nền', length: '1:20:00' },
+  { name: 'Piano tập trung', mood: 'piano · trầm', length: '35:47' },
+  { name: 'Sóng biển xa', mood: 'thiên nhiên', length: '1:05:12' },
+]
+
+const ME: Member = { id: 12, name: 'Bạn', status: 'chủ phòng', host: true, me: true }
+const DEMO_SETS: Record<'two' | 'five', Member[]> = {
+  two: [{ id: 10, name: 'Minh Anh', status: 'đang tập trung', host: false }, ME],
+  five: [
+    { id: 10, name: 'Minh Anh', status: 'đang tập trung', host: false },
+    { id: 11, name: 'Hà Vy', status: 'mic tắt', host: false },
+    { id: 13, name: 'Gia Bảo', status: 'đang tập trung', host: false },
+    { id: 14, name: 'Thanh Trúc', status: 'cam tắt', host: false },
+    ME,
+  ],
+}
+
+const IS_HOST = true
+const FOCUS_MINUTES = 25
+const BREAK_MINUTES = 5
+const ACCENT = 'var(--ff-accent)'
+const ACCENT_SOFT = 'var(--ff-accent-soft)'
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/)
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
+}
+
+function focusSecs() {
+  return FOCUS_MINUTES * 60
+}
+function breakSecs() {
+  return BREAK_MINUTES * 60
+}
+
+type Phase = 'focus' | 'break'
+type Tab = 'chat' | 'music' | 'host'
+type Admit = 'auto' | 'manual'
+type Demo = 'two' | 'five'
+
+function segStyle(on: boolean) {
+  return {
+    background: on ? '#ffffff' : 'transparent',
+    color: on ? '#22483f' : 'rgba(51,71,94,0.55)',
+    boxShadow: on ? '0 4px 12px rgba(58,98,126,0.12)' : 'none',
+  }
+}
+
 export default function Room() {
+  const navigate = useNavigate()
+
+  const [running, setRunning] = useState(true)
+  const [phase, setPhase] = useState<Phase>('focus')
+  const [left, setLeft] = useState(focusSecs() - 512)
+  const [round, setRound] = useState(2)
+
+  const [cam, setCam] = useState(true)
+  const [mic, setMic] = useState(false)
+  const [chatOpen, setChatOpen] = useState(true)
+  const [tab, setTab] = useState<Tab>('chat')
+
+  const [musicOn, setMusicOn] = useState(true)
+  const [trackIndex, setTrackIndex] = useState(0)
+  const [volume, setVolume] = useState(45)
+
+  const [admit, setAdmit] = useState<Admit>('manual')
+  const [pending, setPending] = useState<Pending[]>([
+    { id: 1, name: 'Thanh Trúc', wait: '20 giây' },
+    { id: 2, name: 'Gia Bảo', wait: '1 phút 05' },
+  ])
+
+  const [demo, setDemo] = useState<Demo>('five')
+  const [members, setMembers] = useState<Member[]>(DEMO_SETS.five.slice())
+
+  const [draft, setDraft] = useState('')
+  const [messages, setMessages] = useState<ChatMsg[]>([
+    { who: 'Minh Anh', me: false, text: 'Mình vào rồi nha, bắt đầu phiên 25 phút nhé!' },
+    { who: 'Bạn', me: true, text: 'Ok, mình tắt mic để tập trung, cần gì thì nhắn chat.' },
+    { who: 'Minh Anh', me: false, text: 'Ừ, hết phiên nghỉ 5 phút rồi kể chương 4 tới đâu.' },
+  ])
+
+  const runningRef = useRef(running)
+  runningRef.current = running
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (!runningRef.current) return
+      setLeft((prevLeft) => {
+        if (prevLeft <= 1) {
+          setPhase((prevPhase) => {
+            const next: Phase = prevPhase === 'focus' ? 'break' : 'focus'
+            if (next === 'focus') setRound((r) => r + 1)
+            return next
+          })
+          return 0
+        }
+        return prevLeft - 1
+      })
+    }, 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const prevPhaseRef = useRef(phase)
+  useEffect(() => {
+    if (prevPhaseRef.current !== phase) {
+      setLeft(phase === 'focus' ? focusSecs() : breakSecs())
+      prevPhaseRef.current = phase
+    }
+  }, [phase])
+
+  const total = phase === 'focus' ? focusSecs() : breakSecs()
+  const progress = Math.min(1, Math.max(0, 1 - left / total))
+  const dashOffset = 270.2 * (1 - progress)
+  const m = Math.floor(left / 60)
+  const s = left % 60
+  const timeText = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0')
+
+  const queued = admit === 'manual' && pending.length > 0
+  const effectiveTab: Tab = tab === 'host' && !IS_HOST ? 'chat' : tab
+  const track = TRACKS[trackIndex] || TRACKS[0]
+  const n = Math.max(1, members.length)
+  const cols = Math.ceil(Math.sqrt(n))
+  const rows = Math.ceil(n / cols)
+
+  const syncLabel =
+    members.length > 2
+      ? `Đồng bộ với ${members.length - 1} người`
+      : `Đồng bộ với ${members.find((u) => !u.me)?.name || 'phòng'}`
+
+  function openTab(next: Tab) {
+    setChatOpen((open) => !(open && tab === next))
+    setTab(next)
+  }
+
+  function resetTimer() {
+    setLeft(total)
+    setRunning(false)
+  }
+
+  function approve(p: Pending) {
+    setPending((ps) => ps.filter((x) => x.id !== p.id))
+    setMembers((ms) => [...ms, { id: p.id, name: p.name, status: 'vừa vào phòng', host: false }])
+  }
+  function reject(p: Pending) {
+    setPending((ps) => ps.filter((x) => x.id !== p.id))
+  }
+  function approveAll() {
+    setMembers((ms) => [
+      ...ms,
+      ...pending.map((p) => ({ id: p.id, name: p.name, status: 'vừa vào phòng', host: false })),
+    ])
+    setPending([])
+  }
+  function kick(u: Member) {
+    setMembers((ms) => ms.filter((x) => x.id !== u.id))
+  }
+
+  function send() {
+    const text = draft.trim()
+    if (!text) return
+    setDraft('')
+    setMessages((ms) => [...ms, { who: 'Bạn', me: true, text }])
+  }
+
+  const tiles = members.map((u) => {
+    const me = !!u.me
+    const camOff = me ? !cam : u.status.includes('cam tắt')
+    return {
+      id: u.id,
+      name: u.name,
+      initials: initials(u.name),
+      status: me ? (mic ? 'mic bật' : 'mic tắt') : u.status,
+      statusColor: me ? (mic ? '#2c5b53' : 'rgba(51,71,94,0.45)') : 'rgba(51,71,94,0.45)',
+      feedLabel: camOff ? 'camera đang tắt' : 'webcam · ' + u.name,
+      avatarBg: me ? 'rgba(140,205,196,0.55)' : 'rgba(160,200,225,0.5)',
+      avatarColor: me ? '#22483f' : '#2b4d68',
+      tileBorder: me ? '2.5px solid rgba(126,201,198,0.95)' : '2px solid rgba(140,205,196,0.45)',
+      tileShadow: me ? '0 14px 32px rgba(58,98,126,0.18)' : '0 10px 24px rgba(58,98,126,0.1)',
+      self: me,
+    }
+  })
+
   return (
-    <div className="flex min-h-svh items-center justify-center">
-      <p className="text-text-primary font-sans text-lg font-bold">Study Room — placeholder (Giai đoạn 1)</p>
+    <div
+      className="relative h-svh w-full overflow-hidden font-sans text-[#33475e] antialiased"
+      style={{ background: 'var(--ff-page-gradient)' }}
+    >
+      {/* top bar */}
+      <div className="absolute top-[22px] right-[26px] left-[26px] z-[42] flex flex-wrap items-center justify-between gap-[10px]">
+        <div
+          className="flex items-center gap-[11px] rounded-[22px] py-[9px] pr-[18px] pl-[13px]"
+          style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)' }}
+        >
+          <div className="h-5 w-5 rounded-lg" style={{ background: 'linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235))' }} />
+          <span className="text-base font-extrabold tracking-[-0.2px] text-[#2f4459]">FocusFlow</span>
+          <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.5)]">· Phòng học chung</span>
+        </div>
+        <div className="flex items-center gap-[10px]">
+          <div
+            className="flex items-center gap-[5px] rounded-[20px] p-[5px]"
+            style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)' }}
+          >
+            {(['two', 'five'] as Demo[]).map((key) => (
+              <button
+                key={key}
+                onClick={() => {
+                  setDemo(key)
+                  setMembers(DEMO_SETS[key].slice())
+                }}
+                className="rounded-[15px] border-none px-[14px] py-2 font-sans text-[12.5px] font-extrabold transition-all duration-[220ms]"
+                style={segStyle(demo === key)}
+              >
+                {key === 'two' ? '2 người' : '5 người'}
+              </button>
+            ))}
+          </div>
+          <div
+            className="flex items-center gap-[9px] rounded-[20px] px-[17px] py-[9px]"
+            style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)' }}
+          >
+            <span className="h-2 w-2 rounded-full" style={{ background: 'oklch(0.76 0.09 170)' }} />
+            <span className="text-[13.5px] font-bold text-[#35566b]">{syncLabel}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* video stage */}
+      <div
+        className="absolute inset-0 py-[84px] pl-[26px]"
+        style={{
+          paddingRight: chatOpen ? '392px' : '26px',
+          transition: 'padding 420ms cubic-bezier(0.22,1,0.36,1)',
+        }}
+      >
+        <div
+          className="relative h-full w-full overflow-hidden rounded-[34px] p-4"
+          style={{
+            border: '2px solid rgba(140,205,196,0.4)',
+            boxShadow: '0 22px 56px rgba(58,98,126,0.15)',
+            background: 'repeating-linear-gradient(135deg, #dbe9ef 0 14px, #d2e3ea 14px 28px)',
+          }}
+        >
+          <div
+            className="grid h-full w-full gap-[14px]"
+            style={{
+              gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+              gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+              placeContent: 'stretch',
+            }}
+          >
+            {tiles.map((t) => (
+              <div
+                key={t.id}
+                className="relative m-auto w-full max-w-full overflow-hidden rounded-[24px]"
+                style={{
+                  maxHeight: '100%',
+                  aspectRatio: '16 / 9',
+                  border: t.tileBorder,
+                  boxShadow: t.tileShadow,
+                  background: 'repeating-linear-gradient(135deg, #e3eef2 0 12px, #dae8ee 12px 24px)',
+                }}
+              >
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-[6px]">
+                  <span
+                    className="rounded-[11px] px-3 py-[7px] font-mono text-xs tracking-[0.5px] text-[rgba(51,71,94,0.5)]"
+                    style={{ background: 'rgba(255,255,255,0.7)' }}
+                  >
+                    {t.feedLabel}
+                  </span>
+                </div>
+                <div
+                  className="absolute top-3 left-3 flex items-center gap-2 rounded-[18px] py-[6px] pr-[13px] pl-[7px]"
+                  style={{ background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(14px)', boxShadow: '0 5px 15px rgba(58,98,126,0.1)' }}
+                >
+                  <span
+                    className="flex h-[26px] w-[26px] items-center justify-center rounded-[10px] text-[11.5px] font-extrabold"
+                    style={{ background: t.avatarBg, color: t.avatarColor }}
+                  >
+                    {t.initials}
+                  </span>
+                  <span className="text-[13px] font-extrabold text-[#2c3f55]">{t.name}</span>
+                  <span className="text-[11.5px] font-bold" style={{ color: t.statusColor }}>
+                    {t.status}
+                  </span>
+                </div>
+                {t.self && (
+                  <span
+                    className="absolute top-[14px] right-[14px] flex items-center gap-[6px] rounded-full px-[11px] py-[5px] text-[11px] font-extrabold tracking-[0.4px] text-[#22483f]"
+                    style={{ background: 'rgba(255,255,255,0.82)' }}
+                  >
+                    <span className="h-[7px] w-[7px] rounded-full" style={{ background: 'oklch(0.72 0.11 165)' }} />
+                    Bạn
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* floating pomodoro */}
+      <div
+        className="absolute top-[106px] left-1/2 z-40 flex -translate-x-1/2 items-center gap-[18px] rounded-[30px] py-[14px] pr-6 pl-4"
+        style={{ background: 'rgba(255,255,255,0.62)', backdropFilter: 'blur(18px)', boxShadow: '0 16px 40px rgba(58,98,126,0.16)' }}
+      >
+        <div className="relative flex h-[92px] w-[92px] items-center justify-center">
+          <svg viewBox="0 0 100 100" className="absolute h-[92px] w-[92px]" style={{ transform: 'rotate(-90deg)' }}>
+            <circle cx="50" cy="50" r="43" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="8" />
+            <circle
+              cx="50"
+              cy="50"
+              r="43"
+              fill="none"
+              stroke={ACCENT}
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeDasharray="270.2"
+              style={{ strokeDashoffset: dashOffset, transition: 'stroke-dashoffset 980ms linear' }}
+            />
+          </svg>
+          <span className="relative text-xl font-extrabold text-[#2c3f55] tabular-nums">{timeText}</span>
+        </div>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-px">
+            <span className="text-xs font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.5)] uppercase">
+              {phase === 'focus' ? 'Đang tập trung' : 'Nghỉ ngắn'}
+            </span>
+            <span className="text-[13.5px] font-bold text-[#2c3f55]">Phiên {round} / 4 · cả hai cùng chạy</span>
+          </div>
+          <div className="flex gap-[7px]">
+            <button
+              onClick={() => setRunning((r) => !r)}
+              className="rounded-2xl border-none px-[18px] py-[9px] font-sans text-[13px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-px"
+              style={{ background: ACCENT_SOFT }}
+            >
+              {running ? 'Tạm dừng' : 'Tiếp tục'}
+            </button>
+            <button
+              onClick={resetTimer}
+              className="rounded-2xl border-none px-4 py-[9px] font-sans text-[13px] font-bold text-[#4a637d] hover:!bg-white"
+              style={{ background: 'rgba(255,255,255,0.7)' }}
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* bottom controls */}
+      <div
+        className="absolute bottom-7 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-[26px] p-[10px]"
+        style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px rgba(58,98,126,0.15)' }}
+      >
+        <button
+          onClick={() => setCam((c) => !c)}
+          className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:brightness-[1.03]"
+          style={{ background: cam ? 'rgba(255,255,255,0.4)' : 'rgba(206,222,232,0.85)', color: cam ? '#354c65' : 'rgba(51,71,94,0.62)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+            <rect x="2.5" y="6.5" width="13" height="11" rx="3.5" />
+            <path d="M15.5 11.5l6-3v7l-6-3z" />
+            <path d={cam ? 'M12 12' : 'M3 20L21 4'} />
+          </svg>
+          {cam ? 'Camera' : 'Camera tắt'}
+        </button>
+        <button
+          onClick={() => setMic((v) => !v)}
+          className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:brightness-[1.03]"
+          style={{ background: mic ? 'rgba(255,255,255,0.4)' : 'rgba(206,222,232,0.85)', color: mic ? '#354c65' : 'rgba(51,71,94,0.62)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+            <rect x="9" y="3" width="6" height="11" rx="3" />
+            <path d="M5.5 12a6.5 6.5 0 0013 0M12 18.5V21" />
+            <path d={mic ? 'M12 12' : 'M3 20L21 4'} />
+          </svg>
+          {mic ? 'Mic' : 'Mic tắt'}
+        </button>
+        <button
+          onClick={() => openTab('chat')}
+          className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)]"
+          style={{ background: chatOpen && effectiveTab === 'chat' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+            <path d="M20 12.5c0 3.6-3.6 6.5-8 6.5-1 0-2-.15-2.9-.42L4.5 20l1.1-3.3A6.7 6.7 0 014 12.5C4 8.9 7.6 6 12 6s8 2.9 8 6.5z" />
+          </svg>
+          Chat
+        </button>
+        <button
+          onClick={() => openTab('music')}
+          className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)]"
+          style={{ background: chatOpen && effectiveTab === 'music' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+            <path d="M9 18V6l10-2v12" />
+            <circle cx="6.5" cy="18" r="2.6" />
+            <circle cx="19" cy="16" r="2.6" />
+          </svg>
+          Nhạc
+        </button>
+        {IS_HOST && (
+          <button
+            onClick={() => openTab('host')}
+            className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)]"
+            style={{ background: chatOpen && effectiveTab === 'host' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19" />
+              <circle cx="9" cy="8.5" r="3.2" />
+              <path d="M17 4.5l1.15 2.4 2.6.36-1.9 1.82.46 2.58L17 10.44l-2.31 1.22.46-2.58-1.9-1.82 2.6-.36z" />
+            </svg>
+            Quản lý
+            {queued && (
+              <span
+                className="rounded-full px-2 py-[2px] text-xs font-extrabold text-[#7a4a2c]"
+                style={{ background: 'oklch(0.87 0.075 55)' }}
+              >
+                {pending.length}
+              </span>
+            )}
+          </button>
+        )}
+        <div className="mx-1 h-[26px] w-px" style={{ background: 'rgba(51,71,94,0.13)' }} />
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-[9px] rounded-[19px] border-none px-[22px] py-3 font-sans text-sm font-extrabold text-[#7a3f2c] transition-all duration-[220ms] hover:brightness-95"
+          style={{ background: 'oklch(0.86 0.055 45)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+            <path d="M15 5.5V4a2 2 0 00-2-2H6a2 2 0 00-2 2v16a2 2 0 002 2h7a2 2 0 002-2v-1.5" />
+            <path d="M11 12h10m-3.5-3.5L21 12l-3.5 3.5" />
+          </svg>
+          Rời phòng
+        </button>
+      </div>
+
+      {/* side panel */}
+      <div
+        className="absolute top-[84px] right-[26px] bottom-[112px] z-[28] flex w-[340px] flex-col gap-[14px] rounded-[30px] p-[18px]"
+        style={{
+          background: 'rgba(255,255,255,0.84)',
+          backdropFilter: 'blur(22px)',
+          boxShadow: '0 18px 46px rgba(58,98,126,0.15)',
+          transform: `translateX(${chatOpen ? '0px' : '380px'})`,
+          opacity: chatOpen ? 1 : 0,
+          pointerEvents: chatOpen ? 'auto' : 'none',
+          transition: 'transform 440ms cubic-bezier(0.22,1,0.36,1), opacity 340ms ease',
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <div className="flex flex-1 gap-[5px] rounded-[20px] p-[5px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
+            {(
+              [
+                { key: 'chat' as Tab, name: 'Chat', show: true, badge: '' },
+                { key: 'music' as Tab, name: 'Nhạc', show: true, badge: '' },
+                { key: 'host' as Tab, name: 'Quản lý', show: IS_HOST, badge: queued ? String(pending.length) : '' },
+              ] as const
+            ).map(
+              (x) =>
+                x.show && (
+                  <button
+                    key={x.key}
+                    onClick={() => setTab(x.key)}
+                    className="flex flex-1 items-center justify-center gap-[7px] rounded-2xl border-none px-[6px] py-[9px] font-sans text-[13px] font-extrabold transition-all duration-[220ms]"
+                    style={segStyle(effectiveTab === x.key)}
+                  >
+                    {x.name}
+                    {x.badge && (
+                      <span
+                        className="rounded-full px-[7px] py-[2px] text-[11px] font-extrabold text-[#7a4a2c]"
+                        style={{ background: 'oklch(0.87 0.075 55)' }}
+                      >
+                        {x.badge}
+                      </span>
+                    )}
+                  </button>
+                ),
+            )}
+          </div>
+          <button
+            onClick={() => setChatOpen(false)}
+            className="border-none bg-transparent px-1 py-[6px] font-sans text-[13px] font-bold text-[rgba(51,71,94,0.5)]"
+          >
+            Thu gọn
+          </button>
+        </div>
+
+        {/* tab: chat */}
+        {effectiveTab === 'chat' && (
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            <div className="flex flex-1 flex-col gap-[9px] overflow-y-auto">
+              {messages.map((msg, i) => (
+                <div key={i} className="flex max-w-[84%] flex-col gap-[3px]" style={{ alignSelf: msg.me ? 'flex-end' : 'flex-start' }}>
+                  <span className="pl-1 text-[11.5px] font-bold text-[rgba(51,71,94,0.42)]">{msg.who}</span>
+                  <span
+                    className="rounded-[18px] px-[14px] py-[11px] text-[13.5px] leading-[1.5] font-semibold text-[#2c3f55]"
+                    style={{ background: msg.me ? 'color-mix(in oklab, var(--ff-accent) 26%, white)' : 'rgba(238,246,248,0.95)' }}
+                  >
+                    {msg.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div
+              className="flex items-center gap-2 rounded-[20px] py-[5px] pr-[5px] pl-[15px]"
+              style={{ background: 'rgba(255,255,255,0.9)', boxShadow: '0 4px 14px rgba(58,98,126,0.08)' }}
+            >
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') send()
+                }}
+                placeholder="Nhắn nhẹ một câu…"
+                className="min-w-0 flex-1 border-none bg-transparent py-[10px] font-sans text-[13.5px] font-semibold text-[#2c3f55] outline-none"
+              />
+              <button
+                onClick={send}
+                className="rounded-[15px] border-none px-4 py-[10px] font-sans text-[13px] font-extrabold text-[#1e3549]"
+                style={{ background: ACCENT_SOFT }}
+              >
+                Gửi
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* tab: music */}
+        {effectiveTab === 'music' && (
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+            <div className="flex items-center gap-[13px] rounded-[24px] px-4 py-[15px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
+              <span className="flex h-[30px] w-[34px] shrink-0 items-end gap-[3px]">
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="h-full flex-1 rounded-[3px]"
+                    style={{
+                      background: musicOn ? 'color-mix(in oklab, var(--ff-accent) 78%, white)' : 'rgba(51,71,94,0.18)',
+                      transformOrigin: 'bottom',
+                      animation: musicOn ? `ffEq 900ms ease-in-out infinite ${i * 300}ms` : 'none',
+                    }}
+                  />
+                ))}
+              </span>
+              <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
+                <span className="text-sm font-extrabold text-[#2c3f55]">{track.name}</span>
+                <span className="text-xs font-semibold text-[rgba(51,71,94,0.5)]">
+                  {musicOn ? 'đang phát · ' + track.mood : 'đã tạm dừng'}
+                </span>
+              </div>
+              <button
+                onClick={() => setMusicOn((v) => !v)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[15px] border-none text-[#1e3549] hover:brightness-[0.97]"
+                style={{ background: ACCENT_SOFT }}
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                  <path d={musicOn ? 'M8 5h3.2v14H8zM12.8 5H16v14h-3.2z' : 'M8 5l11 7-11 7z'} />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-[11px]">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(51,71,94,0.45)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 9.5h3.5L13 5.5v13L8.5 14.5H5z" />
+                <path d={volume === 0 ? 'M16.5 9.5l4 5m0-5l-4 5' : 'M16.5 9a4 4 0 010 6'} />
+              </svg>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={volume}
+                onChange={(e) => setVolume(Number(e.target.value))}
+                className="ff-range min-w-0 flex-1"
+              />
+              <span className="w-[34px] text-right text-[12.5px] font-extrabold text-[rgba(51,71,94,0.55)]">{volume}%</span>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex items-baseline justify-between gap-[10px]">
+                <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">Danh sách phát</span>
+                <span className="text-xs font-semibold text-[rgba(51,71,94,0.45)]">
+                  {IS_HOST ? 'phát cho cả phòng' : 'chỉ mình bạn nghe'}
+                </span>
+              </div>
+              {TRACKS.map((t, i) => {
+                const on = i === trackIndex
+                return (
+                  <button
+                    key={t.name}
+                    onClick={() => {
+                      setTrackIndex(i)
+                      setMusicOn(true)
+                    }}
+                    className="flex items-center gap-[11px] rounded-[20px] border-none px-[13px] py-[11px] text-left font-sans transition-all duration-200 hover:brightness-[0.98]"
+                    style={{
+                      background: on ? 'color-mix(in oklab, var(--ff-accent) 20%, white)' : 'rgba(238,246,248,0.8)',
+                      boxShadow: on ? 'inset 0 0 0 1.5px color-mix(in oklab, var(--ff-accent) 55%, white)' : 'none',
+                    }}
+                  >
+                    <span
+                      className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[11px]"
+                      style={{ background: on ? 'rgba(255,255,255,0.85)' : 'rgba(160,200,225,0.35)', color: on ? '#22483f' : '#2b4d68' }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+                        <path d="M9 18V6l10-2v12" />
+                        <circle cx="6.5" cy="18" r="2.6" />
+                        <circle cx="19" cy="16" r="2.6" />
+                      </svg>
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="text-[13.5px] font-extrabold" style={{ color: on ? '#22483f' : '#2c3f55' }}>
+                        {t.name}
+                      </span>
+                      <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.48)]">{t.mood}</span>
+                    </span>
+                    <span className="text-[11.5px] font-extrabold text-[rgba(51,71,94,0.42)]">{t.length}</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            <span className="text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.5)]">
+              {IS_HOST
+                ? 'Bạn là host nên nhạc bạn chọn sẽ phát đồng bộ cho mọi người; ai muốn yên tĩnh có thể kéo âm lượng về 0.'
+                : 'Host đang chọn nhạc cho phòng — bạn chỉ chỉnh được âm lượng của mình.'}
+            </span>
+          </div>
+        )}
+
+        {/* tab: host */}
+        {effectiveTab === 'host' && IS_HOST && (
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+            <div className="flex flex-col gap-[9px]">
+              <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">Chế độ vào phòng</span>
+              <div className="flex gap-[7px] rounded-[20px] p-[5px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
+                {(['auto', 'manual'] as Admit[]).map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => setAdmit(key)}
+                    className="flex-1 rounded-2xl border-none px-[6px] py-[10px] font-sans text-[13px] font-extrabold transition-all duration-[220ms]"
+                    style={segStyle(admit === key)}
+                  >
+                    {key === 'auto' ? 'Tự động duyệt' : 'Duyệt thủ công'}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.58)]">
+                {admit === 'auto'
+                  ? 'Ai có link hoặc mã phòng sẽ vào thẳng, không cần bạn duyệt.'
+                  : 'Người mới sẽ nằm ở hàng chờ cho tới khi bạn bấm Duyệt.'}
+              </span>
+            </div>
+
+            {admit === 'manual' && (
+              <div className="flex flex-col gap-[9px]">
+                <div className="flex items-baseline justify-between gap-[10px]">
+                  <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">Hàng chờ duyệt</span>
+                  {pending.length > 1 && (
+                    <button
+                      onClick={approveAll}
+                      className="border-none bg-transparent font-sans text-[12.5px] font-extrabold text-[#2c5b53]"
+                    >
+                      Duyệt tất cả
+                    </button>
+                  )}
+                </div>
+                {pending.length === 0 ? (
+                  <span
+                    className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[rgba(51,71,94,0.45)]"
+                    style={{ background: 'rgba(238,246,248,0.8)' }}
+                  >
+                    Chưa có ai đang chờ.
+                  </span>
+                ) : (
+                  pending.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-[10px] rounded-[20px] px-3 py-[10px]"
+                      style={{ background: 'rgba(255,246,238,0.9)', boxShadow: 'inset 0 0 0 1.5px rgba(196,142,96,0.18)' }}
+                    >
+                      <span
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[12.5px] font-extrabold text-[#7a4a2c]"
+                        style={{ background: 'rgba(226,190,150,0.45)' }}
+                      >
+                        {initials(p.name)}
+                      </span>
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <span className="text-[13.5px] font-extrabold text-[#2c3f55]">{p.name}</span>
+                        <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.5)]">chờ {p.wait}</span>
+                      </div>
+                      <button
+                        onClick={() => approve(p)}
+                        title="Cho vào"
+                        className="rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[#1e3549] hover:brightness-[0.97]"
+                        style={{ background: ACCENT_SOFT }}
+                      >
+                        Duyệt
+                      </button>
+                      <button
+                        onClick={() => reject(p)}
+                        title="Từ chối"
+                        className="rounded-[14px] border-none px-[11px] py-2 font-sans text-[12.5px] font-extrabold text-[rgba(51,71,94,0.55)] hover:!text-[#7a3f2c]"
+                        style={{ background: 'rgba(255,255,255,0.9)' }}
+                      >
+                        Bỏ
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-[9px]">
+              <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                Trong phòng · {members.length} người
+              </span>
+              {members.map((u) => (
+                <div key={u.id} className="flex items-center gap-[10px] rounded-[20px] px-3 py-[10px]" style={{ background: 'rgba(238,246,248,0.85)' }}>
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[12.5px] font-extrabold"
+                    style={{
+                      background: u.host ? 'rgba(140,205,196,0.5)' : 'rgba(160,200,225,0.5)',
+                      color: u.host ? '#22483f' : '#2b4d68',
+                    }}
+                  >
+                    {initials(u.name)}
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span className="text-[13.5px] font-extrabold text-[#2c3f55]">{u.name}</span>
+                    <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.5)]">{u.status}</span>
+                  </div>
+                  {IS_HOST && !u.host && (
+                    <button
+                      onClick={() => kick(u)}
+                      className="rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[#7a3f2c] hover:!bg-[oklch(0.86_0.055_45)]"
+                      style={{ background: 'oklch(0.9 0.045 45)' }}
+                    >
+                      Kick
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

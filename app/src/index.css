@@ -98,6 +98,43 @@ body {
   min-height: 100svh;
 }
 
+input.ff-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 26px;
+  background: none;
+}
+input.ff-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(51, 71, 94, 0.14);
+}
+input.ff-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 3.5px solid rgba(126, 201, 198, 0.95);
+  box-shadow: 0 3px 9px rgba(58, 98, 126, 0.2);
+  cursor: pointer;
+}
+input.ff-range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(51, 71, 94, 0.14);
+}
+input.ff-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 3.5px solid rgba(126, 201, 198, 0.95);
+  box-shadow: 0 3px 9px rgba(58, 98, 126, 0.2);
+  cursor: pointer;
+}
+
 @keyframes ffFloatIn {
   from {
     opacity: 0;
