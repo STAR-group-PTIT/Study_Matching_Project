@@ -3,7 +3,7 @@
 Theo dõi tiến độ, quyết định kỹ thuật, và những gì đã/chưa làm. Đọc kèm [PLAN.md](PLAN.md) và [README.md](README.md).
 
 ## Trạng thái hiện tại
-**Giai đoạn đang làm:** Giai đoạn 3 (Supabase Auth & schema) — đã chuẩn bị xong schema/RLS + code kết nối, **đang chờ user tạo project Supabase và cung cấp URL + anon key** trước khi nối Auth thật vào màn Auth.tsx.
+**Giai đoạn đang làm:** Giai đoạn 3 — Supabase project đã tạo, migration đã chạy, Auth.tsx đã nối auth thật (email/password + Google OAuth). Tiếp theo: route guard theo session, nối Dashboard to-do / Settings profile / Stats với dữ liệu thật thay vì mock.
 
 ## Nhật ký
 - **2026-07-29** — Đọc README.md + toàn bộ design/*.dc.html, thống nhất plan 9 giai đoạn (0-8) với user. Chốt stack: React+TS+Tailwind+Vite, Supabase, LiveKit. Tạo PLAN.md + CONTEXT.md.
@@ -55,7 +55,15 @@ Theo dõi tiến độ, quyết định kỹ thuật, và những gì đã/chưa
   - [app/src/lib/supabase.ts](app/src/lib/supabase.ts) — client init từ `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`, throw lỗi rõ ràng nếu thiếu env.
   - [app/.env.example](app/.env.example) — template biến môi trường.
   - [app/src/vite-env.d.ts](app/src/vite-env.d.ts) — type augmentation cho `import.meta.env`.
-- **Đang chờ user:** tạo project tại supabase.com, dán URL + anon key vào `app/.env` (copy từ `.env.example`, file này đã nằm trong `.gitignore`). Sau khi có key: chạy migration SQL trong Supabase SQL Editor, bật Google OAuth provider trong Authentication → Providers, rồi mình sẽ nối màn Auth.tsx với `supabase.auth.signInWithPassword`/`signInWithOAuth` thật.
+- **2026-07-29** — User tạo project Supabase (ref `hycyrfwynqmvawobixhx`), điền `app/.env`. Dùng **Publishable key** (format mới `sb_publishable_...`, thay cho anon JWT key cũ — vẫn tương thích 100% với `@supabase/supabase-js`, chỉ khác định dạng hiển thị trong dashboard).
+- **Sự cố migration đã gặp & fix:** file gốc tạo policy cho `rooms` tham chiếu bảng `room_members` trước khi bảng đó được khai báo — Postgres validate schema ngay lúc `CREATE POLICY`, không cho tham chiếu bảng chưa tồn tại → lỗi `42P01: relation "room_members" does not exist`. **Fix:** viết lại migration theo 4 phase rõ ràng (1. tất cả bảng → 2. functions/triggers → 3. RLS + policies → 4. realtime), và toàn bộ file giờ **idempotent** (an toàn chạy lại nhiều lần): `drop policy if exists` trước mỗi `create policy`, guard FK constraint và `alter publication add table` bằng existence check, trigger dùng `on conflict do nothing`.
+- **Đã nối Auth thật vào [Auth.tsx](app/src/routes/Auth.tsx):**
+  - Form controlled (name/email/password state), `supabase.auth.signInWithPassword` cho đăng nhập, `supabase.auth.signUp` cho đăng ký, `supabase.auth.signInWithOAuth({provider:'google'})` cho nút Google.
+  - **Quan trọng:** project mặc định bật **"Confirm email"** → sau `signUp`, `data.session` là `null` cho tới khi user bấm link xác nhận trong email. Code đã xử lý đúng: chỉ `navigate('/')` khi có session thật; nếu không có session thì hiện thông báo xanh "Đã gửi email xác nhận tới ... ". (Lúc đầu code cũ điều hướng thẳng vào Dashboard bất kể có session hay không — đã sửa, xem lỗi test bên dưới.)
+  - `translateAuthError()` dịch các lỗi Supabase phổ biến sang tiếng Việt (sai mật khẩu, email đã tồn tại, mật khẩu ngắn, email không hợp lệ, rate limit).
+  - Test qua browser: đăng ký với domain `@example.com` bị Supabase chặn ("Email address is invalid" — example.com là domain reserved, Supabase block sẵn); đăng ký với domain thật (`@mailinator.com`) → thành công, điều hướng đúng; đăng nhập sai mật khẩu → hiện "Sai email hoặc mật khẩu." đúng như thiết kế lỗi. Test nhiều lần liên tiếp từng bị Supabase trả `over_email_send_rate_limit` (429) — đây là giới hạn phía Supabase (chống spam), không phải bug, cần tránh test signup dồn dập.
+  - [Settings.tsx](app/src/routes/Settings.tsx) nút "Đăng xuất" giờ gọi `supabase.auth.signOut()` thật trước khi điều hướng `/auth`.
+  - [store/auth.ts](app/src/store/auth.ts) — zustand store theo dõi `session`/`user`/`loading`, tự sync qua `supabase.auth.onAuthStateChange`, import 1 lần ở `main.tsx` để khởi tạo sớm. **Chưa được các màn khác (Dashboard/Settings/Stats) tiêu thụ** — vẫn hiển thị data mock cứng, đó là việc tiếp theo.
 
 ## Việc cần quyết định sau (chưa chốt)
 - Chọn provider Google OAuth cụ thể (credentials) — cần user cung cấp khi tới Giai đoạn 3.

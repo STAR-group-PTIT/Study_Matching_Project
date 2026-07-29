@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 
 type Tab = 'login' | 'signup'
 
@@ -32,20 +33,80 @@ function tabStyle(on: boolean) {
   }
 }
 
+function translateAuthError(message: string) {
+  if (message.includes('Invalid login credentials')) return 'Sai email hoặc mật khẩu.'
+  if (message.includes('User already registered')) return 'Email này đã có tài khoản — thử đăng nhập nhé.'
+  if (message.includes('Password should be at least')) return 'Mật khẩu cần ít nhất 6 ký tự.'
+  if (message.includes('Unable to validate email address') || message.includes('is invalid'))
+    return 'Email không hợp lệ.'
+  if (message.includes('rate limit')) return 'Bạn thử lại quá nhanh — chờ một chút rồi thử lại nhé.'
+  return message
+}
+
 export default function Auth() {
+  const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('login')
   const [showPw, setShowPw] = useState(false)
   const [fade, setFade] = useState(1)
+
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
 
   const isLogin = tab === 'login'
 
   function switchTo(next: Tab) {
     if (next === tab) return
+    setError(null)
+    setNotice(null)
     setFade(0)
     setTimeout(() => {
       setTab(next)
       setFade(1)
     }, 160)
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setNotice(null)
+    setSubmitting(true)
+    try {
+      if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) throw error
+        navigate('/')
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { name: name.trim() || undefined } },
+        })
+        if (error) throw error
+        if (data.session) {
+          navigate('/')
+        } else {
+          // "Confirm email" is on for this project — no session until the user clicks the link.
+          setNotice('Đã gửi email xác nhận tới ' + email + ' — mở email và bấm link để hoàn tất đăng ký.')
+        }
+      }
+    } catch (err) {
+      setError(translateAuthError(err instanceof Error ? err.message : String(err)))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleGoogle() {
+    setError(null)
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    })
+    if (error) setError(translateAuthError(error.message))
   }
 
   return (
@@ -102,7 +163,8 @@ export default function Auth() {
               </button>
             </div>
 
-            <div
+            <form
+              onSubmit={handleSubmit}
               className="mt-6 transition-[opacity,transform] duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
               style={{ opacity: fade, transform: fade ? 'translateY(0px)' : 'translateY(6px)' }}
             >
@@ -123,6 +185,8 @@ export default function Auth() {
                     </span>
                     <input
                       type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
                       placeholder="Minh Anh"
                       className="rounded-[18px] border-[1.5px] border-[rgba(51,71,94,0.12)] bg-[rgba(255,255,255,0.9)] px-4 py-[14px] font-sans text-[15px] font-semibold text-[#2c3f55] outline-none transition-[border-color,box-shadow] duration-200 placeholder:font-semibold placeholder:text-[rgba(51,71,94,0.38)] focus:border-[rgba(126,201,198,0.9)] focus:shadow-[0_0_0_4px_rgba(126,201,198,0.18)]"
                     />
@@ -134,6 +198,9 @@ export default function Auth() {
                   </span>
                   <input
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
                     placeholder="ban@email.com"
                     className="rounded-[18px] border-[1.5px] border-[rgba(51,71,94,0.12)] bg-[rgba(255,255,255,0.9)] px-4 py-[14px] font-sans text-[15px] font-semibold text-[#2c3f55] outline-none transition-[border-color,box-shadow] duration-200 placeholder:font-semibold placeholder:text-[rgba(51,71,94,0.38)] focus:border-[rgba(126,201,198,0.9)] focus:shadow-[0_0_0_4px_rgba(126,201,198,0.18)]"
                   />
@@ -145,14 +212,16 @@ export default function Auth() {
                   <div className="relative flex items-center">
                     <input
                       type={showPw ? 'text' : 'password'}
-                      placeholder="Ít nhất 8 ký tự"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      placeholder="Ít nhất 6 ký tự"
                       className="flex-1 rounded-[18px] border-[1.5px] border-[rgba(51,71,94,0.12)] bg-[rgba(255,255,255,0.9)] py-[14px] pr-[82px] pl-4 font-sans text-[15px] font-semibold text-[#2c3f55] outline-none transition-[border-color,box-shadow] duration-200 placeholder:font-semibold placeholder:text-[rgba(51,71,94,0.38)] focus:border-[rgba(126,201,198,0.9)] focus:shadow-[0_0_0_4px_rgba(126,201,198,0.18)]"
                     />
                     <button
-                      onClick={(e) => {
-                        e.preventDefault()
-                        setShowPw((v) => !v)
-                      }}
+                      type="button"
+                      onClick={() => setShowPw((v) => !v)}
                       className="absolute right-2 rounded-[13px] border-none px-3 py-2 font-sans text-[12.5px] font-bold text-[rgba(51,71,94,0.6)]"
                       style={{ background: 'rgba(238,246,248,0.95)' }}
                     >
@@ -174,15 +243,23 @@ export default function Auth() {
                 </div>
               )}
 
+              {error && (
+                <p className="mt-[14px] mb-0 text-[13px] leading-[1.5] font-bold text-[#7a3f2c]">{error}</p>
+              )}
+              {notice && (
+                <p className="mt-[14px] mb-0 text-[13px] leading-[1.5] font-bold text-[#2c5b53]">{notice}</p>
+              )}
+
               <button
-                onClick={(e) => e.preventDefault()}
-                className="mt-[18px] w-full rounded-[22px] border-none py-4 font-sans text-base font-extrabold text-[#1e3549] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(58,98,126,0.2)]"
+                type="submit"
+                disabled={submitting}
+                className="mt-[18px] w-full rounded-[22px] border-none py-4 font-sans text-base font-extrabold text-[#1e3549] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(58,98,126,0.2)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                 style={{
                   background: 'var(--ff-accent-soft)',
                   boxShadow: '0 10px 24px rgba(58,98,126,0.14)',
                 }}
               >
-                {isLogin ? 'Đăng nhập' : 'Tạo tài khoản'}
+                {submitting ? 'Đang xử lý…' : isLogin ? 'Đăng nhập' : 'Tạo tài khoản'}
               </button>
 
               <div className="my-5 flex items-center gap-[14px]">
@@ -192,7 +269,8 @@ export default function Auth() {
               </div>
 
               <button
-                onClick={(e) => e.preventDefault()}
+                type="button"
+                onClick={handleGoogle}
                 className="flex w-full items-center justify-center gap-[11px] rounded-[22px] border-[1.5px] border-[rgba(51,71,94,0.12)] bg-[rgba(255,255,255,0.92)] py-[14px] font-sans text-[15px] font-bold text-[#33475e] transition-[background,border-color] duration-200 hover:border-[rgba(51,71,94,0.22)] hover:bg-white"
               >
                 <span
@@ -213,7 +291,7 @@ export default function Auth() {
                   Dùng thử không cần đăng nhập →
                 </Link>
               </div>
-            </div>
+            </form>
           </div>
 
           {/* why sign in */}

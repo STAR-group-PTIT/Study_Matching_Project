@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 
 const GRADIENTS = [
   'linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)',
@@ -321,7 +322,10 @@ export default function Settings() {
             Đăng xuất sẽ giữ lại wallpaper và nhạc trên tài khoản; máy này chuyển về chế độ khách.
           </span>
           <button
-            onClick={() => navigate('/auth')}
+            onClick={async () => {
+              await supabase.auth.signOut()
+              navigate('/auth')
+            }}
             className="flex items-center gap-[9px] rounded-[22px] border-[1.5px] px-6 py-[14px] font-sans text-[14.5px] font-extrabold text-[#7a3f2c] transition-colors duration-[220ms] hover:!bg-[oklch(0.88_0.05_45)]"
             style={{ borderColor: 'oklch(0.82 0.06 45)', background: 'oklch(0.93 0.03 45)' }}
           >
