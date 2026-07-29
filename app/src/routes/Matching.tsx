@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
+import { useAuthStore } from '../store/auth'
 
 type RoomTypeKey = 'chill' | 'hardcore' | 'silent' | 'discuss' | 'watch'
 
@@ -60,14 +62,17 @@ const ROOM_TYPES: RoomType[] = [
   },
 ]
 
-const PUBLIC_ROOMS = [
-  { name: 'Deep work 8h tối', type: 'hardcore' as RoomTypeKey, host: 'Minh Anh', now: 3, max: 4, duration: '50 phút' },
-  { name: 'Quán cà phê ảo', type: 'chill' as RoomTypeKey, host: 'Trâm', now: 5, max: 8, duration: '25 phút' },
-  { name: 'Thư viện im lặng', type: 'silent' as RoomTypeKey, host: 'Duy Khang', now: 6, max: 6, duration: '50 phút' },
-  { name: 'Ôn IELTS speaking', type: 'discuss' as RoomTypeKey, host: 'Hà Vy', now: 2, max: 4, duration: '25 phút' },
-  { name: 'Cày deadline cùng nhau', type: 'watch' as RoomTypeKey, host: 'Bảo Long', now: 4, max: 6, duration: '50 phút' },
-  { name: 'Sáng sớm 6AM club', type: 'chill' as RoomTypeKey, host: 'Ngọc', now: 2, max: 8, duration: '25 phút' },
-]
+type PublicRoomRow = {
+  id: string
+  code: string
+  name: string
+  room_type: RoomTypeKey
+  duration_minutes: number
+  language: string
+  capacity: number
+  host_name: string
+  member_count: number
+}
 
 const HINTS = [
   'Đang xem ai đang mở phòng cùng loại với bạn…',
@@ -76,7 +81,6 @@ const HINTS = [
   'Nếu lâu quá, thử đổi sang loại phòng khác cho dễ ghép.',
 ]
 
-const HOST_NAME = 'Nhật Minh'
 const ACCENT_SOFT = 'var(--ff-accent-soft)'
 const ACCENT_CHIP_ACTIVE = 'var(--ff-accent-chip-active)'
 const ACCENT_BORDER = 'var(--ff-accent-border)'
@@ -107,6 +111,7 @@ function RoomTypeIcon({ type }: { type: RoomType }) {
 
 export default function Matching() {
   const navigate = useNavigate()
+  const user = useAuthStore((s) => s.user)
 
   const [stage, setStage] = useState<Stage>('filters')
   const [fade, setFade] = useState(1)
@@ -114,6 +119,7 @@ export default function Matching() {
   const [duration, setDuration] = useState<Duration>('25 phút')
   const [language, setLanguage] = useState<Language>('Tiếng Việt')
   const [waited, setWaited] = useState(0)
+  const [matchError, setMatchError] = useState('')
 
   const [modal, setModal] = useState(false)
   const [created, setCreated] = useState(false)
@@ -122,10 +128,22 @@ export default function Matching() {
   const [capacity, setCapacity] = useState(4)
   const [roomId, setRoomId] = useState('')
   const [copied, setCopied] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState('')
+
+  const [profileName, setProfileName] = useState('')
+  const [authNotice, setAuthNotice] = useState(false)
+
+  const [publicRooms, setPublicRooms] = useState<PublicRoomRow[] | null>(null)
+  const [loadingRooms, setLoadingRooms] = useState(false)
+  const [joinCode, setJoinCode] = useState('')
+  const [joinError, setJoinError] = useState('')
+  const [joining, setJoining] = useState(false)
 
   const copyTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const stageRef = useRef(stage)
   stageRef.current = stage
+  const queueChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -135,6 +153,49 @@ export default function Matching() {
   }, [])
 
   useEffect(() => () => clearTimeout(copyTimer.current), [])
+  useEffect(() => () => void queueChannelRef.current?.unsubscribe(), [])
+
+  useEffect(() => {
+    if (!user) {
+      setProfileName('')
+      return
+    }
+    supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.name) setProfileName(data.name)
+      })
+  }, [user])
+
+  useEffect(() => {
+    if (stage !== 'rooms') return
+    let cancelled = false
+    setLoadingRooms(true)
+    supabase
+      .from('room_public_list')
+      .select('*')
+      .order('member_count', { ascending: false })
+      .then(({ data, error }) => {
+        if (cancelled) return
+        setLoadingRooms(false)
+        if (!error && data) setPublicRooms(data as PublicRoomRow[])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [stage])
+
+  function requireAuth() {
+    if (!user) {
+      setAuthNotice(true)
+      return false
+    }
+    setAuthNotice(false)
+    return true
+  }
 
   function go(next: Stage) {
     setFade(0)
@@ -145,6 +206,92 @@ export default function Matching() {
     }, 200)
   }
 
+  function cancelSearch() {
+    if (user) supabase.from('matching_queue').delete().eq('user_id', user.id).then(() => {})
+    queueChannelRef.current?.unsubscribe()
+    queueChannelRef.current = null
+    setMatchError('')
+    go('filters')
+  }
+
+  function subscribeQueue(userId: string) {
+    const channel = supabase
+      .channel('matching-queue-' + userId)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'matching_queue', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const code = (payload.new as { matched_room_code: string | null }).matched_room_code
+          if (!code) return
+          channel.unsubscribe()
+          queueChannelRef.current = null
+          supabase.from('matching_queue').delete().eq('user_id', userId).then(() => {})
+          navigate('/room/' + code)
+        },
+      )
+      .subscribe()
+    queueChannelRef.current = channel
+  }
+
+  async function startRandomMatch() {
+    if (!requireAuth()) return
+    go('searching')
+    setMatchError('')
+    const durationMinutes = duration === '25 phút' ? 25 : 50
+    const languageCode = language === 'Tiếng Việt' ? 'vi' : 'en'
+
+    const { data, error } = await supabase.functions.invoke('match-room', {
+      body: { room_type: roomType, duration_minutes: durationMinutes, language: languageCode },
+    })
+
+    if (error) {
+      setMatchError('Không kết nối được dịch vụ ghép cặp, thử lại sau.')
+      return
+    }
+    const result = data?.result as { status: string; room_id: string; room_code: string } | null
+    if (result?.status === 'matched' && result.room_code) {
+      navigate('/room/' + result.room_code)
+    } else if (result?.status === 'queued' && user) {
+      subscribeQueue(user.id)
+    } else {
+      setMatchError('Có lỗi xảy ra, thử lại sau.')
+    }
+  }
+
+  async function submitJoinCode() {
+    if (!requireAuth()) return
+    const code = joinCode.trim().toUpperCase()
+    if (code.length < 6) return
+    setJoining(true)
+    setJoinError('')
+    const { data, error } = await supabase.rpc('join_room_by_code', { p_code: code })
+    setJoining(false)
+    if (error) {
+      setJoinError('Có lỗi xảy ra, thử lại.')
+      return
+    }
+    const row = data?.[0] as { status: string; room_id: string; member_status: string } | undefined
+    if (!row || row.status === 'not_found') {
+      setJoinError('Mã phòng không đúng.')
+      return
+    }
+    if (row.status === 'full') {
+      setJoinError('Phòng đã đầy.')
+      return
+    }
+    navigate('/room/' + code)
+  }
+
+  async function joinPublicRoom(code: string) {
+    if (!requireAuth()) return
+    setJoinError('')
+    const { data, error } = await supabase.rpc('join_room_by_code', { p_code: code })
+    if (error) return
+    const row = data?.[0] as { status: string } | undefined
+    if (!row || row.status === 'not_found' || row.status === 'full') return
+    navigate('/room/' + code)
+  }
+
   const current = ROOM_TYPES.find((r) => r.key === roomType)!
   const fadeStyle = {
     opacity: fade,
@@ -153,18 +300,60 @@ export default function Matching() {
   }
 
   function openCreate() {
+    if (!requireAuth()) return
     setModal(true)
     setCreated(false)
     setCopied(false)
+    setCreateError('')
     setRoomName('')
   }
 
-  function createRoom() {
+  async function createRoom() {
+    if (!user) return
+    setCreating(true)
+    setCreateError('')
+
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-    let id = ''
-    for (let i = 0; i < 6; i++) id += chars[Math.floor(Math.random() * chars.length)]
-    setRoomId(id)
+    const genCode = () => Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+
+    let inserted: { id: string; code: string } | null = null
+    for (let attempt = 0; attempt < 5 && !inserted; attempt++) {
+      const code = genCode()
+      const { data, error } = await supabase
+        .from('rooms')
+        .insert({
+          code,
+          name: roomName.trim() || `Phòng của ${profileName || 'bạn'}`,
+          host_id: user.id,
+          room_type: roomType,
+          duration_minutes: duration === '25 phút' ? 25 : 50,
+          language: language === 'Tiếng Việt' ? 'vi' : 'en',
+          capacity,
+          visibility: visibility === 'Công khai' ? 'public' : 'private',
+        })
+        .select('id, code')
+        .single()
+      if (!error && data) {
+        inserted = data
+        break
+      }
+      if (error && error.code !== '23505') {
+        setCreateError('Không tạo được phòng, thử lại sau.')
+        setCreating(false)
+        return
+      }
+    }
+
+    if (!inserted) {
+      setCreateError('Không tạo được phòng, thử lại sau.')
+      setCreating(false)
+      return
+    }
+
+    await supabase.from('room_members').insert({ room_id: inserted.id, user_id: user.id, status: 'member' })
+    setRoomId(inserted.code)
     setCreated(true)
+    setCreating(false)
   }
 
   function copyId() {
@@ -174,7 +363,7 @@ export default function Matching() {
     copyTimer.current = setTimeout(() => setCopied(false), 1800)
   }
 
-  const createdName = roomName.trim() || `Phòng của ${HOST_NAME}`
+  const createdName = roomName.trim() || `Phòng của ${profileName || 'bạn'}`
 
   return (
     <div
@@ -195,6 +384,24 @@ export default function Matching() {
           <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[#2f4459]">FocusFlow</span>
           <span className="text-sm font-semibold text-[rgba(51,71,94,0.5)]">· Ghép cặp học chung</span>
         </div>
+
+        {authNotice && (
+          <div
+            className="flex w-full max-w-[560px] items-center justify-between gap-3 rounded-[18px] px-5 py-[13px]"
+            style={{ background: 'rgba(255,246,238,0.9)', boxShadow: 'inset 0 0 0 1.5px rgba(196,142,96,0.25)' }}
+          >
+            <span className="text-[13.5px] font-semibold text-[#7a4a2c]">
+              Cần đăng nhập để tạo phòng, ghép ngẫu nhiên hoặc tham gia phòng thật.
+            </span>
+            <Link
+              to="/auth"
+              className="shrink-0 rounded-[14px] px-4 py-2 text-[13px] font-extrabold text-[#7a4a2c] no-underline"
+              style={{ background: 'rgba(226,190,150,0.5)' }}
+            >
+              Đăng nhập
+            </Link>
+          </div>
+        )}
 
         {/* STATE 1: filters */}
         {stage === 'filters' && (
@@ -295,7 +502,7 @@ export default function Matching() {
 
             <div className="flex flex-wrap gap-[10px]">
               <button
-                onClick={() => go('searching')}
+                onClick={startRandomMatch}
                 className="flex-[1_1_180px] rounded-[22px] border-[1.5px] border-transparent px-3 py-[15px] font-sans text-[15.5px] font-extrabold text-[#1e3549] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(58,98,126,0.22)]"
                 style={{ background: ACCENT_SOFT, boxShadow: '0 12px 26px rgba(58,98,126,0.16)' }}
               >
@@ -314,6 +521,37 @@ export default function Matching() {
               >
                 Danh sách phòng
               </button>
+            </div>
+
+            <div className="flex flex-col gap-2 border-t border-[rgba(51,71,94,0.1)] pt-5">
+              <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                Hoặc nhập mã phòng có sẵn
+              </span>
+              <div className="flex gap-2">
+                <input
+                  value={joinCode}
+                  onChange={(e) => {
+                    setJoinCode(e.target.value.toUpperCase())
+                    setJoinError('')
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') submitJoinCode()
+                  }}
+                  maxLength={6}
+                  placeholder="VD: G32TZU"
+                  className="w-full min-w-0 flex-1 rounded-[18px] border-[1.5px] border-[rgba(51,71,94,0.14)] px-4 py-[13px] font-sans text-[15px] font-bold tracking-[2px] text-[#2c3f55] uppercase outline-none focus:border-[rgba(126,201,198,0.9)] focus:bg-white"
+                  style={{ background: 'rgba(240,248,250,0.7)' }}
+                />
+                <button
+                  onClick={submitJoinCode}
+                  disabled={joining || joinCode.trim().length < 6}
+                  className="shrink-0 rounded-[18px] border-none px-5 py-[13px] font-sans text-sm font-extrabold text-[#1e3549] disabled:opacity-50"
+                  style={{ background: ACCENT_SOFT }}
+                >
+                  {joining ? 'Đang vào…' : 'Vào phòng'}
+                </button>
+              </div>
+              {joinError && <span className="text-[12.5px] font-semibold text-[#7a3f2c]">{joinError}</span>}
             </div>
           </div>
         )}
@@ -389,20 +627,20 @@ export default function Matching() {
                 Đang tìm người phù hợp…
               </span>
               <span className="text-sm font-semibold text-[rgba(51,71,94,0.55)]">
-                {HINTS[Math.min(HINTS.length - 1, Math.floor(waited / 8))]}
+                {matchError || HINTS[Math.min(HINTS.length - 1, Math.floor(waited / 8))]}
               </span>
             </div>
 
             <div className="flex items-center gap-[10px]">
               <button
-                onClick={() => go('filters')}
+                onClick={cancelSearch}
                 className="rounded-[22px] border-none px-[30px] py-[14px] font-sans text-[15px] font-extrabold text-[#43596f] transition-colors duration-200 hover:!bg-white"
                 style={{ background: 'rgba(255,255,255,0.85)', boxShadow: '0 8px 20px rgba(58,98,126,0.1)' }}
               >
                 Huỷ tìm
               </button>
               <button
-                onClick={() => go('filters')}
+                onClick={cancelSearch}
                 className="rounded-[22px] border-none bg-transparent px-[22px] py-[14px] font-sans text-[15px] font-bold text-[rgba(51,71,94,0.6)] transition-colors duration-200 hover:!text-[#2c3f55]"
               >
                 Sửa bộ lọc
@@ -428,7 +666,7 @@ export default function Matching() {
                   Phòng công khai đang mở
                 </h2>
                 <p className="mt-[7px] mb-0 text-sm font-semibold text-[rgba(51,71,94,0.55)]">
-                  {PUBLIC_ROOMS.length} phòng đang mở · cập nhật liên tục
+                  {publicRooms ? `${publicRooms.length} phòng đang mở` : loadingRooms ? 'Đang tải…' : 'Không tải được'} · cập nhật liên tục
                 </p>
               </div>
               <button
@@ -440,13 +678,30 @@ export default function Matching() {
               </button>
             </div>
 
+            {joinError && <span className="text-[12.5px] font-semibold text-[#7a3f2c]">{joinError}</span>}
+
             <div className="flex flex-col gap-[10px]">
-              {PUBLIC_ROOMS.map((p) => {
-                const t = ROOM_TYPES.find((r) => r.key === p.type)!
-                const full = p.now >= p.max
+              {loadingRooms && (
+                <span className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[rgba(51,71,94,0.45)]" style={{ background: 'rgba(255,255,255,0.6)' }}>
+                  Đang tải danh sách phòng…
+                </span>
+              )}
+              {!loadingRooms && publicRooms?.length === 0 && (
+                <span className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[rgba(51,71,94,0.45)]" style={{ background: 'rgba(255,255,255,0.6)' }}>
+                  Chưa có phòng công khai nào đang mở.
+                </span>
+              )}
+              {!loadingRooms && publicRooms === null && (
+                <span className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[rgba(51,71,94,0.45)]" style={{ background: 'rgba(255,255,255,0.6)' }}>
+                  Không tải được danh sách phòng, thử lại sau.
+                </span>
+              )}
+              {publicRooms?.map((p) => {
+                const t = ROOM_TYPES.find((r) => r.key === p.room_type)!
+                const full = p.member_count >= p.capacity
                 return (
                   <div
-                    key={p.name}
+                    key={p.id}
                     className="flex flex-wrap items-center gap-3 rounded-[24px] px-[18px] py-[15px]"
                     style={{ background: 'rgba(255,255,255,0.74)', boxShadow: '0 8px 20px rgba(58,98,126,0.08)' }}
                   >
@@ -464,7 +719,7 @@ export default function Matching() {
                         </span>
                       </div>
                       <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.55)]">
-                        Host {p.host} · {p.duration}
+                        Host {p.host_name} · {p.duration_minutes} phút
                       </span>
                     </div>
                     <div className="flex items-center gap-3">
@@ -478,10 +733,10 @@ export default function Matching() {
                           <path d="M16.4 5.6a3.2 3.2 0 010 5.8" />
                           <path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1" />
                         </svg>
-                        {p.now}/{p.max}
+                        {p.member_count}/{p.capacity}
                       </div>
                       <button
-                        onClick={() => !full && navigate('/room/' + encodeURIComponent(p.name))}
+                        onClick={() => !full && joinPublicRoom(p.code)}
                         disabled={full}
                         className="rounded-[18px] border-none px-[22px] py-[11px] font-sans text-sm font-extrabold transition-transform duration-200 hover:enabled:-translate-y-px"
                         style={{
@@ -523,7 +778,7 @@ export default function Matching() {
                     Tạo phòng mới
                   </h3>
                   <p className="mt-[6px] mb-0 text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
-                    Host: {HOST_NAME} · Loại phòng: {current.name}
+                    Host: {profileName || 'Bạn'} · Loại phòng: {current.name}
                   </p>
                 </div>
 
@@ -586,12 +841,15 @@ export default function Matching() {
                   </span>
                 </div>
 
+                {createError && <span className="text-[12.5px] font-semibold text-[#7a3f2c]">{createError}</span>}
+
                 <button
                   onClick={createRoom}
-                  className="w-full rounded-[22px] border-none py-[15px] font-sans text-base font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
+                  disabled={creating}
+                  className="w-full rounded-[22px] border-none py-[15px] font-sans text-base font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-60"
                   style={{ background: ACCENT_SOFT, boxShadow: '0 12px 26px rgba(58,98,126,0.16)' }}
                 >
-                  Tạo phòng
+                  {creating ? 'Đang tạo…' : 'Tạo phòng'}
                 </button>
               </div>
             ) : (

@@ -49,11 +49,11 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Nối màn Auth thật + route guard theo session (guard áp dụng `/stats`, `/settings`; `/`, `/matching`, `/room/:id` vẫn cho khách dùng được)
 - [x] (thêm ngoài kế hoạch, làm sớm vì đã có Auth) Nối Dashboard to-do + Settings profile/Pomodoro defaults với dữ liệu thật
 
-## Giai đoạn 4 — Matching & quản lý phòng
-- [ ] Tạo phòng (mã 6 ký tự, capacity, public/private)
-- [ ] Danh sách phòng công khai, join theo mã
-- [ ] Ghép ngẫu nhiên (matching queue)
-- [ ] Chế độ duyệt auto/manual, hàng chờ, kick (Supabase Realtime Postgres changes)
+## Giai đoạn 4 — Matching & quản lý phòng ✅ Code xong 2026-07-29, chờ user chạy migration + deploy Edge Function
+- [x] Tạo phòng (mã 6 ký tự, capacity, public/private)
+- [x] Danh sách phòng công khai, join theo mã
+- [x] Ghép ngẫu nhiên (matching queue, qua Edge Function `match-room`)
+- [x] Chế độ duyệt auto/manual, hàng chờ, kick (Supabase Realtime Postgres changes)
 
 ## Giai đoạn 5 — Đồng bộ realtime trong phòng
 - [ ] Pomodoro đồng bộ (host = nguồn thời gian, broadcast)

@@ -1,9 +1,33 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
+import { useAuthStore } from '../store/auth'
 
-type Member = { id: number; name: string; status: string; host: boolean; me?: boolean }
-type Pending = { id: number; name: string; wait: string }
+type Member = { id: string; name: string; status: string; host: boolean; me?: boolean }
+type Pending = { id: string; userId: string; name: string; wait: string }
 type ChatMsg = { who: string; me: boolean; text: string }
+type RoomRow = {
+  id: string
+  code: string
+  name: string
+  host_id: string
+  admit_mode: 'auto' | 'manual'
+  capacity: number
+}
+type RealMemberRow = {
+  id: string
+  room_id: string
+  user_id: string
+  status: 'pending' | 'member'
+  joined_at: string
+  name: string
+}
+
+function relativeWait(iso: string) {
+  const sec = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000))
+  if (sec < 60) return `${sec} giây`
+  return `${Math.floor(sec / 60)} phút ${String(sec % 60).padStart(2, '0')}`
+}
 
 const TRACKS = [
   { name: 'Lofi mưa đêm', mood: 'lofi · êm', length: '42:10' },
@@ -13,19 +37,18 @@ const TRACKS = [
   { name: 'Sóng biển xa', mood: 'thiên nhiên', length: '1:05:12' },
 ]
 
-const ME: Member = { id: 12, name: 'Bạn', status: 'chủ phòng', host: true, me: true }
+const ME: Member = { id: '12', name: 'Bạn', status: 'chủ phòng', host: true, me: true }
 const DEMO_SETS: Record<'two' | 'five', Member[]> = {
-  two: [{ id: 10, name: 'Minh Anh', status: 'đang tập trung', host: false }, ME],
+  two: [{ id: '10', name: 'Minh Anh', status: 'đang tập trung', host: false }, ME],
   five: [
-    { id: 10, name: 'Minh Anh', status: 'đang tập trung', host: false },
-    { id: 11, name: 'Hà Vy', status: 'mic tắt', host: false },
-    { id: 13, name: 'Gia Bảo', status: 'đang tập trung', host: false },
-    { id: 14, name: 'Thanh Trúc', status: 'cam tắt', host: false },
+    { id: '10', name: 'Minh Anh', status: 'đang tập trung', host: false },
+    { id: '11', name: 'Hà Vy', status: 'mic tắt', host: false },
+    { id: '13', name: 'Gia Bảo', status: 'đang tập trung', host: false },
+    { id: '14', name: 'Thanh Trúc', status: 'cam tắt', host: false },
     ME,
   ],
 }
 
-const IS_HOST = true
 const FOCUS_MINUTES = 25
 const BREAK_MINUTES = 5
 const ACCENT = 'var(--ff-accent)'
@@ -58,6 +81,13 @@ function segStyle(on: boolean) {
 
 export default function Room() {
   const navigate = useNavigate()
+  const { id: code } = useParams<{ id: string }>()
+  const user = useAuthStore((s) => s.user)
+
+  const [realRoom, setRealRoom] = useState<RoomRow | null>(null)
+  const [loadingRoom, setLoadingRoom] = useState(false)
+  const isRealMode = !!user && !!realRoom
+  const isHost = isRealMode ? realRoom!.host_id === user!.id : true
 
   const [running, setRunning] = useState(true)
   const [phase, setPhase] = useState<Phase>('focus')
@@ -75,9 +105,11 @@ export default function Room() {
 
   const [admit, setAdmit] = useState<Admit>('manual')
   const [pending, setPending] = useState<Pending[]>([
-    { id: 1, name: 'Thanh Trúc', wait: '20 giây' },
-    { id: 2, name: 'Gia Bảo', wait: '1 phút 05' },
+    { id: '1', userId: '1', name: 'Thanh Trúc', wait: '20 giây' },
+    { id: '2', userId: '2', name: 'Gia Bảo', wait: '1 phút 05' },
   ])
+  const [myStatus, setMyStatus] = useState<'member' | 'pending' | null>(null)
+  const [membersLoaded, setMembersLoaded] = useState(false)
 
   const [demo, setDemo] = useState<Demo>('five')
   const [members, setMembers] = useState<Member[]>(DEMO_SETS.five.slice())
@@ -88,6 +120,101 @@ export default function Room() {
     { who: 'Bạn', me: true, text: 'Ok, mình tắt mic để tập trung, cần gì thì nhắn chat.' },
     { who: 'Minh Anh', me: false, text: 'Ừ, hết phiên nghỉ 5 phút rồi kể chương 4 tới đâu.' },
   ])
+
+  useEffect(() => {
+    if (!user || !code) {
+      setRealRoom(null)
+      return
+    }
+    let cancelled = false
+    setLoadingRoom(true)
+    supabase
+      .from('rooms')
+      .select('id, code, name, host_id, admit_mode, capacity')
+      .eq('code', code.toUpperCase())
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return
+        setLoadingRoom(false)
+        setRealRoom(data ?? null)
+        if (data) setAdmit(data.admit_mode)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user, code])
+
+  useEffect(() => {
+    if (!realRoom || !user) return
+    let cancelled = false
+    setMembersLoaded(false)
+
+    function load() {
+      supabase
+        .from('room_members_view')
+        .select('*')
+        .eq('room_id', realRoom!.id)
+        .then(({ data }) => {
+          if (cancelled || !data) return
+          const rows = data as RealMemberRow[]
+          setMembers(
+            rows
+              .filter((r) => r.status === 'member')
+              .map((r) => ({
+                id: r.user_id,
+                name: r.name,
+                status: r.user_id === user.id ? 'đang tập trung' : 'đang tập trung',
+                host: r.user_id === realRoom!.host_id,
+                me: r.user_id === user.id,
+              })),
+          )
+          setPending(
+            rows
+              .filter((r) => r.status === 'pending')
+              .map((r) => ({ id: r.id, userId: r.user_id, name: r.name, wait: relativeWait(r.joined_at) })),
+          )
+          const mine = rows.find((r) => r.user_id === user.id)
+          setMyStatus(mine ? mine.status : null)
+          setMembersLoaded(true)
+        })
+    }
+    load()
+
+    const channel = supabase
+      .channel('room-members-' + realRoom.id)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'room_members', filter: `room_id=eq.${realRoom.id}` },
+        load,
+      )
+      .subscribe()
+
+    return () => {
+      cancelled = true
+      channel.unsubscribe()
+    }
+  }, [realRoom, user])
+
+  async function approveReal(p: Pending) {
+    await supabase.from('room_members').update({ status: 'member' }).eq('id', p.id)
+  }
+  async function rejectReal(p: Pending) {
+    await supabase.from('room_members').delete().eq('id', p.id)
+  }
+  async function kickReal(m: Member) {
+    if (!realRoom) return
+    await supabase.from('room_members').delete().eq('room_id', realRoom.id).eq('user_id', m.id)
+  }
+  async function setAdmitReal(next: Admit) {
+    setAdmit(next)
+    if (realRoom) await supabase.from('rooms').update({ admit_mode: next }).eq('id', realRoom.id)
+  }
+  async function leaveRoom() {
+    if (isRealMode && user && realRoom) {
+      await supabase.from('room_members').delete().eq('room_id', realRoom.id).eq('user_id', user.id)
+    }
+    navigate('/')
+  }
 
   const runningRef = useRef(running)
   runningRef.current = running
@@ -126,7 +253,7 @@ export default function Room() {
   const timeText = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0')
 
   const queued = admit === 'manual' && pending.length > 0
-  const effectiveTab: Tab = tab === 'host' && !IS_HOST ? 'chat' : tab
+  const effectiveTab: Tab = tab === 'host' && !isHost ? 'chat' : tab
   const track = TRACKS[trackIndex] || TRACKS[0]
   const n = Math.max(1, members.length)
   const cols = Math.ceil(Math.sqrt(n))
@@ -148,13 +275,25 @@ export default function Room() {
   }
 
   function approve(p: Pending) {
+    if (isRealMode) {
+      approveReal(p)
+      return
+    }
     setPending((ps) => ps.filter((x) => x.id !== p.id))
     setMembers((ms) => [...ms, { id: p.id, name: p.name, status: 'vừa vào phòng', host: false }])
   }
   function reject(p: Pending) {
+    if (isRealMode) {
+      rejectReal(p)
+      return
+    }
     setPending((ps) => ps.filter((x) => x.id !== p.id))
   }
   function approveAll() {
+    if (isRealMode) {
+      pending.forEach((p) => approveReal(p))
+      return
+    }
     setMembers((ms) => [
       ...ms,
       ...pending.map((p) => ({ id: p.id, name: p.name, status: 'vừa vào phòng', host: false })),
@@ -162,6 +301,10 @@ export default function Room() {
     setPending([])
   }
   function kick(u: Member) {
+    if (isRealMode) {
+      kickReal(u)
+      return
+    }
     setMembers((ms) => ms.filter((x) => x.id !== u.id))
   }
 
@@ -190,6 +333,80 @@ export default function Room() {
     }
   })
 
+  if (user && loadingRoom) {
+    return (
+      <div
+        className="flex h-svh w-full items-center justify-center font-sans text-[15px] font-bold text-[rgba(51,71,94,0.55)]"
+        style={{ background: 'var(--ff-page-gradient)' }}
+      >
+        Đang tải phòng…
+      </div>
+    )
+  }
+
+  if (isRealMode && membersLoaded && myStatus === null) {
+    return (
+      <div
+        className="relative flex h-svh w-full items-center justify-center overflow-hidden px-6 font-sans text-[#33475e] antialiased"
+        style={{ background: 'var(--ff-page-gradient)' }}
+      >
+        <div
+          className="flex w-full max-w-[420px] flex-col items-center gap-4 rounded-[30px] px-8 py-9 text-center"
+          style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(22px)', boxShadow: '0 22px 56px rgba(58,98,126,0.15)' }}
+        >
+          <h2 className="m-0 text-xl font-extrabold text-[#2c3f55]">Bạn chưa vào phòng này</h2>
+          <p className="mt-2 mb-0 text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
+            Hãy tham gia bằng mã phòng hoặc từ danh sách phòng công khai trước.
+          </p>
+          <button
+            onClick={() => navigate('/matching')}
+            className="rounded-[20px] border-none px-6 py-[13px] font-sans text-[14.5px] font-extrabold text-[#1e3549]"
+            style={{ background: 'var(--ff-accent-soft)' }}
+          >
+            Đi tới Matching
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (isRealMode && myStatus === 'pending') {
+    return (
+      <div
+        className="relative flex h-svh w-full items-center justify-center overflow-hidden px-6 font-sans text-[#33475e] antialiased"
+        style={{ background: 'var(--ff-page-gradient)' }}
+      >
+        <div
+          className="flex w-full max-w-[420px] flex-col items-center gap-4 rounded-[30px] px-8 py-9 text-center"
+          style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(22px)', boxShadow: '0 22px 56px rgba(58,98,126,0.15)' }}
+        >
+          <span
+            className="flex h-[54px] w-[54px] items-center justify-center rounded-full text-[#7a4a2c]"
+            style={{ background: 'rgba(226,190,150,0.4)' }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" />
+            </svg>
+          </span>
+          <div>
+            <h2 className="m-0 text-xl font-extrabold text-[#2c3f55]">Đang chờ host duyệt…</h2>
+            <p className="mt-2 mb-0 text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
+              Phòng "{realRoom?.name}" đang bật duyệt thủ công. Bạn sẽ vào phòng ngay khi host chấp nhận.
+            </p>
+          </div>
+          <button
+            onClick={leaveRoom}
+            className="rounded-[20px] border-none px-6 py-[13px] font-sans text-[14.5px] font-extrabold text-[#43596f]"
+            style={{ background: 'rgba(240,248,250,0.9)' }}
+          >
+            Huỷ, rời phòng
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       className="relative h-svh w-full overflow-hidden font-sans text-[#33475e] antialiased"
@@ -206,24 +423,26 @@ export default function Room() {
           <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.5)]">· Phòng học chung</span>
         </div>
         <div className="flex items-center gap-[10px]">
-          <div
-            className="flex items-center gap-[5px] rounded-[20px] p-[5px]"
-            style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)' }}
-          >
-            {(['two', 'five'] as Demo[]).map((key) => (
-              <button
-                key={key}
-                onClick={() => {
-                  setDemo(key)
-                  setMembers(DEMO_SETS[key].slice())
-                }}
-                className="rounded-[15px] border-none px-[14px] py-2 font-sans text-[12.5px] font-extrabold transition-all duration-[220ms]"
-                style={segStyle(demo === key)}
-              >
-                {key === 'two' ? '2 người' : '5 người'}
-              </button>
-            ))}
-          </div>
+          {!isRealMode && (
+            <div
+              className="flex items-center gap-[5px] rounded-[20px] p-[5px]"
+              style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)' }}
+            >
+              {(['two', 'five'] as Demo[]).map((key) => (
+                <button
+                  key={key}
+                  onClick={() => {
+                    setDemo(key)
+                    setMembers(DEMO_SETS[key].slice())
+                  }}
+                  className="rounded-[15px] border-none px-[14px] py-2 font-sans text-[12.5px] font-extrabold transition-all duration-[220ms]"
+                  style={segStyle(demo === key)}
+                >
+                  {key === 'two' ? '2 người' : '5 người'}
+                </button>
+              ))}
+            </div>
+          )}
           <div
             className="flex items-center gap-[9px] rounded-[20px] px-[17px] py-[9px]"
             style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)' }}
@@ -407,7 +626,7 @@ export default function Room() {
           </svg>
           Nhạc
         </button>
-        {IS_HOST && (
+        {isHost && (
           <button
             onClick={() => openTab('host')}
             className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)]"
@@ -431,7 +650,7 @@ export default function Room() {
         )}
         <div className="mx-1 h-[26px] w-px" style={{ background: 'rgba(51,71,94,0.13)' }} />
         <button
-          onClick={() => navigate('/')}
+          onClick={leaveRoom}
           className="flex items-center gap-[9px] rounded-[19px] border-none px-[22px] py-3 font-sans text-sm font-extrabold text-[#7a3f2c] transition-all duration-[220ms] hover:brightness-95"
           style={{ background: 'oklch(0.86 0.055 45)' }}
         >
@@ -462,7 +681,7 @@ export default function Room() {
               [
                 { key: 'chat' as Tab, name: 'Chat', show: true, badge: '' },
                 { key: 'music' as Tab, name: 'Nhạc', show: true, badge: '' },
-                { key: 'host' as Tab, name: 'Quản lý', show: IS_HOST, badge: queued ? String(pending.length) : '' },
+                { key: 'host' as Tab, name: 'Quản lý', show: isHost, badge: queued ? String(pending.length) : '' },
               ] as const
             ).map(
               (x) =>
@@ -589,7 +808,7 @@ export default function Room() {
               <div className="flex items-baseline justify-between gap-[10px]">
                 <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">Danh sách phát</span>
                 <span className="text-xs font-semibold text-[rgba(51,71,94,0.45)]">
-                  {IS_HOST ? 'phát cho cả phòng' : 'chỉ mình bạn nghe'}
+                  {isHost ? 'phát cho cả phòng' : 'chỉ mình bạn nghe'}
                 </span>
               </div>
               {TRACKS.map((t, i) => {
@@ -630,7 +849,7 @@ export default function Room() {
             </div>
 
             <span className="text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.5)]">
-              {IS_HOST
+              {isHost
                 ? 'Bạn là host nên nhạc bạn chọn sẽ phát đồng bộ cho mọi người; ai muốn yên tĩnh có thể kéo âm lượng về 0.'
                 : 'Host đang chọn nhạc cho phòng — bạn chỉ chỉnh được âm lượng của mình.'}
             </span>
@@ -638,7 +857,7 @@ export default function Room() {
         )}
 
         {/* tab: host */}
-        {effectiveTab === 'host' && IS_HOST && (
+        {effectiveTab === 'host' && isHost && (
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
             <div className="flex flex-col gap-[9px]">
               <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">Chế độ vào phòng</span>
@@ -646,7 +865,7 @@ export default function Room() {
                 {(['auto', 'manual'] as Admit[]).map((key) => (
                   <button
                     key={key}
-                    onClick={() => setAdmit(key)}
+                    onClick={() => setAdmitReal(key)}
                     className="flex-1 rounded-2xl border-none px-[6px] py-[10px] font-sans text-[13px] font-extrabold transition-all duration-[220ms]"
                     style={segStyle(admit === key)}
                   >
@@ -739,7 +958,7 @@ export default function Room() {
                     <span className="text-[13.5px] font-extrabold text-[#2c3f55]">{u.name}</span>
                     <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.5)]">{u.status}</span>
                   </div>
-                  {IS_HOST && !u.host && (
+                  {isHost && !u.host && (
                     <button
                       onClick={() => kick(u)}
                       className="rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[#7a3f2c] hover:!bg-[oklch(0.86_0.055_45)]"
