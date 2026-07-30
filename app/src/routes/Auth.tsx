@@ -1,29 +1,23 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 
 type Tab = 'login' | 'signup'
 
-const PERKS = [
+const PERK_ICONS = [
+  { key: 'todo', bg: 'rgba(140,205,196,0.3)', icon: 'M4 7.5l2 2 3-3.5M4 16.5l2 2 3-3.5M13 8h7M13 17h7' },
   {
-    title: 'To-do được lưu lại',
-    desc: 'Đóng tab vẫn còn nguyên danh sách',
-    bg: 'rgba(140,205,196,0.3)',
-    icon: 'M4 7.5l2 2 3-3.5M4 16.5l2 2 3-3.5M13 8h7M13 17h7',
-  },
-  {
-    title: 'Wallpaper & nhạc riêng',
-    desc: 'Tải lên bộ của bạn, dùng trên mọi máy',
+    key: 'wallpaper',
     bg: 'rgba(160,200,225,0.32)',
     icon: 'M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3z M4 18l5.5-5 4 3.4 3-2.4L20 18',
   },
   {
-    title: 'Học cùng bạn khác',
-    desc: 'Ghép cặp phiên Pomodoro theo giờ',
+    key: 'matching',
     bg: 'rgba(150,210,205,0.3)',
     icon: 'M9 11a3 3 0 100-6 3 3 0 000 6zM3 20c0-3 2.7-5 6-5s6 2 6 5M17 8a2.6 2.6 0 010 5M19 20c0-2-.7-3.4-2-4.4',
   },
-]
+] as const
 
 function tabStyle(on: boolean) {
   return {
@@ -33,17 +27,18 @@ function tabStyle(on: boolean) {
   }
 }
 
-function translateAuthError(message: string) {
-  if (message.includes('Invalid login credentials')) return 'Sai email hoặc mật khẩu.'
-  if (message.includes('User already registered')) return 'Email này đã có tài khoản — thử đăng nhập nhé.'
-  if (message.includes('Password should be at least')) return 'Mật khẩu cần ít nhất 6 ký tự.'
+function translateAuthError(message: string, t: (key: string) => string) {
+  if (message.includes('Invalid login credentials')) return t('auth.errors.invalidCredentials')
+  if (message.includes('User already registered')) return t('auth.errors.alreadyRegistered')
+  if (message.includes('Password should be at least')) return t('auth.errors.shortPassword')
   if (message.includes('Unable to validate email address') || message.includes('is invalid'))
-    return 'Email không hợp lệ.'
-  if (message.includes('rate limit')) return 'Bạn thử lại quá nhanh — chờ một chút rồi thử lại nhé.'
+    return t('auth.errors.invalidEmail')
+  if (message.includes('rate limit')) return t('auth.errors.rateLimit')
   return message
 }
 
 export default function Auth() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('login')
   const [showPw, setShowPw] = useState(false)
@@ -90,11 +85,11 @@ export default function Auth() {
           navigate('/')
         } else {
           // "Confirm email" is on for this project — no session until the user clicks the link.
-          setNotice('Đã gửi email xác nhận tới ' + email + ' — mở email và bấm link để hoàn tất đăng ký.')
+          setNotice(t('auth.notice.confirmEmail', { email }))
         }
       }
     } catch (err) {
-      setError(translateAuthError(err instanceof Error ? err.message : String(err)))
+      setError(translateAuthError(err instanceof Error ? err.message : String(err), t))
     } finally {
       setSubmitting(false)
     }
@@ -106,7 +101,7 @@ export default function Auth() {
       provider: 'google',
       options: { redirectTo: window.location.origin },
     })
-    if (error) setError(translateAuthError(error.message))
+    if (error) setError(translateAuthError(error.message, t))
   }
 
   return (
@@ -128,7 +123,7 @@ export default function Auth() {
             }}
           />
           <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[#2f4459]">
-            FocusFlow
+            {t('app.name')}
           </span>
         </div>
 
@@ -152,14 +147,14 @@ export default function Auth() {
                 className="flex-1 rounded-2xl border-none py-[11px] font-sans text-sm font-bold transition-all duration-[280ms]"
                 style={tabStyle(isLogin)}
               >
-                Đăng nhập
+                {t('auth.tabs.login')}
               </button>
               <button
                 onClick={() => switchTo('signup')}
                 className="flex-1 rounded-2xl border-none py-[11px] font-sans text-sm font-bold transition-all duration-[280ms]"
                 style={tabStyle(!isLogin)}
               >
-                Đăng ký
+                {t('auth.tabs.signup')}
               </button>
             </div>
 
@@ -169,45 +164,43 @@ export default function Auth() {
               style={{ opacity: fade, transform: fade ? 'translateY(0px)' : 'translateY(6px)' }}
             >
               <h1 className="m-0 text-2xl font-extrabold tracking-[-0.4px] text-[#2c3f55]">
-                {isLogin ? 'Chào bạn trở lại' : 'Tạo tài khoản mới'}
+                {isLogin ? t('auth.title.login') : t('auth.title.signup')}
               </h1>
               <p className="mt-[7px] mb-0 text-sm leading-[1.55] font-semibold text-[rgba(51,71,94,0.58)]">
-                {isLogin
-                  ? 'Tiếp tục chuỗi phiên học của bạn ở đúng nơi bạn dừng lại.'
-                  : 'Mất khoảng 20 giây. Không cần thẻ, không quảng cáo.'}
+                {isLogin ? t('auth.subtitle.login') : t('auth.subtitle.signup')}
               </p>
 
               <div className="mt-[22px] flex flex-col gap-3">
                 {!isLogin && (
                   <label className="flex flex-col gap-[7px]">
                     <span className="text-[12.5px] font-bold tracking-[0.3px] text-[rgba(51,71,94,0.62)]">
-                      Tên của bạn
+                      {t('auth.name.label')}
                     </span>
                     <input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Minh Anh"
+                      placeholder={t('auth.name.placeholder')}
                       className="rounded-[18px] border-[1.5px] border-[rgba(51,71,94,0.12)] bg-[rgba(255,255,255,0.9)] px-4 py-[14px] font-sans text-[15px] font-semibold text-[#2c3f55] outline-none transition-[border-color,box-shadow] duration-200 placeholder:font-semibold placeholder:text-[rgba(51,71,94,0.38)] focus:border-[rgba(126,201,198,0.9)] focus:shadow-[0_0_0_4px_rgba(126,201,198,0.18)]"
                     />
                   </label>
                 )}
                 <label className="flex flex-col gap-[7px]">
                   <span className="text-[12.5px] font-bold tracking-[0.3px] text-[rgba(51,71,94,0.62)]">
-                    Email
+                    {t('auth.email.label')}
                   </span>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    placeholder="ban@email.com"
+                    placeholder={t('auth.email.placeholder')}
                     className="rounded-[18px] border-[1.5px] border-[rgba(51,71,94,0.12)] bg-[rgba(255,255,255,0.9)] px-4 py-[14px] font-sans text-[15px] font-semibold text-[#2c3f55] outline-none transition-[border-color,box-shadow] duration-200 placeholder:font-semibold placeholder:text-[rgba(51,71,94,0.38)] focus:border-[rgba(126,201,198,0.9)] focus:shadow-[0_0_0_4px_rgba(126,201,198,0.18)]"
                   />
                 </label>
                 <label className="flex flex-col gap-[7px]">
                   <span className="text-[12.5px] font-bold tracking-[0.3px] text-[rgba(51,71,94,0.62)]">
-                    Mật khẩu
+                    {t('auth.password.label')}
                   </span>
                   <div className="relative flex items-center">
                     <input
@@ -216,7 +209,7 @@ export default function Auth() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       minLength={6}
-                      placeholder="Ít nhất 6 ký tự"
+                      placeholder={t('auth.password.placeholder')}
                       className="flex-1 rounded-[18px] border-[1.5px] border-[rgba(51,71,94,0.12)] bg-[rgba(255,255,255,0.9)] py-[14px] pr-[82px] pl-4 font-sans text-[15px] font-semibold text-[#2c3f55] outline-none transition-[border-color,box-shadow] duration-200 placeholder:font-semibold placeholder:text-[rgba(51,71,94,0.38)] focus:border-[rgba(126,201,198,0.9)] focus:shadow-[0_0_0_4px_rgba(126,201,198,0.18)]"
                     />
                     <button
@@ -225,7 +218,7 @@ export default function Auth() {
                       className="absolute right-2 rounded-[13px] border-none px-3 py-2 font-sans text-[12.5px] font-bold text-[rgba(51,71,94,0.6)]"
                       style={{ background: 'rgba(238,246,248,0.95)' }}
                     >
-                      {showPw ? 'Ẩn' : 'Hiện'}
+                      {showPw ? t('auth.password.hide') : t('auth.password.show')}
                     </button>
                   </div>
                 </label>
@@ -238,7 +231,7 @@ export default function Auth() {
                     className="text-[13px] font-bold text-[oklch(0.58_0.075_220)] no-underline hover:text-[oklch(0.5_0.08_220)]"
                     onClick={(e) => e.preventDefault()}
                   >
-                    Quên mật khẩu?
+                    {t('auth.forgotPassword')}
                   </a>
                 </div>
               )}
@@ -259,12 +252,16 @@ export default function Auth() {
                   boxShadow: '0 10px 24px rgba(58,98,126,0.14)',
                 }}
               >
-                {submitting ? 'Đang xử lý…' : isLogin ? 'Đăng nhập' : 'Tạo tài khoản'}
+                {submitting
+                  ? t('auth.submit.processing')
+                  : isLogin
+                    ? t('auth.submit.login')
+                    : t('auth.submit.signup')}
               </button>
 
               <div className="my-5 flex items-center gap-[14px]">
                 <div className="h-px flex-1" style={{ background: 'rgba(51,71,94,0.13)' }} />
-                <span className="text-[12.5px] font-bold text-[rgba(51,71,94,0.45)]">hoặc</span>
+                <span className="text-[12.5px] font-bold text-[rgba(51,71,94,0.45)]">{t('auth.or')}</span>
                 <div className="h-px flex-1" style={{ background: 'rgba(51,71,94,0.13)' }} />
               </div>
 
@@ -279,7 +276,7 @@ export default function Auth() {
                 >
                   G
                 </span>
-                {isLogin ? 'Đăng nhập với Google' : 'Đăng ký với Google'}
+                {isLogin ? t('auth.google.login') : t('auth.google.signup')}
               </button>
 
               <div className="mt-[18px] text-center">
@@ -288,7 +285,7 @@ export default function Auth() {
                   className="inline-block rounded-[18px] px-[18px] py-[11px] text-[13.5px] font-bold text-inherit no-underline transition-colors duration-200 hover:bg-[rgba(238,246,248,1)]"
                   style={{ background: 'rgba(238,246,248,0.7)' }}
                 >
-                  Dùng thử không cần đăng nhập →
+                  {t('auth.guestLink')}
                 </Link>
               </div>
             </form>
@@ -305,21 +302,19 @@ export default function Auth() {
               }}
             >
               <div className="text-xs font-bold tracking-[1.2px] text-[rgba(51,71,94,0.48)] uppercase">
-                Không bắt buộc
+                {t('auth.side.badge')}
               </div>
               <p className="mt-3 mb-0 text-[15.5px] leading-[1.55] font-bold text-[#2c3f55]">
-                Đăng nhập để lưu to-do vĩnh viễn, dùng wallpaper &amp; nhạc riêng của bạn, và ghép
-                cặp học cùng người khác.
+                {t('auth.side.desc1')}
               </p>
               <p className="mt-[10px] mb-0 text-[13.5px] leading-[1.6] font-semibold text-[rgba(51,71,94,0.55)]">
-                Chưa muốn thì cứ vào học trước — mọi phiên Pomodoro vẫn chạy bình thường ở chế độ
-                khách.
+                {t('auth.side.desc2')}
               </p>
             </div>
             <div className="flex flex-col gap-[10px]">
-              {PERKS.map((p) => (
+              {PERK_ICONS.map((p) => (
                 <div
-                  key={p.title}
+                  key={p.key}
                   className="flex items-center gap-[13px] rounded-[24px] px-[18px] py-[15px]"
                   style={{
                     background: 'rgba(255,255,255,0.52)',
@@ -345,9 +340,11 @@ export default function Auth() {
                     </svg>
                   </div>
                   <div className="flex flex-col gap-[2px]">
-                    <span className="text-sm font-bold text-[#2c3f55]">{p.title}</span>
+                    <span className="text-sm font-bold text-[#2c3f55]">
+                      {t(`auth.perks.${p.key}.title`)}
+                    </span>
                     <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.5)]">
-                      {p.desc}
+                      {t(`auth.perks.${p.key}.desc`)}
                     </span>
                   </div>
                 </div>
@@ -357,7 +354,7 @@ export default function Auth() {
         </div>
 
         <p className="mt-1 max-w-[420px] text-center text-[12.5px] leading-[1.6] font-semibold text-[rgba(51,71,94,0.45)]">
-          Khi tiếp tục, bạn đồng ý với Điều khoản &amp; Chính sách riêng tư của FocusFlow.
+          {t('auth.terms')}
         </p>
       </div>
     </div>

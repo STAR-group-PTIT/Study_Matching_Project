@@ -66,14 +66,14 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Tích hợp LiveKit SDK (`livekit-client`, không dùng `@livekit/components-react` vì UI đã tự dựng pixel-perfect từ GĐ1) vào lưới video đã dựng ở GĐ1
 - [x] Toggle cam/mic thật, badge trạng thái theo track state thật
 
-## Giai đoạn 7 — Stats, Settings, Storage
-- [ ] Tính KPI thật từ `focus_sessions`
-- [ ] Upload wallpaper/nhạc lên Supabase Storage
-- [ ] Lưu Pomodoro defaults vào `profiles`
+## Giai đoạn 7 — Stats, Settings, Storage ✅ Hoàn tất + verify xong 2026-07-30
+- [x] Tính KPI thật từ `focus_sessions`
+- [x] Upload wallpaper/nhạc lên Supabase Storage
+- [x] Lưu Pomodoro defaults vào `profiles` (đã làm sớm ở GĐ3; GĐ7 nối tiếp: Dashboard giờ thực sự dùng các giá trị đó cho timer)
 
 ## Giai đoạn 8 — Responsive, polish, deploy
-- [ ] Bottom sheet cho panel phải trên mobile
-- [ ] QA toàn luồng: Auth → Dashboard → Matching → Room → Rời phòng → Stats/Settings
+- [x] Bottom sheet cho panel phải trên mobile — xong 2026-07-30
+- [x] QA toàn luồng: Auth → Dashboard → Matching → Room → Rời phòng → Stats/Settings — xong 2026-07-30 (phát hiện + fix thêm vài lỗi tràn màn hình mobile ngoài kế hoạch, xem CONTEXT.md)
 - [ ] Deploy frontend (Vercel/Netlify) + Supabase production
 - [ ] Kiểm tra i18n vi/en đầy đủ
 

@@ -1,5 +1,430 @@
 {
   "app": {
     "name": "FocusFlow"
+  },
+  "common": {
+    "loading": "Đang tải…"
+  },
+  "auth": {
+    "tabs": { "login": "Đăng nhập", "signup": "Đăng ký" },
+    "title": { "login": "Chào bạn trở lại", "signup": "Tạo tài khoản mới" },
+    "subtitle": {
+      "login": "Tiếp tục chuỗi phiên học của bạn ở đúng nơi bạn dừng lại.",
+      "signup": "Mất khoảng 20 giây. Không cần thẻ, không quảng cáo."
+    },
+    "name": { "label": "Tên của bạn", "placeholder": "Minh Anh" },
+    "email": { "label": "Email", "placeholder": "ban@email.com" },
+    "password": {
+      "label": "Mật khẩu",
+      "placeholder": "Ít nhất 6 ký tự",
+      "show": "Hiện",
+      "hide": "Ẩn"
+    },
+    "forgotPassword": "Quên mật khẩu?",
+    "submit": {
+      "processing": "Đang xử lý…",
+      "login": "Đăng nhập",
+      "signup": "Tạo tài khoản"
+    },
+    "or": "hoặc",
+    "google": { "login": "Đăng nhập với Google", "signup": "Đăng ký với Google" },
+    "guestLink": "Dùng thử không cần đăng nhập →",
+    "side": {
+      "badge": "Không bắt buộc",
+      "desc1": "Đăng nhập để lưu to-do vĩnh viễn, dùng wallpaper & nhạc riêng của bạn, và ghép cặp học cùng người khác.",
+      "desc2": "Chưa muốn thì cứ vào học trước — mọi phiên Pomodoro vẫn chạy bình thường ở chế độ khách."
+    },
+    "perks": {
+      "todo": { "title": "To-do được lưu lại", "desc": "Đóng tab vẫn còn nguyên danh sách" },
+      "wallpaper": { "title": "Wallpaper & nhạc riêng", "desc": "Tải lên bộ của bạn, dùng trên mọi máy" },
+      "matching": { "title": "Học cùng bạn khác", "desc": "Ghép cặp phiên Pomodoro theo giờ" }
+    },
+    "terms": "Khi tiếp tục, bạn đồng ý với Điều khoản & Chính sách riêng tư của FocusFlow.",
+    "notice": {
+      "confirmEmail": "Đã gửi email xác nhận tới {{email}} — mở email và bấm link để hoàn tất đăng ký."
+    },
+    "errors": {
+      "invalidCredentials": "Sai email hoặc mật khẩu.",
+      "alreadyRegistered": "Email này đã có tài khoản — thử đăng nhập nhé.",
+      "shortPassword": "Mật khẩu cần ít nhất 6 ký tự.",
+      "invalidEmail": "Email không hợp lệ.",
+      "rateLimit": "Bạn thử lại quá nhanh — chờ một chút rồi thử lại nhé."
+    }
+  },
+  "dashboard": {
+    "topbar": {
+      "zen": "Zen",
+      "focusMode": "Focus mode",
+      "dashboardMode": "Dashboard mode",
+      "login": "Đăng nhập",
+      "tabFocus": "Focus",
+      "tabDashboard": "Dashboard",
+      "toggleUiTitle": "Ẩn / hiện giao diện",
+      "showUi": "Hiện UI",
+      "hideUi": "Ẩn UI"
+    },
+    "clock": {
+      "focusing": "Đang tập trung",
+      "onBreak": "Nghỉ ngắn",
+      "session": "Phiên {{round}} / 4"
+    },
+    "controls": {
+      "pause": "Tạm dừng",
+      "start": "Bắt đầu",
+      "resume": "Tiếp tục",
+      "reset": "Reset",
+      "takeBreak": "Nghỉ ngắn",
+      "continueStudy": "Học tiếp"
+    },
+    "leftWidgets": {
+      "today": "Hôm nay",
+      "focusedMinutes": "phút tập trung",
+      "inProgress": "Đang làm",
+      "allDone": "Xong hết việc hôm nay 🎉",
+      "remaining": "{{open}} việc còn lại · {{done}} đã xong"
+    },
+    "rightColumn": {
+      "cameraOn": "Camera đang bật",
+      "cameraOff": "Camera đang tắt",
+      "you": "Bạn",
+      "turnOffCamera": "Tắt camera",
+      "turnOnCamera": "Bật camera",
+      "studyTogether": "Học cùng nhau",
+      "findStudyBuddy": "Tìm bạn học online"
+    },
+    "taskbar": {
+      "wallpaperTitle": "Đổi hình nền",
+      "wallpaperLabel": "Hình nền",
+      "musicTitle": "Nhạc nền",
+      "musicLabel": "Nhạc nền",
+      "todoTitle": "Danh sách việc",
+      "todoLabel": "To-do",
+      "studyTogetherTitle": "Học cùng nhau"
+    },
+    "wallpaperPopup": {
+      "title": "Hình nền",
+      "close": "Đóng",
+      "hint": "Kéo ảnh của bạn vào đây để dùng làm hình nền riêng."
+    },
+    "musicPopup": {
+      "title": "Nhạc nền",
+      "close": "Đóng",
+      "nowPlaying": "đang phát",
+      "selected": "đã chọn",
+      "pause": "Tạm dừng nhạc",
+      "play": "Phát nhạc"
+    },
+    "todoPanel": {
+      "title": "Việc cần làm",
+      "close": "Đóng",
+      "placeholder": "Thêm việc mới…",
+      "add": "Thêm",
+      "newTaskMeta": "1 phiên · Mới"
+    },
+    "mockTasks": {
+      "t1": { "name": "Ôn chương 4 – Đạo hàm", "meta": "2 phiên · Toán" },
+      "t2": { "name": "Làm 10 câu trắc nghiệm Lý", "meta": "1 phiên · Vật lý" },
+      "t3": { "name": "Đọc bài Reading Unit 7", "meta": "1 phiên · Anh" },
+      "t4": { "name": "Ghi chú lại lỗi sai đề thi thử", "meta": "2 phiên · Ôn tập" }
+    },
+    "mockTracks": {
+      "rain": "Mưa nhẹ ngoài cửa sổ",
+      "lofi": "Lo-fi bàn học",
+      "cafe": "Tiếng quán cà phê",
+      "waves": "Sóng biển chậm",
+      "whiteNoise": "Nhiễu trắng mềm"
+    }
+  },
+  "matching": {
+    "headerTag": "Ghép cặp học chung",
+    "authNotice": {
+      "text": "Cần đăng nhập để tạo phòng, ghép ngẫu nhiên hoặc tham gia phòng thật.",
+      "login": "Đăng nhập"
+    },
+    "roomTypes": {
+      "chill": { "name": "Chill", "rule": "Bật nhạc, tự do bật/tắt cam và mic." },
+      "hardcore": { "name": "Hardcore", "rule": "Bắt buộc bật cam, tắt nhạc và mic." },
+      "silent": { "name": "Im lặng", "rule": "Không nhạc, không cam, không mic — chỉ đồng hồ chung." },
+      "discuss": { "name": "Thảo luận", "rule": "Bật cam và mic để trao đổi, không nhạc." },
+      "watch": { "name": "Giám sát", "rule": "Bắt buộc bật cam để giám sát nhau, tắt nhạc và mic." }
+    },
+    "filters": {
+      "title": "Tìm bạn học cùng",
+      "subtitle": "Chọn loại phòng và vài tiêu chí, chúng mình ghép bạn với người đang học cùng nhịp.",
+      "roomTypeLabel": "Loại phòng",
+      "pickOne": "chọn 1",
+      "durationLabel": "Thời lượng phiên",
+      "languageLabel": "Ngôn ngữ",
+      "randomMatch": "Ghép ngẫu nhiên",
+      "createRoom": "Tạo phòng mới",
+      "roomList": "Danh sách phòng",
+      "joinByCodeLabel": "Hoặc nhập mã phòng có sẵn",
+      "joinCodePlaceholder": "VD: G32TZU",
+      "joining": "Đang vào…",
+      "join": "Vào phòng"
+    },
+    "duration": {
+      "25": "25 phút",
+      "50": "50 phút"
+    },
+    "visibility": {
+      "public": "Công khai",
+      "private": "Riêng tư"
+    },
+    "searching": {
+      "seconds": "giây",
+      "title": "Đang tìm người phù hợp…",
+      "cancel": "Huỷ tìm",
+      "editFilters": "Sửa bộ lọc",
+      "hints": {
+        "h1": "Đang xem ai đang mở phòng cùng loại với bạn…",
+        "h2": "Ưu tiên người chọn cùng thời lượng phiên.",
+        "h3": "Sắp xong rồi, giữ máy giúp mình nhé.",
+        "h4": "Nếu lâu quá, thử đổi sang loại phòng khác cho dễ ghép."
+      }
+    },
+    "errors": {
+      "matchServiceDown": "Không kết nối được dịch vụ ghép cặp, thử lại sau.",
+      "matchGeneric": "Có lỗi xảy ra, thử lại sau.",
+      "joinGeneric": "Có lỗi xảy ra, thử lại.",
+      "invalidCode": "Mã phòng không đúng.",
+      "roomFull": "Phòng đã đầy.",
+      "createFailed": "Không tạo được phòng, thử lại sau."
+    },
+    "rooms": {
+      "title": "Phòng công khai đang mở",
+      "countOpen": "{{count}} phòng đang mở",
+      "loading": "Đang tải…",
+      "loadFailed": "Không tải được",
+      "liveUpdate": "cập nhật liên tục",
+      "back": "← Quay lại",
+      "loadingList": "Đang tải danh sách phòng…",
+      "empty": "Chưa có phòng công khai nào đang mở.",
+      "loadListFailed": "Không tải được danh sách phòng, thử lại sau.",
+      "host": "Host {{name}} · {{minutes}} phút",
+      "full": "Đầy",
+      "joinAction": "Tham gia"
+    },
+    "backToStudy": "← Về màn hình học",
+    "create": {
+      "title": "Tạo phòng mới",
+      "hostLine": "Host: {{name}} · Loại phòng: {{roomType}}",
+      "you": "Bạn",
+      "defaultName": "Phòng của {{name}}",
+      "nameLabel": "Tên phòng",
+      "namePlaceholder": "VD: Deep work 8h tối",
+      "maxPeopleLabel": "Số người tối đa",
+      "maxPeopleValue": "{{count}} người (gồm bạn)",
+      "privacyLabel": "Quyền riêng tư",
+      "publicHint": "Phòng hiện trong danh sách công khai, ai cũng có thể tham gia.",
+      "privateHint": "Chỉ người có mã phòng mới vào được.",
+      "submitting": "Đang tạo…",
+      "submit": "Tạo phòng",
+      "created": "Đã tạo “{{name}}”",
+      "createdMeta": "{{visibility}} · tối đa {{count}} người · Chia sẻ mã này để bạn bè vào phòng.",
+      "copied": "Đã chép ✓",
+      "copy": "Sao chép",
+      "close": "Đóng",
+      "enterRoom": "Vào phòng"
+    }
+  },
+  "stats": {
+    "headerTag": "Thống kê cá nhân",
+    "ranges": {
+      "week": "Tuần này",
+      "month": "Tháng này",
+      "all": "Tất cả"
+    },
+    "weekdaysShort": {
+      "mon": "T2",
+      "tue": "T3",
+      "wed": "T4",
+      "thu": "T5",
+      "fri": "T6",
+      "sat": "T7",
+      "sun": "CN"
+    },
+    "kpi": {
+      "focusMinutes": "Phút tập trung",
+      "focusMinutesThisWeek": "Phút tập trung tuần này",
+      "focusMinutesThisMonth": "Phút tập trung tháng này",
+      "minutesUnit": "phút",
+      "noDataLastWeek": "Chưa có dữ liệu tuần trước để so sánh",
+      "noSessionsThisWeek": "Chưa có phiên nào tuần này",
+      "deltaVsLastWeek": "{{sign}}{{pct}}% so với tuần trước",
+      "totalMinutesMonth": "Tổng phút trong tháng",
+      "totalMinutesAll": "Tổng phút từ trước tới nay",
+      "completedSessions": "Phiên hoàn thành",
+      "sessionsUnit": "phiên",
+      "groupSessions": "{{count}} phiên học cùng bạn",
+      "streak": "Streak liên tiếp",
+      "daysUnit": "ngày",
+      "bestStreak": "Kỷ lục của bạn: {{count}} ngày"
+    },
+    "barChart": {
+      "title": "Phút tập trung theo ngày",
+      "highest": " · cao nhất {{day}}"
+    },
+    "heatmap": {
+      "title": "Mật độ học 12 tuần",
+      "activeDays": "{{count}}/84 ngày có học",
+      "noStudy": "Không học",
+      "minutes": "{{count}} phút",
+      "less": "ít",
+      "more": "nhiều"
+    },
+    "history": {
+      "title": "Việc đã hoàn thành gần đây",
+      "viewAll": "Xem tất cả",
+      "empty": "Chưa có việc nào hoàn thành. Đánh dấu xong việc ở Dashboard để thấy ở đây.",
+      "noMeta": "—",
+      "today": "Hôm nay {{time}}",
+      "yesterday": "Hôm qua {{time}}"
+    },
+    "backToStudy": "← Về màn hình học"
+  },
+  "settings": {
+    "headerTag": "Cài đặt & hồ sơ",
+    "profile": {
+      "defaultName": "Người dùng mới",
+      "streak": "Streak {{days}} ngày · {{sessions}} phiên tuần này",
+      "changeAvatar": "Đổi ảnh đại diện",
+      "editInfo": "Sửa thông tin"
+    },
+    "wallpapers": {
+      "title": "Wallpaper của tôi",
+      "count": "{{count}} ảnh",
+      "delete": "Xoá",
+      "add": "Thêm ảnh",
+      "hint": "JPG hoặc PNG, tối đa 5 MB mỗi ảnh.",
+      "tooLarge": "Ảnh tối đa 5 MB."
+    },
+    "music": {
+      "title": "Nhạc của tôi",
+      "count": "{{count}} bài",
+      "delete": "Xoá",
+      "upload": "Upload nhạc (MP3, WAV)",
+      "hint": "Bấm vào tên bài để đổi tên. Nhạc chỉ phát trong phiên học của bạn.",
+      "tooLarge": "Nhạc tối đa 25 MB."
+    },
+    "pomodoro": {
+      "title": "Pomodoro mặc định",
+      "focusMinutes": "Phút tập trung",
+      "minutesValue": "{{count}} phút",
+      "breakMinutes": "Phút nghỉ",
+      "autoStartTitle": "Tự động bắt đầu phiên tiếp theo",
+      "autoStartDesc": "Hết giờ nghỉ là vào phiên học luôn",
+      "saved": "Đã lưu ✓",
+      "save": "Lưu thay đổi",
+      "resetDefault": "Về mặc định 25/5"
+    },
+    "language": {
+      "title": "Ngôn ngữ giao diện",
+      "vi": "Tiếng Việt",
+      "en": "English"
+    },
+    "logout": {
+      "hint": "Đăng xuất sẽ giữ lại wallpaper và nhạc trên tài khoản; máy này chuyển về chế độ khách.",
+      "action": "Đăng xuất"
+    },
+    "backToStudy": "← Về màn hình học"
+  },
+  "room": {
+    "headerTag": "Phòng học chung",
+    "demo": { "two": "2 người", "five": "5 người" },
+    "sync": {
+      "withCount": "Đồng bộ với {{count}} người",
+      "withName": "Đồng bộ với {{name}}",
+      "fallbackRoom": "phòng"
+    },
+    "you": "Bạn",
+    "unknownUser": "Người dùng",
+    "status": {
+      "host": "chủ phòng",
+      "focusing": "đang tập trung",
+      "micOn": "mic bật",
+      "micOff": "mic tắt",
+      "camOff": "cam tắt",
+      "offline": "ngoại tuyến",
+      "justJoined": "vừa vào phòng"
+    },
+    "wait": {
+      "seconds": "{{count}} giây",
+      "minutes": "{{min}} phút {{sec}}"
+    },
+    "mockChat": {
+      "m1": "Mình vào rồi nha, bắt đầu phiên 25 phút nhé!",
+      "m2": "Ok, mình tắt mic để tập trung, cần gì thì nhắn chat.",
+      "m3": "Ừ, hết phiên nghỉ 5 phút rồi kể chương 4 tới đâu."
+    },
+    "mockTracks": {
+      "t1": { "name": "Lofi mưa đêm", "mood": "lofi · êm" },
+      "t2": { "name": "Quán cà phê 8h", "mood": "jazz nhẹ" },
+      "t3": { "name": "Tiếng mưa rơi", "mood": "tiếng động nền" },
+      "t4": { "name": "Piano tập trung", "mood": "piano · trầm" },
+      "t5": { "name": "Sóng biển xa", "mood": "thiên nhiên" }
+    },
+    "loadingRoom": "Đang tải phòng…",
+    "notJoined": {
+      "title": "Bạn chưa vào phòng này",
+      "desc": "Hãy tham gia bằng mã phòng hoặc từ danh sách phòng công khai trước.",
+      "goToMatching": "Đi tới Matching"
+    },
+    "waitingApproval": {
+      "title": "Đang chờ host duyệt…",
+      "desc": "Phòng \"{{name}}\" đang bật duyệt thủ công. Bạn sẽ vào phòng ngay khi host chấp nhận.",
+      "cancel": "Huỷ, rời phòng"
+    },
+    "pomodoro": {
+      "focusing": "Đang tập trung",
+      "onBreak": "Nghỉ ngắn",
+      "sessionBoth": "Phiên {{round}} / 4 · cả hai cùng chạy",
+      "pause": "Tạm dừng",
+      "resume": "Tiếp tục",
+      "reset": "Reset"
+    },
+    "controls": {
+      "camera": "Camera",
+      "cameraOff": "Camera tắt",
+      "mic": "Mic",
+      "micOff": "Mic tắt",
+      "chat": "Chat",
+      "music": "Nhạc",
+      "manage": "Quản lý",
+      "leave": "Rời phòng"
+    },
+    "panel": {
+      "collapse": "Thu gọn",
+      "chatPlaceholder": "Nhắn nhẹ một câu…",
+      "send": "Gửi"
+    },
+    "music": {
+      "playing": "đang phát · {{mood}}",
+      "paused": "đã tạm dừng",
+      "playlist": "Danh sách phát",
+      "broadcastToRoom": "phát cho cả phòng",
+      "onlyYouHear": "chỉ mình bạn nghe",
+      "hostNote": "Bạn là host nên nhạc bạn chọn sẽ phát đồng bộ cho mọi người; ai muốn yên tĩnh có thể kéo âm lượng về 0.",
+      "memberNote": "Host đang chọn nhạc cho phòng — bạn chỉ chỉnh được âm lượng của mình."
+    },
+    "host": {
+      "admitMode": "Chế độ vào phòng",
+      "autoAdmit": "Tự động duyệt",
+      "manualAdmit": "Duyệt thủ công",
+      "autoAdmitDesc": "Ai có link hoặc mã phòng sẽ vào thẳng, không cần bạn duyệt.",
+      "manualAdmitDesc": "Người mới sẽ nằm ở hàng chờ cho tới khi bạn bấm Duyệt.",
+      "queueTitle": "Hàng chờ duyệt",
+      "approveAll": "Duyệt tất cả",
+      "emptyQueue": "Chưa có ai đang chờ.",
+      "waitPrefix": "chờ {{wait}}",
+      "approve": "Duyệt",
+      "approveTitle": "Cho vào",
+      "reject": "Bỏ",
+      "rejectTitle": "Từ chối",
+      "membersInRoom": "Trong phòng · {{count}} người",
+      "kick": "Kick"
+    },
+    "camOffFeed": "camera đang tắt",
+    "webcamOf": "webcam · {{name}}"
   }
 }

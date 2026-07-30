@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 
@@ -12,13 +13,7 @@ const WALLPAPERS = [
   'linear-gradient(175deg, #f0f6f7 0%, #d8eaf0 55%, #cde5df 100%)',
 ]
 
-const TRACKS = [
-  'Mưa nhẹ ngoài cửa sổ',
-  'Lo-fi bàn học',
-  'Tiếng quán cà phê',
-  'Sóng biển chậm',
-  'Nhiễu trắng mềm',
-]
+const TRACK_KEYS = ['rain', 'lofi', 'cafe', 'waves', 'whiteNoise'] as const
 
 const FOCUS_MINUTES = 25
 const BREAK_MINUTES = 5
@@ -35,12 +30,13 @@ type Task = {
   done: boolean
 }
 
-const INITIAL_TASKS: Task[] = [
-  { id: 'g1', name: 'Ôn chương 4 – Đạo hàm', meta: '2 phiên · Toán', done: false },
-  { id: 'g2', name: 'Làm 10 câu trắc nghiệm Lý', meta: '1 phiên · Vật lý', done: false },
-  { id: 'g3', name: 'Đọc bài Reading Unit 7', meta: '1 phiên · Anh', done: true },
-  { id: 'g4', name: 'Ghi chú lại lỗi sai đề thi thử', meta: '2 phiên · Ôn tập', done: false },
-]
+const MOCK_TASK_KEYS = ['t1', 't2', 't3', 't4'] as const
+const MOCK_TASK_DONE: Record<(typeof MOCK_TASK_KEYS)[number], boolean> = {
+  t1: false,
+  t2: false,
+  t3: true,
+  t4: false,
+}
 
 function fmt(sec: number) {
   const m = Math.floor(sec / 60)
@@ -48,20 +44,25 @@ function fmt(sec: number) {
   return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0')
 }
 
-function focusSecs() {
-  return FOCUS_MINUTES * 60
-}
-function breakSecs() {
-  return BREAK_MINUTES * 60
-}
-
 export default function Dashboard() {
+  const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
+  const initialTasks = useMemo<Task[]>(
+    () =>
+      MOCK_TASK_KEYS.map((key, i) => ({
+        id: 'g' + (i + 1),
+        name: t(`dashboard.mockTasks.${key}.name`),
+        meta: t(`dashboard.mockTasks.${key}.meta`),
+        done: MOCK_TASK_DONE[key],
+      })),
+    [t],
+  )
+  const tracks = useMemo(() => TRACK_KEYS.map((key) => t(`dashboard.mockTracks.${key}`)), [t])
   const [mode, setMode] = useState<Mode>('dashboard')
   const [hidden, setHidden] = useState(false)
   const [running, setRunning] = useState(false)
   const [phase, setPhase] = useState<Phase>('focus')
-  const [left, setLeft] = useState(focusSecs())
+  const [left, setLeft] = useState(FOCUS_MINUTES * 60)
   const [round, setRound] = useState(1)
   const [focusedMinutes, setFocusedMinutes] = useState(75)
   const [wp, setWp] = useState(0)
@@ -70,10 +71,39 @@ export default function Dashboard() {
   const [track, setTrack] = useState(1)
   const [playing, setPlaying] = useState(true)
   const [draft, setDraft] = useState('')
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS)
+  const [tasks, setTasks] = useState<Task[]>(initialTasks)
+
+  // Pomodoro defaults — 25/5 cho khách, ghi đè bằng profile thật khi đăng nhập (xem effect bên dưới).
+  const [focusMin, setFocusMin] = useState(FOCUS_MINUTES)
+  const [breakMin, setBreakMin] = useState(BREAK_MINUTES)
+  const [autoStart, setAutoStart] = useState(true)
 
   const runningRef = useRef(running)
   runningRef.current = running
+  const focusMinRef = useRef(focusMin)
+  focusMinRef.current = focusMin
+  const breakMinRef = useRef(breakMin)
+  breakMinRef.current = breakMin
+  const autoStartRef = useRef(autoStart)
+  autoStartRef.current = autoStart
+  const userRef = useRef(user)
+  userRef.current = user
+  const phaseStartRef = useRef(Date.now())
+
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('profiles')
+      .select('focus_minutes, break_minutes, auto_start_next')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (!data) return
+        setFocusMin(data.focus_minutes)
+        setBreakMin(data.break_minutes)
+        setAutoStart(data.auto_start_next)
+      })
+  }, [user])
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -82,9 +112,24 @@ export default function Dashboard() {
         if (prevLeft <= 1) {
           setPhase((prevPhase) => {
             const next: Phase = prevPhase === 'focus' ? 'break' : 'focus'
+            const completedMinutes = prevPhase === 'focus' ? focusMinRef.current : breakMinRef.current
             if (next === 'focus') setRound((r) => r + 1)
-            if (prevPhase === 'focus') setFocusedMinutes((m) => m + FOCUS_MINUTES)
-            setRunning(false)
+            if (prevPhase === 'focus') setFocusedMinutes((m) => m + completedMinutes)
+            const uid = userRef.current?.id
+            if (uid) {
+              supabase
+                .from('focus_sessions')
+                .insert({
+                  user_id: uid,
+                  phase: prevPhase,
+                  minutes: completedMinutes,
+                  started_at: new Date(phaseStartRef.current).toISOString(),
+                })
+                .then(({ error }) => {
+                  if (error) console.error('log focus_session failed', error)
+                })
+            }
+            setRunning(autoStartRef.current)
             return next
           })
           return 0 // placeholder, replaced right after via phase effect below
@@ -99,15 +144,16 @@ export default function Dashboard() {
   const prevPhaseRef = useRef(phase)
   useEffect(() => {
     if (prevPhaseRef.current !== phase) {
-      setLeft(phase === 'focus' ? focusSecs() : breakSecs())
+      setLeft(phase === 'focus' ? focusMin * 60 : breakMin * 60)
       prevPhaseRef.current = phase
+      phaseStartRef.current = Date.now()
     }
-  }, [phase])
+  }, [phase, focusMin, breakMin])
 
   // logged in → load real todos from Supabase; guest → keep the local mock list untouched.
   useEffect(() => {
     if (!user) {
-      setTasks(INITIAL_TASKS)
+      setTasks(initialTasks)
       return
     }
     let cancelled = false
@@ -122,9 +168,9 @@ export default function Dashboard() {
     return () => {
       cancelled = true
     }
-  }, [user])
+  }, [user, initialTasks])
 
-  const total = phase === 'focus' ? focusSecs() : breakSecs()
+  const total = phase === 'focus' ? focusMin * 60 : breakMin * 60
   const progress = Math.min(1, Math.max(0, 1 - left / total))
   const dashOffset = 917.3 * (1 - progress)
 
@@ -132,8 +178,8 @@ export default function Dashboard() {
   const chromeVisible = !hidden
   const dashVisible = !hidden && !isFocus
 
-  const openCount = tasks.filter((t) => !t.done).length
-  const active = tasks.find((t) => !t.done)
+  const openCount = tasks.filter((task) => !task.done).length
+  const active = tasks.find((task) => !task.done)
 
   function toggleRun() {
     setRunning((r) => !r)
@@ -141,6 +187,7 @@ export default function Dashboard() {
   function resetTimer() {
     setLeft(total)
     setRunning(false)
+    phaseStartRef.current = Date.now()
   }
   function skipPhase() {
     setPhase((p) => (p === 'focus' ? 'break' : 'focus'))
@@ -155,28 +202,29 @@ export default function Dashboard() {
     const name = draft.trim()
     if (!name) return
     setDraft('')
+    const newTaskMeta = t('dashboard.todoPanel.newTaskMeta')
     if (!user) {
-      setTasks((t) => [...t, { id: 'g' + Date.now(), name, meta: '1 phiên · Mới', done: false }])
+      setTasks((ts) => [...ts, { id: 'g' + Date.now(), name, meta: newTaskMeta, done: false }])
       return
     }
     const { data, error } = await supabase
       .from('todos')
-      .insert({ user_id: user.id, name, meta: '1 phiên · Mới' })
+      .insert({ user_id: user.id, name, meta: newTaskMeta })
       .select('id, name, meta, done')
       .single()
     if (!error && data) {
-      setTasks((t) => [...t, { id: data.id, name: data.name, meta: data.meta ?? '', done: data.done }])
+      setTasks((ts) => [...ts, { id: data.id, name: data.name, meta: data.meta ?? '', done: data.done }])
     }
   }
 
-  function toggleTask(t: Task) {
-    const nextDone = !t.done
-    setTasks((ts) => ts.map((x) => (x.id === t.id ? { ...x, done: nextDone } : x)))
+  function toggleTask(task: Task) {
+    const nextDone = !task.done
+    setTasks((ts) => ts.map((x) => (x.id === task.id ? { ...x, done: nextDone } : x)))
     if (user) {
       supabase
         .from('todos')
-        .update({ done: nextDone })
-        .eq('id', t.id)
+        .update({ done: nextDone, completed_at: nextDone ? new Date().toISOString() : null })
+        .eq('id', task.id)
         .then(({ error }) => {
           if (error) console.error('toggle todo failed', error)
         })
@@ -205,7 +253,7 @@ export default function Dashboard() {
       />
 
       {/* top bar */}
-      <div className="absolute top-[26px] right-8 left-8 z-40 flex items-center justify-between gap-4">
+      <div className="absolute top-[26px] right-8 left-8 z-40 flex flex-wrap items-center justify-between gap-4">
         <div
           className="flex items-center gap-[11px] rounded-[22px] py-[9px] pr-[18px] pl-[13px]"
           style={{
@@ -222,10 +270,15 @@ export default function Dashboard() {
             }}
           />
           <span className="text-base font-extrabold tracking-[-0.2px] text-[#2f4459]">
-            FocusFlow
+            {t('app.name')}
           </span>
           <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.5)]">
-            · {hidden ? 'Zen' : isFocus ? 'Focus mode' : 'Dashboard mode'}
+            ·{' '}
+            {hidden
+              ? t('dashboard.topbar.zen')
+              : isFocus
+                ? t('dashboard.topbar.focusMode')
+                : t('dashboard.topbar.dashboardMode')}
           </span>
         </div>
 
@@ -240,7 +293,7 @@ export default function Dashboard() {
                 boxShadow: '0 6px 20px rgba(64,102,128,0.09)',
               }}
             >
-              Đăng nhập
+              {t('dashboard.topbar.login')}
             </Link>
           )}
           <div
@@ -264,7 +317,7 @@ export default function Dashboard() {
                 color: isFocus ? '#25415c' : 'rgba(51,71,94,0.55)',
               }}
             >
-              Focus
+              {t('dashboard.topbar.tabFocus')}
             </button>
             <button
               onClick={() => {
@@ -277,7 +330,7 @@ export default function Dashboard() {
                 color: !isFocus ? '#25415c' : 'rgba(51,71,94,0.55)',
               }}
             >
-              Dashboard
+              {t('dashboard.topbar.tabDashboard')}
             </button>
           </div>
           <button
@@ -285,7 +338,7 @@ export default function Dashboard() {
               setHidden((h) => !h)
               setPanel(null)
             }}
-            title="Ẩn / hiện giao diện"
+            title={t('dashboard.topbar.toggleUiTitle')}
             className="flex items-center gap-2 rounded-[18px] border-none px-[15px] py-[10px] font-sans text-[13px] font-bold text-[#3c5470] transition-all duration-[400ms] hover:!bg-[rgba(255,255,255,0.85)] hover:!opacity-100"
             style={{
               background: `rgba(255,255,255,${hidden ? 0.32 : 0.6})`,
@@ -307,7 +360,7 @@ export default function Dashboard() {
               <circle cx="12" cy="12" r="2.6" />
               <path d={hidden ? 'M4 20L20 4' : 'M12 12'} />
             </svg>
-            <span>{hidden ? 'Hiện UI' : 'Ẩn UI'}</span>
+            <span>{hidden ? t('dashboard.topbar.showUi') : t('dashboard.topbar.hideUi')}</span>
           </button>
         </div>
       </div>
@@ -365,7 +418,7 @@ export default function Dashboard() {
           </svg>
           <div className="absolute flex flex-col items-center gap-[6px]">
             <span className="text-[13px] font-bold tracking-[1.6px] text-[rgba(51,71,94,0.55)] uppercase">
-              {phase === 'focus' ? 'Đang tập trung' : 'Nghỉ ngắn'}
+              {phase === 'focus' ? t('dashboard.clock.focusing') : t('dashboard.clock.onBreak')}
             </span>
             <span
               className="leading-none font-extrabold text-[#2c3f55] tabular-nums"
@@ -374,7 +427,7 @@ export default function Dashboard() {
               {fmt(left)}
             </span>
             <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.5)]">
-              Phiên {round} / 4
+              {t('dashboard.clock.session', { round })}
             </span>
           </div>
         </div>
@@ -397,28 +450,32 @@ export default function Dashboard() {
               boxShadow: '0 10px 26px rgba(58,98,126,0.14)',
             }}
           >
-            {running ? 'Tạm dừng' : left === total ? 'Bắt đầu' : 'Tiếp tục'}
+            {running
+              ? t('dashboard.controls.pause')
+              : left === total
+                ? t('dashboard.controls.start')
+                : t('dashboard.controls.resume')}
           </button>
           <button
             onClick={resetTimer}
             className="rounded-[22px] border-none px-[26px] py-[15px] font-sans text-[15px] font-bold text-[#4a637d] transition-colors duration-200 hover:!bg-[rgba(255,255,255,0.75)]"
             style={{ background: 'rgba(255,255,255,0.5)', boxShadow: '0 8px 20px rgba(58,98,126,0.09)' }}
           >
-            Reset
+            {t('dashboard.controls.reset')}
           </button>
           <button
             onClick={skipPhase}
             className="rounded-[22px] border-none px-[26px] py-[15px] font-sans text-[15px] font-bold text-[#4a637d] transition-colors duration-200 hover:!bg-[rgba(255,255,255,0.75)]"
             style={{ background: 'rgba(255,255,255,0.5)', boxShadow: '0 8px 20px rgba(58,98,126,0.09)' }}
           >
-            {phase === 'focus' ? 'Nghỉ ngắn' : 'Học tiếp'}
+            {phase === 'focus' ? t('dashboard.controls.takeBreak') : t('dashboard.controls.continueStudy')}
           </button>
         </div>
       </div>
 
-      {/* left widgets */}
+      {/* left widgets — hidden on mobile (would overlap the right column at narrow widths) */}
       <div
-        className="absolute top-24 left-8 flex w-[232px] flex-col gap-[14px]"
+        className="absolute top-24 left-8 hidden w-[232px] flex-col gap-[14px] md:flex"
         style={{
           ...dashStyleBase,
           transform: `translateX(${dashVisible ? '0px' : '-24px'})`,
@@ -434,14 +491,14 @@ export default function Dashboard() {
           }}
         >
           <div className="mb-3 text-xs font-bold tracking-[1.2px] text-[rgba(51,71,94,0.5)] uppercase">
-            Hôm nay
+            {t('dashboard.leftWidgets.today')}
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-[34px] leading-none font-extrabold text-[#2c3f55]">
               {focusedMinutes}
             </span>
             <span className="text-sm font-semibold text-[rgba(51,71,94,0.55)]">
-              phút tập trung
+              {t('dashboard.leftWidgets.focusedMinutes')}
             </span>
           </div>
           <div className="mt-4 flex gap-[6px]">
@@ -463,20 +520,23 @@ export default function Dashboard() {
           }}
         >
           <div className="mb-[10px] text-xs font-bold tracking-[1.2px] text-[rgba(51,71,94,0.5)] uppercase">
-            Đang làm
+            {t('dashboard.leftWidgets.inProgress')}
           </div>
           <div className="text-[15px] leading-[1.4] font-bold text-[#2c3f55]">
-            {active ? active.name : 'Xong hết việc hôm nay 🎉'}
+            {active ? active.name : t('dashboard.leftWidgets.allDone')}
           </div>
           <div className="mt-[6px] text-[13px] font-semibold text-[rgba(51,71,94,0.5)]">
-            {openCount} việc còn lại · {tasks.length - openCount} đã xong
+            {t('dashboard.leftWidgets.remaining', {
+              open: openCount,
+              done: tasks.length - openCount,
+            })}
           </div>
         </div>
       </div>
 
-      {/* right column */}
+      {/* right column — hidden on mobile, see left widgets comment */}
       <div
-        className="absolute top-24 right-8 z-20 flex w-[248px] flex-col gap-[14px]"
+        className="absolute top-24 right-8 z-20 hidden w-[248px] flex-col gap-[14px] md:flex"
         style={{
           ...dashStyleBase,
           transform: `translateX(${dashVisible ? '0px' : '24px'})`,
@@ -514,7 +574,7 @@ export default function Dashboard() {
                 <path d="M5 19.5c1.3-3 4-4.4 7-4.4s5.7 1.4 7 4.4" />
               </svg>
               <span className="text-xs font-bold">
-                {cameraOn ? 'Camera đang bật' : 'Camera đang tắt'}
+                {cameraOn ? t('dashboard.rightColumn.cameraOn') : t('dashboard.rightColumn.cameraOff')}
               </span>
             </div>
             <div
@@ -525,7 +585,7 @@ export default function Dashboard() {
                 className="h-[7px] w-[7px] rounded-full"
                 style={{ background: cameraOn ? '#4bbf9a' : 'rgba(51,71,94,0.28)' }}
               />
-              Bạn
+              {t('dashboard.rightColumn.you')}
             </div>
           </div>
           <button
@@ -533,7 +593,7 @@ export default function Dashboard() {
             className="mt-[10px] w-full rounded-[15px] border-none py-[10px] font-sans text-[13px] font-extrabold text-[#2c3f55] transition-colors duration-[220ms] hover:!bg-white"
             style={{ background: 'rgba(255,255,255,0.72)' }}
           >
-            {cameraOn ? 'Tắt camera' : 'Bật camera'}
+            {cameraOn ? t('dashboard.rightColumn.turnOffCamera') : t('dashboard.rightColumn.turnOnCamera')}
           </button>
         </div>
 
@@ -566,9 +626,11 @@ export default function Dashboard() {
             </svg>
           </span>
           <span className="flex flex-col gap-[2px]">
-            <span className="text-sm font-extrabold text-[#2c3f55]">Học cùng nhau</span>
+            <span className="text-sm font-extrabold text-[#2c3f55]">
+              {t('dashboard.rightColumn.studyTogether')}
+            </span>
             <span className="text-xs font-semibold text-[rgba(51,71,94,0.55)]">
-              Tìm bạn học online
+              {t('dashboard.rightColumn.findStudyBuddy')}
             </span>
           </span>
         </Link>
@@ -576,7 +638,7 @@ export default function Dashboard() {
 
       {/* taskbar */}
       <div
-        className="absolute bottom-[34px] left-1/2 flex items-center gap-2 rounded-[26px] p-[10px]"
+        className="absolute bottom-[34px] left-1/2 flex max-w-[calc(100vw-24px)] items-center gap-1 overflow-x-auto rounded-[26px] p-[8px] md:max-w-none md:gap-2 md:p-[10px]"
         style={{
           ...dashStyleBase,
           background: 'rgba(255,255,255,0.66)',
@@ -588,8 +650,8 @@ export default function Dashboard() {
       >
         <button
           onClick={() => togglePanel('wp')}
-          title="Đổi hình nền"
-          className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)]"
+          title={t('dashboard.taskbar.wallpaperTitle')}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:px-5"
           style={{ background: panel === 'wp' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)' }}
         >
           <svg
@@ -605,12 +667,12 @@ export default function Dashboard() {
             <circle cx="9" cy="10" r="1.8" />
             <path d="M4 18l5.5-5 4 3.4 3-2.4L20 18" />
           </svg>
-          Hình nền
+          <span className="hidden md:inline">{t('dashboard.taskbar.wallpaperLabel')}</span>
         </button>
         <button
           onClick={() => togglePanel('music')}
-          title="Nhạc nền"
-          className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)]"
+          title={t('dashboard.taskbar.musicTitle')}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:px-5"
           style={{
             background: panel === 'music' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)',
           }}
@@ -628,12 +690,12 @@ export default function Dashboard() {
             <circle cx="18" cy="15" r="3" />
             <path d="M10 17V6l11-2v11" />
           </svg>
-          Nhạc nền
+          <span className="hidden md:inline">{t('dashboard.taskbar.musicLabel')}</span>
         </button>
         <button
           onClick={() => togglePanel('todo')}
-          title="Danh sách việc"
-          className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)]"
+          title={t('dashboard.taskbar.todoTitle')}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:px-5"
           style={{ background: panel === 'todo' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)' }}
         >
           <svg
@@ -650,7 +712,7 @@ export default function Dashboard() {
             <path d="M13 8h7" />
             <path d="M13 17h7" />
           </svg>
-          To-do
+          <span className="hidden md:inline">{t('dashboard.taskbar.todoLabel')}</span>
           <span
             className="rounded-full px-2 py-[2px] text-xs font-extrabold text-[#2c5b53]"
             style={{ background: 'rgba(120,190,180,0.28)' }}
@@ -658,6 +720,27 @@ export default function Dashboard() {
             {openCount}
           </span>
         </button>
+        <Link
+          to="/matching"
+          title={t('dashboard.taskbar.studyTogetherTitle')}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] no-underline transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:hidden"
+          style={{ background: 'rgba(255,255,255,0.35)' }}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+          >
+            <circle cx="9" cy="8.5" r="3.2" />
+            <path d="M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19" />
+            <path d="M16.4 5.6a3.2 3.2 0 010 5.8" />
+            <path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1" />
+          </svg>
+        </Link>
       </div>
 
       {/* wallpaper popup */}
@@ -674,12 +757,14 @@ export default function Dashboard() {
         }}
       >
         <div className="mb-[14px] flex items-center justify-between">
-          <span className="text-[15px] font-extrabold text-[#2c3f55]">Hình nền</span>
+          <span className="text-[15px] font-extrabold text-[#2c3f55]">
+            {t('dashboard.wallpaperPopup.title')}
+          </span>
           <button
             onClick={() => setPanel(null)}
             className="border-none bg-transparent font-sans text-[13px] font-bold text-[rgba(51,71,94,0.5)]"
           >
-            Đóng
+            {t('dashboard.wallpaperPopup.close')}
           </button>
         </div>
         <div className="grid grid-cols-3 gap-[10px]">
@@ -697,7 +782,7 @@ export default function Dashboard() {
           ))}
         </div>
         <div className="mt-[14px] text-xs font-semibold text-[rgba(51,71,94,0.5)]">
-          Kéo ảnh của bạn vào đây để dùng làm hình nền riêng.
+          {t('dashboard.wallpaperPopup.hint')}
         </div>
       </div>
 
@@ -715,18 +800,20 @@ export default function Dashboard() {
         }}
       >
         <div className="mb-[14px] flex items-center justify-between">
-          <span className="text-[15px] font-extrabold text-[#2c3f55]">Nhạc nền</span>
+          <span className="text-[15px] font-extrabold text-[#2c3f55]">
+            {t('dashboard.musicPopup.title')}
+          </span>
           <button
             onClick={() => setPanel(null)}
             className="border-none bg-transparent font-sans text-[13px] font-bold text-[rgba(51,71,94,0.5)]"
           >
-            Đóng
+            {t('dashboard.musicPopup.close')}
           </button>
         </div>
         <div className="flex flex-col gap-[6px]">
-          {TRACKS.map((name, i) => (
+          {tracks.map((name, i) => (
             <button
-              key={name}
+              key={TRACK_KEYS[i]}
               onClick={() => {
                 setTrack(i)
                 setPlaying(true)
@@ -736,7 +823,11 @@ export default function Dashboard() {
             >
               <span className="text-sm font-bold text-[#2f4459]">{name}</span>
               <span className="text-xs font-semibold text-[rgba(51,71,94,0.45)]">
-                {i === track ? (playing ? 'đang phát' : 'đã chọn') : ''}
+                {i === track
+                  ? playing
+                    ? t('dashboard.musicPopup.nowPlaying')
+                    : t('dashboard.musicPopup.selected')
+                  : ''}
               </span>
             </button>
           ))}
@@ -747,7 +838,7 @@ export default function Dashboard() {
             className="rounded-2xl border-none px-[18px] py-[10px] font-sans text-[13px] font-extrabold text-[#21384f]"
             style={{ background: 'rgba(140,205,196,0.35)' }}
           >
-            {playing ? 'Tạm dừng nhạc' : 'Phát nhạc'}
+            {playing ? t('dashboard.musicPopup.pause') : t('dashboard.musicPopup.play')}
           </button>
           <div
             className="relative h-[6px] flex-1 rounded-full"
@@ -777,27 +868,27 @@ export default function Dashboard() {
         }}
       >
         <div className="flex items-center justify-between">
-          <span className="text-xl font-extrabold text-[#2c3f55]">Việc cần làm</span>
+          <span className="text-xl font-extrabold text-[#2c3f55]">{t('dashboard.todoPanel.title')}</span>
           <button
             onClick={() => setPanel(null)}
             className="border-none bg-transparent font-sans text-[13px] font-bold text-[rgba(51,71,94,0.5)]"
           >
-            Đóng
+            {t('dashboard.todoPanel.close')}
           </button>
         </div>
         <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
-          {tasks.map((t) => (
+          {tasks.map((task) => (
             <div
-              key={t.id}
-              onClick={() => toggleTask(t)}
+              key={task.id}
+              onClick={() => toggleTask(task)}
               className="flex cursor-pointer items-center gap-[13px] rounded-[20px] px-[15px] py-[14px] transition-colors duration-200 hover:!bg-[rgba(255,255,255,0.95)]"
               style={{ background: 'rgba(255,255,255,0.66)', boxShadow: '0 4px 14px rgba(58,98,126,0.07)' }}
             >
               <div
                 className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-lg"
                 style={{
-                  border: t.done ? `2px solid ${ACCENT}` : '2px solid rgba(51,71,94,0.18)',
-                  background: t.done ? ACCENT : 'rgba(255,255,255,0.9)',
+                  border: task.done ? `2px solid ${ACCENT}` : '2px solid rgba(51,71,94,0.18)',
+                  background: task.done ? ACCENT : 'rgba(255,255,255,0.9)',
                 }}
               >
                 <svg
@@ -808,7 +899,7 @@ export default function Dashboard() {
                   stroke="#fff"
                   strokeWidth="3.2"
                   strokeLinecap="round"
-                  style={{ opacity: t.done ? 1 : 0 }}
+                  style={{ opacity: task.done ? 1 : 0 }}
                 >
                   <path d="M5 12.5l4.5 4.5L19 7" />
                 </svg>
@@ -817,13 +908,13 @@ export default function Dashboard() {
                 <span
                   className="text-sm font-bold"
                   style={{
-                    color: t.done ? 'rgba(51,71,94,0.42)' : '#2c3f55',
-                    textDecoration: t.done ? 'line-through' : 'none',
+                    color: task.done ? 'rgba(51,71,94,0.42)' : '#2c3f55',
+                    textDecoration: task.done ? 'line-through' : 'none',
                   }}
                 >
-                  {t.name}
+                  {task.name}
                 </span>
-                <span className="text-xs font-semibold text-[rgba(51,71,94,0.42)]">{t.meta}</span>
+                <span className="text-xs font-semibold text-[rgba(51,71,94,0.42)]">{task.meta}</span>
               </div>
             </div>
           ))}
@@ -838,7 +929,7 @@ export default function Dashboard() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') addTask()
             }}
-            placeholder="Thêm việc mới…"
+            placeholder={t('dashboard.todoPanel.placeholder')}
             className="flex-1 border-none bg-transparent py-[10px] font-sans text-sm font-semibold text-[#2c3f55] outline-none"
           />
           <button
@@ -846,7 +937,7 @@ export default function Dashboard() {
             className="rounded-2xl border-none px-[18px] py-[10px] font-sans text-sm font-extrabold text-[#21384f]"
             style={{ background: 'rgba(140,205,196,0.38)' }}
           >
-            Thêm
+            {t('dashboard.todoPanel.add')}
           </button>
         </div>
       </div>
