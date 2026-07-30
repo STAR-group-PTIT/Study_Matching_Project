@@ -55,11 +55,11 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Ghép ngẫu nhiên (matching queue, qua Edge Function `match-room`)
 - [x] Chế độ duyệt auto/manual, hàng chờ, kick (Supabase Realtime Postgres changes)
 
-## Giai đoạn 5 — Đồng bộ realtime trong phòng
-- [ ] Pomodoro đồng bộ (host = nguồn thời gian, broadcast)
-- [ ] Chat realtime
-- [ ] Trạng thái nhạc đồng bộ (host điều khiển phát, member chỉnh volume riêng)
-- [ ] Presence (ai đang online trong phòng)
+## Giai đoạn 5 — Đồng bộ realtime trong phòng ✅ Code xong 2026-07-29, chờ user chạy migration 0003
+- [x] Pomodoro đồng bộ (host = nguồn thời gian, broadcast)
+- [x] Chat realtime
+- [x] Trạng thái nhạc đồng bộ (host điều khiển phát, member chỉnh volume riêng)
+- [x] Presence (ai đang online trong phòng)
 
 ## Giai đoạn 6 — Video call (LiveKit)
 - [ ] Edge Function cấp token LiveKit theo room/user

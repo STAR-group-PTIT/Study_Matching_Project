@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
@@ -13,6 +13,14 @@ type RoomRow = {
   host_id: string
   admit_mode: 'auto' | 'manual'
   capacity: number
+  duration_minutes: number
+  timer_phase: 'focus' | 'break'
+  timer_round: number
+  timer_running: boolean
+  timer_remaining_seconds: number | null
+  timer_updated_at: string
+  music_on: boolean
+  music_track_index: number
 }
 type RealMemberRow = {
   id: string
@@ -22,11 +30,29 @@ type RealMemberRow = {
   joined_at: string
   name: string
 }
+type RealMsgRow = {
+  id: string
+  room_id: string
+  user_id: string
+  text: string
+  created_at: string
+  name: string
+}
 
 function relativeWait(iso: string) {
   const sec = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000))
   if (sec < 60) return `${sec} giây`
   return `${Math.floor(sec / 60)} phút ${String(sec % 60).padStart(2, '0')}`
+}
+
+function phaseTotalSeconds(r: RoomRow, phase: 'focus' | 'break') {
+  return (phase === 'focus' ? r.duration_minutes : BREAK_MINUTES) * 60
+}
+function computeLeftFromRoom(r: RoomRow) {
+  const base = r.timer_remaining_seconds ?? phaseTotalSeconds(r, r.timer_phase)
+  if (!r.timer_running) return Math.max(0, base)
+  const elapsed = Math.floor((Date.now() - new Date(r.timer_updated_at).getTime()) / 1000)
+  return Math.max(0, base - elapsed)
 }
 
 const TRACKS = [
@@ -88,6 +114,7 @@ export default function Room() {
   const [loadingRoom, setLoadingRoom] = useState(false)
   const isRealMode = !!user && !!realRoom
   const isHost = isRealMode ? realRoom!.host_id === user!.id : true
+  const roomId = realRoom?.id
 
   const [running, setRunning] = useState(true)
   const [phase, setPhase] = useState<Phase>('focus')
@@ -113,6 +140,9 @@ export default function Room() {
 
   const [demo, setDemo] = useState<Demo>('five')
   const [members, setMembers] = useState<Member[]>(DEMO_SETS.five.slice())
+  const membersRef = useRef(members)
+  membersRef.current = members
+  const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set())
 
   const [draft, setDraft] = useState('')
   const [messages, setMessages] = useState<ChatMsg[]>([
@@ -130,7 +160,9 @@ export default function Room() {
     setLoadingRoom(true)
     supabase
       .from('rooms')
-      .select('id, code, name, host_id, admit_mode, capacity')
+      .select(
+        'id, code, name, host_id, admit_mode, capacity, duration_minutes, timer_phase, timer_round, timer_running, timer_remaining_seconds, timer_updated_at, music_on, music_track_index',
+      )
       .eq('code', code.toUpperCase())
       .maybeSingle()
       .then(({ data }) => {
@@ -143,6 +175,31 @@ export default function Room() {
       cancelled = true
     }
   }, [user, code])
+
+  useEffect(() => {
+    if (!roomId) return
+    const channel = supabase
+      .channel('room-sync-' + roomId)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` },
+        (payload) => setRealRoom((prev) => (prev ? { ...prev, ...(payload.new as RoomRow) } : prev)),
+      )
+      .subscribe()
+    return () => {
+      channel.unsubscribe()
+    }
+  }, [roomId])
+
+  useEffect(() => {
+    if (!realRoom) return
+    setPhase(realRoom.timer_phase)
+    setRunning(realRoom.timer_running)
+    setRound(realRoom.timer_round)
+    setLeft(computeLeftFromRoom(realRoom))
+    setMusicOn(realRoom.music_on)
+    setTrackIndex(realRoom.music_track_index)
+  }, [realRoom])
 
   useEffect(() => {
     if (!realRoom || !user) return
@@ -216,11 +273,111 @@ export default function Room() {
     navigate('/')
   }
 
+  async function toggleRunningReal() {
+    if (!realRoom) return
+    const currentLeft = computeLeftFromRoom(realRoom)
+    await supabase
+      .from('rooms')
+      .update({ timer_running: !realRoom.timer_running, timer_remaining_seconds: currentLeft, timer_updated_at: new Date().toISOString() })
+      .eq('id', realRoom.id)
+  }
+  async function resetTimerReal() {
+    if (!realRoom) return
+    await supabase
+      .from('rooms')
+      .update({
+        timer_running: false,
+        timer_remaining_seconds: phaseTotalSeconds(realRoom, realRoom.timer_phase),
+        timer_updated_at: new Date().toISOString(),
+      })
+      .eq('id', realRoom.id)
+  }
+  const flippingRef = useRef(false)
+  const flipPhaseReal = useCallback(async () => {
+    if (!realRoom || flippingRef.current) return
+    flippingRef.current = true
+    const nextPhase: Phase = realRoom.timer_phase === 'focus' ? 'break' : 'focus'
+    await supabase
+      .from('rooms')
+      .update({
+        timer_phase: nextPhase,
+        timer_round: nextPhase === 'focus' ? realRoom.timer_round + 1 : realRoom.timer_round,
+        timer_running: true,
+        timer_remaining_seconds: phaseTotalSeconds(realRoom, nextPhase),
+        timer_updated_at: new Date().toISOString(),
+      })
+      .eq('id', realRoom.id)
+    flippingRef.current = false
+  }, [realRoom])
+  async function setMusicOnReal(next: boolean) {
+    if (!realRoom) return
+    await supabase.from('rooms').update({ music_on: next }).eq('id', realRoom.id)
+  }
+  async function setTrackIndexReal(next: number) {
+    if (!realRoom) return
+    await supabase.from('rooms').update({ music_track_index: next, music_on: true }).eq('id', realRoom.id)
+  }
+
+  useEffect(() => {
+    if (!roomId || !user) return
+    let cancelled = false
+    supabase
+      .from('room_messages_view')
+      .select('*')
+      .eq('room_id', roomId)
+      .order('created_at')
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        const rows = data as RealMsgRow[]
+        setMessages(rows.map((m) => ({ who: m.user_id === user.id ? 'Bạn' : m.name, me: m.user_id === user.id, text: m.text })))
+      })
+
+    const channel = supabase
+      .channel('room-messages-' + roomId)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'room_messages', filter: `room_id=eq.${roomId}` },
+        (payload) => {
+          const row = payload.new as { user_id: string; text: string }
+          if (row.user_id === user.id) return
+          const senderName = membersRef.current.find((m) => m.id === row.user_id)?.name || 'Người dùng'
+          setMessages((ms) => [...ms, { who: senderName, me: false, text: row.text }])
+        },
+      )
+      .subscribe()
+
+    return () => {
+      cancelled = true
+      channel.unsubscribe()
+    }
+  }, [roomId, user])
+
+  useEffect(() => {
+    if (!roomId || !user) return
+    const channel = supabase.channel('room-presence-' + roomId, { config: { presence: { key: user.id } } })
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        setOnlineIds(new Set(Object.keys(channel.presenceState())))
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') channel.track({ online_at: new Date().toISOString() })
+      })
+    return () => {
+      channel.unsubscribe()
+    }
+  }, [roomId, user])
+
   const runningRef = useRef(running)
   runningRef.current = running
 
   useEffect(() => {
     const id = setInterval(() => {
+      if (isRealMode && realRoom) {
+        const newLeft = computeLeftFromRoom(realRoom)
+        setLeft(newLeft)
+        if (newLeft <= 0 && realRoom.timer_running && isHost) flipPhaseReal()
+        return
+      }
       if (!runningRef.current) return
       setLeft((prevLeft) => {
         if (prevLeft <= 1) {
@@ -235,17 +392,21 @@ export default function Room() {
       })
     }, 1000)
     return () => clearInterval(id)
-  }, [])
+  }, [isRealMode, realRoom, isHost, flipPhaseReal])
 
   const prevPhaseRef = useRef(phase)
   useEffect(() => {
+    if (isRealMode) {
+      prevPhaseRef.current = phase
+      return
+    }
     if (prevPhaseRef.current !== phase) {
       setLeft(phase === 'focus' ? focusSecs() : breakSecs())
       prevPhaseRef.current = phase
     }
-  }, [phase])
+  }, [phase, isRealMode])
 
-  const total = phase === 'focus' ? focusSecs() : breakSecs()
+  const total = isRealMode && realRoom ? phaseTotalSeconds(realRoom, phase) : phase === 'focus' ? focusSecs() : breakSecs()
   const progress = Math.min(1, Math.max(0, 1 - left / total))
   const dashOffset = 270.2 * (1 - progress)
   const m = Math.floor(left / 60)
@@ -270,8 +431,19 @@ export default function Room() {
   }
 
   function resetTimer() {
+    if (isRealMode) {
+      resetTimerReal()
+      return
+    }
     setLeft(total)
     setRunning(false)
+  }
+  function toggleRunning() {
+    if (isRealMode) {
+      toggleRunningReal()
+      return
+    }
+    setRunning((r) => !r)
   }
 
   function approve(p: Pending) {
@@ -312,18 +484,25 @@ export default function Room() {
     const text = draft.trim()
     if (!text) return
     setDraft('')
+    if (isRealMode && realRoom && user) {
+      setMessages((ms) => [...ms, { who: 'Bạn', me: true, text }])
+      supabase.from('room_messages').insert({ room_id: realRoom.id, user_id: user.id, text }).then(() => {})
+      return
+    }
     setMessages((ms) => [...ms, { who: 'Bạn', me: true, text }])
   }
 
   const tiles = members.map((u) => {
     const me = !!u.me
-    const camOff = me ? !cam : u.status.includes('cam tắt')
+    const online = !isRealMode || me || onlineIds.has(u.id)
+    const displayStatus = isRealMode && !me ? (online ? 'đang tập trung' : 'ngoại tuyến') : u.status
+    const camOff = me ? !cam : displayStatus.includes('cam tắt')
     return {
       id: u.id,
       name: u.name,
       initials: initials(u.name),
-      status: me ? (mic ? 'mic bật' : 'mic tắt') : u.status,
-      statusColor: me ? (mic ? '#2c5b53' : 'rgba(51,71,94,0.45)') : 'rgba(51,71,94,0.45)',
+      status: me ? (mic ? 'mic bật' : 'mic tắt') : displayStatus,
+      statusColor: me ? (mic ? '#2c5b53' : 'rgba(51,71,94,0.45)') : online ? 'rgba(51,71,94,0.45)' : 'rgba(51,71,94,0.3)',
       feedLabel: camOff ? 'camera đang tắt' : 'webcam · ' + u.name,
       avatarBg: me ? 'rgba(140,205,196,0.55)' : 'rgba(160,200,225,0.5)',
       avatarColor: me ? '#22483f' : '#2b4d68',
@@ -558,15 +737,17 @@ export default function Room() {
           </div>
           <div className="flex gap-[7px]">
             <button
-              onClick={() => setRunning((r) => !r)}
-              className="rounded-2xl border-none px-[18px] py-[9px] font-sans text-[13px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-px"
+              onClick={toggleRunning}
+              disabled={isRealMode && !isHost}
+              className="rounded-2xl border-none px-[18px] py-[9px] font-sans text-[13px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:enabled:-translate-y-px disabled:opacity-50"
               style={{ background: ACCENT_SOFT }}
             >
               {running ? 'Tạm dừng' : 'Tiếp tục'}
             </button>
             <button
               onClick={resetTimer}
-              className="rounded-2xl border-none px-4 py-[9px] font-sans text-[13px] font-bold text-[#4a637d] hover:!bg-white"
+              disabled={isRealMode && !isHost}
+              className="rounded-2xl border-none px-4 py-[9px] font-sans text-[13px] font-bold text-[#4a637d] hover:enabled:!bg-white disabled:opacity-50"
               style={{ background: 'rgba(255,255,255,0.7)' }}
             >
               Reset
@@ -777,8 +958,9 @@ export default function Room() {
                 </span>
               </div>
               <button
-                onClick={() => setMusicOn((v) => !v)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[15px] border-none text-[#1e3549] hover:brightness-[0.97]"
+                onClick={() => (isRealMode ? setMusicOnReal(!musicOn) : setMusicOn((v) => !v))}
+                disabled={isRealMode && !isHost}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[15px] border-none text-[#1e3549] hover:enabled:brightness-[0.97] disabled:opacity-50"
                 style={{ background: ACCENT_SOFT }}
               >
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
@@ -817,10 +999,15 @@ export default function Room() {
                   <button
                     key={t.name}
                     onClick={() => {
+                      if (isRealMode) {
+                        setTrackIndexReal(i)
+                        return
+                      }
                       setTrackIndex(i)
                       setMusicOn(true)
                     }}
-                    className="flex items-center gap-[11px] rounded-[20px] border-none px-[13px] py-[11px] text-left font-sans transition-all duration-200 hover:brightness-[0.98]"
+                    disabled={isRealMode && !isHost}
+                    className="flex items-center gap-[11px] rounded-[20px] border-none px-[13px] py-[11px] text-left font-sans transition-all duration-200 hover:enabled:brightness-[0.98] disabled:cursor-default disabled:opacity-70"
                     style={{
                       background: on ? 'color-mix(in oklab, var(--ff-accent) 20%, white)' : 'rgba(238,246,248,0.8)',
                       boxShadow: on ? 'inset 0 0 0 1.5px color-mix(in oklab, var(--ff-accent) 55%, white)' : 'none',
