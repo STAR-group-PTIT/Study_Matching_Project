@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { ChangeEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
@@ -12,22 +13,31 @@ const GRADIENTS = [
   'linear-gradient(175deg, #f0f6f7 0%, #d8eaf0 55%, #cde5df 100%)',
 ]
 
-type Wallpaper = { id: number; name: string; g: number }
-type Track = { id: number; name: string; meta: string; duration: string }
+const MAX_WALLPAPER_BYTES = 5 * 1024 * 1024
+const MAX_TRACK_BYTES = 25 * 1024 * 1024
 
-const INITIAL_WALLPAPERS: Wallpaper[] = [
-  { id: 1, name: 'mint-morning.jpg', g: 0 },
-  { id: 2, name: 'lake-fog.jpg', g: 2 },
-  { id: 3, name: 'desk-window.png', g: 3 },
-  { id: 4, name: 'soft-blue.jpg', g: 4 },
-]
+type Wallpaper = { id: string; name: string; path: string; url: string | null }
+type Track = { id: string; name: string; path: string; durationSeconds: number | null }
 
-const INITIAL_TRACKS: Track[] = [
-  { id: 1, name: 'Mưa nhẹ ngoài cửa sổ', meta: 'rain-window.mp3 · 12.4 MB', duration: '32:10' },
-  { id: 2, name: 'Lo-fi bàn học', meta: 'lofi-desk.mp3 · 18.1 MB', duration: '48:02' },
-  { id: 3, name: 'Tiếng quán cà phê', meta: 'cafe-ambience.wav · 24.6 MB', duration: '25:00' },
-  { id: 4, name: 'Sóng biển chậm', meta: 'slow-waves.mp3 · 9.8 MB', duration: '21:45' },
-]
+function fmtDuration(sec: number | null) {
+  if (sec === null) return '—'
+  const m = Math.floor(sec / 60)
+  const s = Math.round(sec % 60)
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0')
+}
+
+function readAudioDuration(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    const audio = document.createElement('audio')
+    audio.preload = 'metadata'
+    audio.onloadedmetadata = () => {
+      resolve(Number.isFinite(audio.duration) ? audio.duration : null)
+      URL.revokeObjectURL(audio.src)
+    }
+    audio.onerror = () => resolve(null)
+    audio.src = URL.createObjectURL(file)
+  })
+}
 
 const ACCENT_SOFT = 'var(--ff-accent-soft)'
 
@@ -41,13 +51,15 @@ export default function Settings() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
 
-  const [wallpapers, setWallpapers] = useState<Wallpaper[]>(INITIAL_WALLPAPERS)
-  const [tracks, setTracks] = useState<Track[]>(INITIAL_TRACKS)
+  const [wallpapers, setWallpapers] = useState<Wallpaper[]>([])
+  const [tracks, setTracks] = useState<Track[]>([])
   const [focus, setFocus] = useState(25)
   const [brk, setBrk] = useState(5)
   const [auto, setAuto] = useState(true)
   const [profileName, setProfileName] = useState('')
   const [saved, setSaved] = useState(false)
+  const wallpaperInputRef = useRef<HTMLInputElement>(null)
+  const trackInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!user) return
@@ -65,6 +77,88 @@ export default function Settings() {
       })
   }, [user])
 
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    supabase
+      .from('wallpapers')
+      .select('id, name, storage_path')
+      .eq('user_id', user.id)
+      .order('created_at')
+      .then(async ({ data }) => {
+        if (cancelled || !data || data.length === 0) return
+        const paths = data.map((r) => r.storage_path)
+        const { data: signed } = await supabase.storage.from('wallpapers').createSignedUrls(paths, 3600)
+        if (cancelled) return
+        setWallpapers(
+          data.map((r, i) => ({ id: r.id, name: r.name, path: r.storage_path, url: signed?.[i]?.signedUrl ?? null })),
+        )
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    supabase
+      .from('tracks')
+      .select('id, name, storage_path, duration_seconds')
+      .eq('user_id', user.id)
+      .order('created_at')
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        setTracks(data.map((r) => ({ id: r.id, name: r.name, path: r.storage_path, durationSeconds: r.duration_seconds })))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  const [streak, setStreak] = useState(0)
+  const [sessionsThisWeek, setSessionsThisWeek] = useState(0)
+
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    supabase
+      .from('focus_sessions')
+      .select('started_at')
+      .eq('user_id', user.id)
+      .eq('phase', 'focus')
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        const startOfDay = (d: Date) => {
+          const x = new Date(d)
+          x.setHours(0, 0, 0, 0)
+          return x.getTime()
+        }
+        const daySet = new Set(data.map((r) => startOfDay(new Date(r.started_at))))
+        const today = startOfDay(new Date())
+        const yesterday = today - 86400000
+        let current = 0
+        if (daySet.has(today) || daySet.has(yesterday)) {
+          let cursor = daySet.has(today) ? today : yesterday
+          while (daySet.has(cursor)) {
+            current++
+            cursor -= 86400000
+          }
+        }
+        setStreak(current)
+        const weekMonday = (() => {
+          const x = new Date()
+          x.setHours(0, 0, 0, 0)
+          x.setDate(x.getDate() - ((x.getDay() + 6) % 7))
+          return x.getTime()
+        })()
+        setSessionsThisWeek(data.filter((r) => new Date(r.started_at).getTime() >= weekMonday).length)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
   async function saveDefaults() {
     if (!user) return
     const { error } = await supabase
@@ -77,23 +171,83 @@ export default function Settings() {
     }
   }
 
-  function removeWallpaper(id: number) {
-    setWallpapers((ws) => ws.filter((w) => w.id !== id))
+  async function removeWallpaper(w: Wallpaper) {
+    setWallpapers((ws) => ws.filter((x) => x.id !== w.id))
+    await supabase.storage.from('wallpapers').remove([w.path])
+    const { error } = await supabase.from('wallpapers').delete().eq('id', w.id)
+    if (error) console.error('remove wallpaper failed', error)
   }
-  function addWallpaper() {
-    setWallpapers((ws) => [...ws, { id: Date.now(), name: `wallpaper-${ws.length + 1}.jpg`, g: ws.length + 1 }])
+
+  async function handleWallpaperFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !user) return
+    if (file.size > MAX_WALLPAPER_BYTES) {
+      alert('Ảnh tối đa 5 MB.')
+      return
+    }
+    const path = `${user.id}/${crypto.randomUUID()}-${file.name}`
+    const { error: upErr } = await supabase.storage.from('wallpapers').upload(path, file)
+    if (upErr) {
+      console.error('upload wallpaper failed', upErr)
+      return
+    }
+    const { data: row, error: insErr } = await supabase
+      .from('wallpapers')
+      .insert({ user_id: user.id, name: file.name, storage_path: path })
+      .select('id')
+      .single()
+    if (insErr || !row) {
+      console.error('insert wallpaper row failed', insErr)
+      return
+    }
+    const { data: signed } = await supabase.storage.from('wallpapers').createSignedUrl(path, 3600)
+    setWallpapers((ws) => [...ws, { id: row.id, name: file.name, path, url: signed?.signedUrl ?? null }])
   }
-  function renameTrack(id: number, name: string) {
+
+  function renameTrack(id: string, name: string) {
     setTracks((ts) => ts.map((t) => (t.id === id ? { ...t, name } : t)))
   }
-  function removeTrack(id: number) {
-    setTracks((ts) => ts.filter((t) => t.id !== id))
+  function commitTrackName(t: Track) {
+    supabase
+      .from('tracks')
+      .update({ name: t.name })
+      .eq('id', t.id)
+      .then(({ error }) => {
+        if (error) console.error('rename track failed', error)
+      })
   }
-  function addTrack() {
-    setTracks((ts) => [
-      ...ts,
-      { id: Date.now(), name: `Bài mới ${ts.length + 1}`, meta: `upload-${ts.length + 1}.mp3 · 8.2 MB`, duration: '18:30' },
-    ])
+  async function removeTrack(t: Track) {
+    setTracks((ts) => ts.filter((x) => x.id !== t.id))
+    await supabase.storage.from('tracks').remove([t.path])
+    const { error } = await supabase.from('tracks').delete().eq('id', t.id)
+    if (error) console.error('remove track failed', error)
+  }
+  async function handleTrackFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !user) return
+    if (file.size > MAX_TRACK_BYTES) {
+      alert('Nhạc tối đa 25 MB.')
+      return
+    }
+    const durationSeconds = await readAudioDuration(file)
+    const path = `${user.id}/${crypto.randomUUID()}-${file.name}`
+    const { error: upErr } = await supabase.storage.from('tracks').upload(path, file)
+    if (upErr) {
+      console.error('upload track failed', upErr)
+      return
+    }
+    const { data: row, error: insErr } = await supabase
+      .from('tracks')
+      .insert({ user_id: user.id, name: file.name, storage_path: path, duration_seconds: durationSeconds ? Math.round(durationSeconds) : null })
+      .select('id')
+      .single()
+    if (insErr || !row) {
+      console.error('insert track row failed', insErr)
+      return
+    }
+    setTracks((ts) => [...ts, { id: row.id, name: file.name, path, durationSeconds: durationSeconds ? Math.round(durationSeconds) : null }])
   }
   function resetDefaults() {
     setFocus(25)
@@ -134,7 +288,9 @@ export default function Settings() {
               {profileName || 'Người dùng mới'}
             </span>
             <span className="text-sm font-semibold text-[rgba(51,71,94,0.55)]">{user?.email}</span>
-            <span className="text-[13px] font-bold text-[#2c5b53]">Streak 12 ngày · 34 phiên tuần này</span>
+            <span className="text-[13px] font-bold text-[#2c5b53]">
+              Streak {streak} ngày · {sessionsThisWeek} phiên tuần này
+            </span>
           </div>
           <div className="flex flex-wrap gap-[9px]">
             <button
@@ -158,9 +314,7 @@ export default function Settings() {
         >
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-[17px] font-extrabold text-[#2c3f55]">Wallpaper của tôi</span>
-            <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">
-              {wallpapers.length} ảnh · 4 / 20 dung lượng
-            </span>
+            <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">{wallpapers.length} ảnh</span>
           </div>
           <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
             {wallpapers.map((w, i) => (
@@ -168,7 +322,9 @@ export default function Settings() {
                 key={w.id}
                 className="relative h-[100px] overflow-hidden rounded-[22px]"
                 style={{
-                  background: GRADIENTS[w.g % GRADIENTS.length],
+                  ...(w.url
+                    ? { backgroundImage: `url(${w.url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                    : { background: GRADIENTS[i % GRADIENTS.length] }),
                   boxShadow: '0 6px 16px rgba(58,98,126,0.1)',
                   border: i === 0 ? '2px solid var(--ff-accent-border)' : '2px solid rgba(255,255,255,0.75)',
                 }}
@@ -180,7 +336,7 @@ export default function Settings() {
                   {w.name}
                 </span>
                 <button
-                  onClick={() => removeWallpaper(w.id)}
+                  onClick={() => removeWallpaper(w)}
                   title="Xoá"
                   className="absolute top-2 right-2 flex h-[26px] w-[26px] items-center justify-center rounded-[10px] border-none text-[#7a3f2c] opacity-50 transition-all duration-200 hover:!bg-[oklch(0.88_0.05_45)] hover:opacity-100"
                   style={{ background: 'rgba(255,255,255,0.8)' }}
@@ -192,16 +348,17 @@ export default function Settings() {
               </div>
             ))}
             <button
-              onClick={addWallpaper}
+              onClick={() => wallpaperInputRef.current?.click()}
               className="flex h-[100px] cursor-pointer flex-col items-center justify-center gap-[5px] rounded-[22px] border-2 border-dashed border-[rgba(51,71,94,0.18)] font-sans text-[13px] font-bold text-[rgba(51,71,94,0.55)] transition-all duration-[220ms] hover:!border-[rgba(126,201,198,0.9)] hover:!text-[#2c5b53]"
               style={{ background: 'rgba(238,246,248,0.6)' }}
             >
               <span className="text-[22px] leading-none font-bold">+</span>
               Thêm ảnh
             </button>
+            <input ref={wallpaperInputRef} type="file" accept="image/jpeg,image/png" hidden onChange={handleWallpaperFile} />
           </div>
           <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.45)]">
-            JPG hoặc PNG, tối đa 5 MB mỗi ảnh. Kéo thả vào ô “Thêm ảnh” cũng được.
+            JPG hoặc PNG, tối đa 5 MB mỗi ảnh.
           </span>
         </div>
 
@@ -212,7 +369,7 @@ export default function Settings() {
         >
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-[17px] font-extrabold text-[#2c3f55]">Nhạc của tôi</span>
-            <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">{tracks.length} bài · 1 giờ 47 phút</span>
+            <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">{tracks.length} bài</span>
           </div>
           <div className="flex flex-col gap-2">
             {tracks.map((t) => (
@@ -235,13 +392,14 @@ export default function Settings() {
                   <input
                     value={t.name}
                     onChange={(e) => renameTrack(t.id, e.target.value)}
+                    onBlur={() => commitTrackName(t)}
                     className="w-full rounded-lg border-none bg-transparent py-[2px] font-sans text-[14.5px] font-bold text-[#2c3f55] outline-none focus:!bg-[rgba(126,201,198,0.14)]"
                   />
-                  <span className="font-mono text-[11.5px] text-[rgba(51,71,94,0.45)]">{t.meta}</span>
+                  <span className="font-mono text-[11.5px] text-[rgba(51,71,94,0.45)]">{t.path.split('/').pop()}</span>
                 </div>
-                <span className="text-[13px] font-bold text-[rgba(51,71,94,0.5)]">{t.duration}</span>
+                <span className="text-[13px] font-bold text-[rgba(51,71,94,0.5)]">{fmtDuration(t.durationSeconds)}</span>
                 <button
-                  onClick={() => removeTrack(t.id)}
+                  onClick={() => removeTrack(t)}
                   title="Xoá"
                   className="flex h-[30px] w-[30px] items-center justify-center rounded-xl border-none text-[#7a3f2c] opacity-60 transition-all duration-200 hover:!bg-[oklch(0.88_0.05_45)] hover:opacity-100"
                   style={{ background: 'rgba(255,255,255,0.9)' }}
@@ -254,13 +412,14 @@ export default function Settings() {
             ))}
           </div>
           <button
-            onClick={addTrack}
+            onClick={() => trackInputRef.current?.click()}
             className="flex items-center justify-center gap-[7px] rounded-[22px] border-2 border-dashed border-[rgba(51,71,94,0.18)] py-[14px] font-sans text-sm font-bold text-[rgba(51,71,94,0.55)] transition-all duration-[220ms] hover:!border-[rgba(126,201,198,0.9)] hover:!text-[#2c5b53]"
             style={{ background: 'rgba(238,246,248,0.6)' }}
           >
             <span className="text-[19px] leading-none font-bold">+</span>
             Upload nhạc (MP3, WAV)
           </button>
+          <input ref={trackInputRef} type="file" accept="audio/mpeg,audio/wav,audio/*" hidden onChange={handleTrackFile} />
           <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.45)]">
             Bấm vào tên bài để đổi tên. Nhạc chỉ phát trong phiên học của bạn.
           </span>

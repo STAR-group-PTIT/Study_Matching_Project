@@ -48,20 +48,13 @@ function fmt(sec: number) {
   return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0')
 }
 
-function focusSecs() {
-  return FOCUS_MINUTES * 60
-}
-function breakSecs() {
-  return BREAK_MINUTES * 60
-}
-
 export default function Dashboard() {
   const user = useAuthStore((s) => s.user)
   const [mode, setMode] = useState<Mode>('dashboard')
   const [hidden, setHidden] = useState(false)
   const [running, setRunning] = useState(false)
   const [phase, setPhase] = useState<Phase>('focus')
-  const [left, setLeft] = useState(focusSecs())
+  const [left, setLeft] = useState(FOCUS_MINUTES * 60)
   const [round, setRound] = useState(1)
   const [focusedMinutes, setFocusedMinutes] = useState(75)
   const [wp, setWp] = useState(0)
@@ -72,8 +65,37 @@ export default function Dashboard() {
   const [draft, setDraft] = useState('')
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS)
 
+  // Pomodoro defaults — 25/5 cho khách, ghi đè bằng profile thật khi đăng nhập (xem effect bên dưới).
+  const [focusMin, setFocusMin] = useState(FOCUS_MINUTES)
+  const [breakMin, setBreakMin] = useState(BREAK_MINUTES)
+  const [autoStart, setAutoStart] = useState(true)
+
   const runningRef = useRef(running)
   runningRef.current = running
+  const focusMinRef = useRef(focusMin)
+  focusMinRef.current = focusMin
+  const breakMinRef = useRef(breakMin)
+  breakMinRef.current = breakMin
+  const autoStartRef = useRef(autoStart)
+  autoStartRef.current = autoStart
+  const userRef = useRef(user)
+  userRef.current = user
+  const phaseStartRef = useRef(Date.now())
+
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('profiles')
+      .select('focus_minutes, break_minutes, auto_start_next')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (!data) return
+        setFocusMin(data.focus_minutes)
+        setBreakMin(data.break_minutes)
+        setAutoStart(data.auto_start_next)
+      })
+  }, [user])
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -82,9 +104,24 @@ export default function Dashboard() {
         if (prevLeft <= 1) {
           setPhase((prevPhase) => {
             const next: Phase = prevPhase === 'focus' ? 'break' : 'focus'
+            const completedMinutes = prevPhase === 'focus' ? focusMinRef.current : breakMinRef.current
             if (next === 'focus') setRound((r) => r + 1)
-            if (prevPhase === 'focus') setFocusedMinutes((m) => m + FOCUS_MINUTES)
-            setRunning(false)
+            if (prevPhase === 'focus') setFocusedMinutes((m) => m + completedMinutes)
+            const uid = userRef.current?.id
+            if (uid) {
+              supabase
+                .from('focus_sessions')
+                .insert({
+                  user_id: uid,
+                  phase: prevPhase,
+                  minutes: completedMinutes,
+                  started_at: new Date(phaseStartRef.current).toISOString(),
+                })
+                .then(({ error }) => {
+                  if (error) console.error('log focus_session failed', error)
+                })
+            }
+            setRunning(autoStartRef.current)
             return next
           })
           return 0 // placeholder, replaced right after via phase effect below
@@ -99,10 +136,11 @@ export default function Dashboard() {
   const prevPhaseRef = useRef(phase)
   useEffect(() => {
     if (prevPhaseRef.current !== phase) {
-      setLeft(phase === 'focus' ? focusSecs() : breakSecs())
+      setLeft(phase === 'focus' ? focusMin * 60 : breakMin * 60)
       prevPhaseRef.current = phase
+      phaseStartRef.current = Date.now()
     }
-  }, [phase])
+  }, [phase, focusMin, breakMin])
 
   // logged in → load real todos from Supabase; guest → keep the local mock list untouched.
   useEffect(() => {
@@ -124,7 +162,7 @@ export default function Dashboard() {
     }
   }, [user])
 
-  const total = phase === 'focus' ? focusSecs() : breakSecs()
+  const total = phase === 'focus' ? focusMin * 60 : breakMin * 60
   const progress = Math.min(1, Math.max(0, 1 - left / total))
   const dashOffset = 917.3 * (1 - progress)
 
@@ -141,6 +179,7 @@ export default function Dashboard() {
   function resetTimer() {
     setLeft(total)
     setRunning(false)
+    phaseStartRef.current = Date.now()
   }
   function skipPhase() {
     setPhase((p) => (p === 'focus' ? 'break' : 'focus'))
@@ -175,7 +214,7 @@ export default function Dashboard() {
     if (user) {
       supabase
         .from('todos')
-        .update({ done: nextDone })
+        .update({ done: nextDone, completed_at: nextDone ? new Date().toISOString() : null })
         .eq('id', t.id)
         .then(({ error }) => {
           if (error) console.error('toggle todo failed', error)

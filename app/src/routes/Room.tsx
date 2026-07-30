@@ -227,6 +227,25 @@ export default function Room() {
     setTrackIndex(realRoom.music_track_index)
   }, [realRoom])
 
+  // mỗi thành viên tự ghi phiên của mình khi thấy phase thật của phòng chuyển đổi
+  // (host là nguồn chuyển phase, member chỉ quan sát qua Realtime — xem flipPhaseReal ở trên).
+  const prevRealPhaseRef = useRef<Phase | null>(null)
+  useEffect(() => {
+    if (!realRoom || !user) return
+    const prevPhase = prevRealPhaseRef.current
+    if (prevPhase !== null && prevPhase !== realRoom.timer_phase && myStatus === 'member') {
+      const completedMinutes = prevPhase === 'focus' ? realRoom.duration_minutes : BREAK_MINUTES
+      const startedAt = new Date(Date.now() - completedMinutes * 60000).toISOString()
+      supabase
+        .from('focus_sessions')
+        .insert({ user_id: user.id, room_id: realRoom.id, phase: prevPhase, minutes: completedMinutes, started_at: startedAt })
+        .then(({ error }) => {
+          if (error) console.error('log focus_session failed', error)
+        })
+    }
+    prevRealPhaseRef.current = realRoom.timer_phase
+  }, [realRoom, user, myStatus])
+
   useEffect(() => {
     if (!realRoom || !user) return
     const uid = user.id
