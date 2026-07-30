@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Room as LiveKitRoom, RoomEvent, Track } from 'livekit-client'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 
-type Member = { id: string; name: string; status: string; host: boolean; me?: boolean }
+type StatusKey = 'host' | 'focusing' | 'micOff' | 'camOff' | 'justJoined'
+type Member = { id: string; name: string; statusKey: StatusKey; host: boolean; me?: boolean }
 type Pending = { id: string; userId: string; name: string; wait: string }
 type ChatMsg = { who: string; me: boolean; text: string }
 type RoomRow = {
@@ -40,10 +42,10 @@ type RealMsgRow = {
   name: string
 }
 
-function relativeWait(iso: string) {
+function relativeWait(iso: string, t: (key: string, options?: Record<string, unknown>) => string) {
   const sec = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000))
-  if (sec < 60) return `${sec} giây`
-  return `${Math.floor(sec / 60)} phút ${String(sec % 60).padStart(2, '0')}`
+  if (sec < 60) return t('room.wait.seconds', { count: sec })
+  return t('room.wait.minutes', { min: Math.floor(sec / 60), sec: String(sec % 60).padStart(2, '0') })
 }
 
 function phaseTotalSeconds(r: RoomRow, phase: 'focus' | 'break') {
@@ -56,24 +58,13 @@ function computeLeftFromRoom(r: RoomRow) {
   return Math.max(0, base - elapsed)
 }
 
-const TRACKS = [
-  { name: 'Lofi mưa đêm', mood: 'lofi · êm', length: '42:10' },
-  { name: 'Quán cà phê 8h', mood: 'jazz nhẹ', length: '58:24' },
-  { name: 'Tiếng mưa rơi', mood: 'tiếng động nền', length: '1:20:00' },
-  { name: 'Piano tập trung', mood: 'piano · trầm', length: '35:47' },
-  { name: 'Sóng biển xa', mood: 'thiên nhiên', length: '1:05:12' },
-]
-
-const ME: Member = { id: '12', name: 'Bạn', status: 'chủ phòng', host: true, me: true }
-const DEMO_SETS: Record<'two' | 'five', Member[]> = {
-  two: [{ id: '10', name: 'Minh Anh', status: 'đang tập trung', host: false }, ME],
-  five: [
-    { id: '10', name: 'Minh Anh', status: 'đang tập trung', host: false },
-    { id: '11', name: 'Hà Vy', status: 'mic tắt', host: false },
-    { id: '13', name: 'Gia Bảo', status: 'đang tập trung', host: false },
-    { id: '14', name: 'Thanh Trúc', status: 'cam tắt', host: false },
-    ME,
-  ],
+const TRACK_KEYS = ['t1', 't2', 't3', 't4', 't5'] as const
+const TRACK_LENGTHS: Record<(typeof TRACK_KEYS)[number], string> = {
+  t1: '42:10',
+  t2: '58:24',
+  t3: '1:20:00',
+  t4: '35:47',
+  t5: '1:05:12',
 }
 
 const FOCUS_MINUTES = 25
@@ -132,9 +123,38 @@ function segStyle(on: boolean) {
 }
 
 export default function Room() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { id: code } = useParams<{ id: string }>()
   const user = useAuthStore((s) => s.user)
+
+  const meMember = useMemo<Member>(
+    () => ({ id: '12', name: t('room.you'), statusKey: 'host', host: true, me: true }),
+    [t],
+  )
+  const demoSets = useMemo<Record<Demo, Member[]>>(
+    () => ({
+      two: [{ id: '10', name: 'Minh Anh', statusKey: 'focusing', host: false }, meMember],
+      five: [
+        { id: '10', name: 'Minh Anh', statusKey: 'focusing', host: false },
+        { id: '11', name: 'Hà Vy', statusKey: 'micOff', host: false },
+        { id: '13', name: 'Gia Bảo', statusKey: 'focusing', host: false },
+        { id: '14', name: 'Thanh Trúc', statusKey: 'camOff', host: false },
+        meMember,
+      ],
+    }),
+    [meMember],
+  )
+  const tracks = useMemo(
+    () =>
+      TRACK_KEYS.map((key) => ({
+        name: t(`room.mockTracks.${key}.name`),
+        mood: t(`room.mockTracks.${key}.mood`),
+        length: TRACK_LENGTHS[key],
+      })),
+    [t],
+  )
+  const statusLabel = (key: StatusKey) => t(`room.status.${key}`)
 
   const [realRoom, setRealRoom] = useState<RoomRow | null>(null)
   const [loadingRoom, setLoadingRoom] = useState(false)
@@ -158,23 +178,23 @@ export default function Room() {
 
   const [admit, setAdmit] = useState<Admit>('manual')
   const [pending, setPending] = useState<Pending[]>([
-    { id: '1', userId: '1', name: 'Thanh Trúc', wait: '20 giây' },
-    { id: '2', userId: '2', name: 'Gia Bảo', wait: '1 phút 05' },
+    { id: '1', userId: '1', name: 'Thanh Trúc', wait: t('room.wait.seconds', { count: 20 }) },
+    { id: '2', userId: '2', name: 'Gia Bảo', wait: t('room.wait.minutes', { min: 1, sec: '05' }) },
   ])
   const [myStatus, setMyStatus] = useState<'member' | 'pending' | null>(null)
   const [membersLoaded, setMembersLoaded] = useState(false)
 
   const [demo, setDemo] = useState<Demo>('five')
-  const [members, setMembers] = useState<Member[]>(DEMO_SETS.five.slice())
+  const [members, setMembers] = useState<Member[]>(demoSets.five.slice())
   const membersRef = useRef(members)
   membersRef.current = members
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set())
 
   const [draft, setDraft] = useState('')
   const [messages, setMessages] = useState<ChatMsg[]>([
-    { who: 'Minh Anh', me: false, text: 'Mình vào rồi nha, bắt đầu phiên 25 phút nhé!' },
-    { who: 'Bạn', me: true, text: 'Ok, mình tắt mic để tập trung, cần gì thì nhắn chat.' },
-    { who: 'Minh Anh', me: false, text: 'Ừ, hết phiên nghỉ 5 phút rồi kể chương 4 tới đâu.' },
+    { who: 'Minh Anh', me: false, text: t('room.mockChat.m1') },
+    { who: t('room.you'), me: true, text: t('room.mockChat.m2') },
+    { who: 'Minh Anh', me: false, text: t('room.mockChat.m3') },
   ])
 
   useEffect(() => {
@@ -266,7 +286,7 @@ export default function Room() {
               .map((r) => ({
                 id: r.user_id,
                 name: r.name,
-                status: r.user_id === uid ? 'đang tập trung' : 'đang tập trung',
+                statusKey: 'focusing' as StatusKey,
                 host: r.user_id === realRoom!.host_id,
                 me: r.user_id === uid,
               })),
@@ -274,7 +294,7 @@ export default function Room() {
           setPending(
             rows
               .filter((r) => r.status === 'pending')
-              .map((r) => ({ id: r.id, userId: r.user_id, name: r.name, wait: relativeWait(r.joined_at) })),
+              .map((r) => ({ id: r.id, userId: r.user_id, name: r.name, wait: relativeWait(r.joined_at, t) })),
           )
           const mine = rows.find((r) => r.user_id === uid)
           setMyStatus(mine ? mine.status : null)
@@ -296,7 +316,7 @@ export default function Room() {
       cancelled = true
       channel.unsubscribe()
     }
-  }, [realRoom, user])
+  }, [realRoom, user, t])
 
   async function approveReal(p: Pending) {
     await supabase.from('room_members').update({ status: 'member' }).eq('id', p.id)
@@ -375,7 +395,9 @@ export default function Room() {
       .then(({ data }) => {
         if (cancelled || !data) return
         const rows = data as RealMsgRow[]
-        setMessages(rows.map((m) => ({ who: m.user_id === user.id ? 'Bạn' : m.name, me: m.user_id === user.id, text: m.text })))
+        setMessages(
+          rows.map((m) => ({ who: m.user_id === user.id ? t('room.you') : m.name, me: m.user_id === user.id, text: m.text })),
+        )
       })
 
     const channel = supabase
@@ -386,7 +408,7 @@ export default function Room() {
         (payload) => {
           const row = payload.new as { user_id: string; text: string }
           if (row.user_id === user.id) return
-          const senderName = membersRef.current.find((m) => m.id === row.user_id)?.name || 'Người dùng'
+          const senderName = membersRef.current.find((m) => m.id === row.user_id)?.name || t('room.unknownUser')
           setMessages((ms) => [...ms, { who: senderName, me: false, text: row.text }])
         },
       )
@@ -396,7 +418,7 @@ export default function Room() {
       cancelled = true
       channel.unsubscribe()
     }
-  }, [roomId, user])
+  }, [roomId, user, t])
 
   useEffect(() => {
     if (!roomId || !user) return
@@ -537,15 +559,15 @@ export default function Room() {
 
   const queued = admit === 'manual' && pending.length > 0
   const effectiveTab: Tab = tab === 'host' && !isHost ? 'chat' : tab
-  const track = TRACKS[trackIndex] || TRACKS[0]
+  const currentTrack = tracks[trackIndex] || tracks[0]
   const n = Math.max(1, members.length)
   const cols = Math.ceil(Math.sqrt(n))
   const rows = Math.ceil(n / cols)
 
   const syncLabel =
     members.length > 2
-      ? `Đồng bộ với ${members.length - 1} người`
-      : `Đồng bộ với ${members.find((u) => !u.me)?.name || 'phòng'}`
+      ? t('room.sync.withCount', { count: members.length - 1 })
+      : t('room.sync.withName', { name: members.find((u) => !u.me)?.name || t('room.sync.fallbackRoom') })
 
   function openTab(next: Tab) {
     setChatOpen((open) => !(open && tab === next))
@@ -574,7 +596,7 @@ export default function Room() {
       return
     }
     setPending((ps) => ps.filter((x) => x.id !== p.id))
-    setMembers((ms) => [...ms, { id: p.id, name: p.name, status: 'vừa vào phòng', host: false }])
+    setMembers((ms) => [...ms, { id: p.id, name: p.name, statusKey: 'justJoined', host: false }])
   }
   function reject(p: Pending) {
     if (isRealMode) {
@@ -590,7 +612,7 @@ export default function Room() {
     }
     setMembers((ms) => [
       ...ms,
-      ...pending.map((p) => ({ id: p.id, name: p.name, status: 'vừa vào phòng', host: false })),
+      ...pending.map((p) => ({ id: p.id, name: p.name, statusKey: 'justJoined' as StatusKey, host: false })),
     ])
     setPending([])
   }
@@ -607,11 +629,11 @@ export default function Room() {
     if (!text) return
     setDraft('')
     if (isRealMode && realRoom && user) {
-      setMessages((ms) => [...ms, { who: 'Bạn', me: true, text }])
+      setMessages((ms) => [...ms, { who: t('room.you'), me: true, text }])
       supabase.from('room_messages').insert({ room_id: realRoom.id, user_id: user.id, text }).then(() => {})
       return
     }
-    setMessages((ms) => [...ms, { who: 'Bạn', me: true, text }])
+    setMessages((ms) => [...ms, { who: t('room.you'), me: true, text }])
   }
 
   const tiles = members.map((u) => {
@@ -619,16 +641,17 @@ export default function Room() {
     const online = !isRealMode || me || onlineIds.has(u.id)
     const videoTrack = isRealMode ? videoTracks[u.id] : undefined
     const audioTrack = isRealMode && !me ? audioTracks[u.id] : undefined
-    const camOff = me ? !cam : isRealMode ? !videoTrack : (u.status.includes('cam tắt') as boolean)
-    const displayStatus =
-      isRealMode && !me ? (!online ? 'ngoại tuyến' : audioTrack ? 'đang tập trung' : 'mic tắt') : u.status
+    const camOff = me ? !cam : isRealMode ? !videoTrack : u.statusKey === 'camOff'
+    const displayStatusKey: StatusKey = isRealMode && !me ? (audioTrack ? 'focusing' : 'micOff') : u.statusKey
+    const displayStatusLabel =
+      isRealMode && !me ? (!online ? t('room.status.offline') : statusLabel(displayStatusKey)) : statusLabel(u.statusKey)
     return {
       id: u.id,
       name: u.name,
       initials: initials(u.name),
-      status: me ? (mic ? 'mic bật' : 'mic tắt') : displayStatus,
+      status: me ? (mic ? t('room.status.micOn') : t('room.status.micOff')) : displayStatusLabel,
       statusColor: me ? (mic ? '#2c5b53' : 'rgba(51,71,94,0.45)') : online ? 'rgba(51,71,94,0.45)' : 'rgba(51,71,94,0.3)',
-      feedLabel: camOff ? 'camera đang tắt' : 'webcam · ' + u.name,
+      feedLabel: camOff ? t('room.camOffFeed') : t('room.webcamOf', { name: u.name }),
       videoTrack: camOff ? undefined : videoTrack,
       audioTrack,
       avatarBg: me ? 'rgba(140,205,196,0.55)' : 'rgba(160,200,225,0.5)',
@@ -645,7 +668,7 @@ export default function Room() {
         className="flex h-svh w-full items-center justify-center font-sans text-[15px] font-bold text-[rgba(51,71,94,0.55)]"
         style={{ background: 'var(--ff-page-gradient)' }}
       >
-        Đang tải phòng…
+        {t('room.loadingRoom')}
       </div>
     )
   }
@@ -660,16 +683,16 @@ export default function Room() {
           className="flex w-full max-w-[420px] flex-col items-center gap-4 rounded-[30px] px-8 py-9 text-center"
           style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(22px)', boxShadow: '0 22px 56px rgba(58,98,126,0.15)' }}
         >
-          <h2 className="m-0 text-xl font-extrabold text-[#2c3f55]">Bạn chưa vào phòng này</h2>
+          <h2 className="m-0 text-xl font-extrabold text-[#2c3f55]">{t('room.notJoined.title')}</h2>
           <p className="mt-2 mb-0 text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
-            Hãy tham gia bằng mã phòng hoặc từ danh sách phòng công khai trước.
+            {t('room.notJoined.desc')}
           </p>
           <button
             onClick={() => navigate('/matching')}
             className="rounded-[20px] border-none px-6 py-[13px] font-sans text-[14.5px] font-extrabold text-[#1e3549]"
             style={{ background: 'var(--ff-accent-soft)' }}
           >
-            Đi tới Matching
+            {t('room.notJoined.goToMatching')}
           </button>
         </div>
       </div>
@@ -696,9 +719,9 @@ export default function Room() {
             </svg>
           </span>
           <div>
-            <h2 className="m-0 text-xl font-extrabold text-[#2c3f55]">Đang chờ host duyệt…</h2>
+            <h2 className="m-0 text-xl font-extrabold text-[#2c3f55]">{t('room.waitingApproval.title')}</h2>
             <p className="mt-2 mb-0 text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
-              Phòng "{realRoom?.name}" đang bật duyệt thủ công. Bạn sẽ vào phòng ngay khi host chấp nhận.
+              {t('room.waitingApproval.desc', { name: realRoom?.name })}
             </p>
           </div>
           <button
@@ -706,7 +729,7 @@ export default function Room() {
             className="rounded-[20px] border-none px-6 py-[13px] font-sans text-[14.5px] font-extrabold text-[#43596f]"
             style={{ background: 'rgba(240,248,250,0.9)' }}
           >
-            Huỷ, rời phòng
+            {t('room.waitingApproval.cancel')}
           </button>
         </div>
       </div>
@@ -725,8 +748,10 @@ export default function Room() {
           style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)' }}
         >
           <div className="h-5 w-5 rounded-lg" style={{ background: 'linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235))' }} />
-          <span className="text-base font-extrabold tracking-[-0.2px] text-[#2f4459]">FocusFlow</span>
-          <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.5)]">· Phòng học chung</span>
+          <span className="text-base font-extrabold tracking-[-0.2px] text-[#2f4459]">{t('app.name')}</span>
+          <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.5)]">
+            · {t('room.headerTag')}
+          </span>
         </div>
         <div className="flex items-center gap-[10px]">
           {!isRealMode && (
@@ -739,12 +764,12 @@ export default function Room() {
                   key={key}
                   onClick={() => {
                     setDemo(key)
-                    setMembers(DEMO_SETS[key].slice())
+                    setMembers(demoSets[key].slice())
                   }}
                   className="rounded-[15px] border-none px-[14px] py-2 font-sans text-[12.5px] font-extrabold transition-all duration-[220ms]"
                   style={segStyle(demo === key)}
                 >
-                  {key === 'two' ? '2 người' : '5 người'}
+                  {t(`room.demo.${key}`)}
                 </button>
               ))}
             </div>
@@ -779,53 +804,53 @@ export default function Room() {
               placeContent: 'stretch',
             }}
           >
-            {tiles.map((t) => (
+            {tiles.map((tile) => (
               <div
-                key={t.id}
+                key={tile.id}
                 className="relative m-auto w-full max-w-full overflow-hidden rounded-[24px]"
                 style={{
                   maxHeight: '100%',
                   aspectRatio: '16 / 9',
-                  border: t.tileBorder,
-                  boxShadow: t.tileShadow,
+                  border: tile.tileBorder,
+                  boxShadow: tile.tileShadow,
                   background: 'repeating-linear-gradient(135deg, #e3eef2 0 12px, #dae8ee 12px 24px)',
                 }}
               >
-                {t.videoTrack ? (
-                  <TrackMediaEl track={t.videoTrack} kind="video" mirror={t.self} />
+                {tile.videoTrack ? (
+                  <TrackMediaEl track={tile.videoTrack} kind="video" mirror={tile.self} />
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-[6px]">
                     <span
                       className="rounded-[11px] px-3 py-[7px] font-mono text-xs tracking-[0.5px] text-[rgba(51,71,94,0.5)]"
                       style={{ background: 'rgba(255,255,255,0.7)' }}
                     >
-                      {t.feedLabel}
+                      {tile.feedLabel}
                     </span>
                   </div>
                 )}
-                {t.audioTrack && <TrackMediaEl track={t.audioTrack} kind="audio" />}
+                {tile.audioTrack && <TrackMediaEl track={tile.audioTrack} kind="audio" />}
                 <div
                   className="absolute top-3 left-3 flex items-center gap-2 rounded-[18px] py-[6px] pr-[13px] pl-[7px]"
                   style={{ background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(14px)', boxShadow: '0 5px 15px rgba(58,98,126,0.1)' }}
                 >
                   <span
                     className="flex h-[26px] w-[26px] items-center justify-center rounded-[10px] text-[11.5px] font-extrabold"
-                    style={{ background: t.avatarBg, color: t.avatarColor }}
+                    style={{ background: tile.avatarBg, color: tile.avatarColor }}
                   >
-                    {t.initials}
+                    {tile.initials}
                   </span>
-                  <span className="text-[13px] font-extrabold text-[#2c3f55]">{t.name}</span>
-                  <span className="text-[11.5px] font-bold" style={{ color: t.statusColor }}>
-                    {t.status}
+                  <span className="text-[13px] font-extrabold text-[#2c3f55]">{tile.name}</span>
+                  <span className="text-[11.5px] font-bold" style={{ color: tile.statusColor }}>
+                    {tile.status}
                   </span>
                 </div>
-                {t.self && (
+                {tile.self && (
                   <span
                     className="absolute top-[14px] right-[14px] flex items-center gap-[6px] rounded-full px-[11px] py-[5px] text-[11px] font-extrabold tracking-[0.4px] text-[#22483f]"
                     style={{ background: 'rgba(255,255,255,0.82)' }}
                   >
                     <span className="h-[7px] w-[7px] rounded-full" style={{ background: 'oklch(0.72 0.11 165)' }} />
-                    Bạn
+                    {t('room.you')}
                   </span>
                 )}
               </div>
@@ -859,9 +884,11 @@ export default function Room() {
         <div className="flex flex-col gap-2">
           <div className="flex flex-col gap-px">
             <span className="text-xs font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.5)] uppercase">
-              {phase === 'focus' ? 'Đang tập trung' : 'Nghỉ ngắn'}
+              {phase === 'focus' ? t('room.pomodoro.focusing') : t('room.pomodoro.onBreak')}
             </span>
-            <span className="text-[13.5px] font-bold text-[#2c3f55]">Phiên {round} / 4 · cả hai cùng chạy</span>
+            <span className="text-[13.5px] font-bold text-[#2c3f55]">
+              {t('room.pomodoro.sessionBoth', { round })}
+            </span>
           </div>
           <div className="flex gap-[7px]">
             <button
@@ -870,7 +897,7 @@ export default function Room() {
               className="rounded-2xl border-none px-[18px] py-[9px] font-sans text-[13px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:enabled:-translate-y-px disabled:opacity-50"
               style={{ background: ACCENT_SOFT }}
             >
-              {running ? 'Tạm dừng' : 'Tiếp tục'}
+              {running ? t('room.pomodoro.pause') : t('room.pomodoro.resume')}
             </button>
             <button
               onClick={resetTimer}
@@ -878,7 +905,7 @@ export default function Room() {
               className="rounded-2xl border-none px-4 py-[9px] font-sans text-[13px] font-bold text-[#4a637d] hover:enabled:!bg-white disabled:opacity-50"
               style={{ background: 'rgba(255,255,255,0.7)' }}
             >
-              Reset
+              {t('room.pomodoro.reset')}
             </button>
           </div>
         </div>
@@ -891,7 +918,7 @@ export default function Room() {
       >
         <button
           onClick={() => setCam((c) => !c)}
-          title={cam ? 'Camera' : 'Camera tắt'}
+          title={cam ? t('room.controls.camera') : t('room.controls.cameraOff')}
           className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:brightness-[1.03] md:px-5"
           style={{ background: cam ? 'rgba(255,255,255,0.4)' : 'rgba(206,222,232,0.85)', color: cam ? '#354c65' : 'rgba(51,71,94,0.62)' }}
         >
@@ -900,11 +927,11 @@ export default function Room() {
             <path d="M15.5 11.5l6-3v7l-6-3z" />
             <path d={cam ? 'M12 12' : 'M3 20L21 4'} />
           </svg>
-          <span className="hidden md:inline">{cam ? 'Camera' : 'Camera tắt'}</span>
+          <span className="hidden md:inline">{cam ? t('room.controls.camera') : t('room.controls.cameraOff')}</span>
         </button>
         <button
           onClick={() => setMic((v) => !v)}
-          title={mic ? 'Mic' : 'Mic tắt'}
+          title={mic ? t('room.controls.mic') : t('room.controls.micOff')}
           className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:brightness-[1.03] md:px-5"
           style={{ background: mic ? 'rgba(255,255,255,0.4)' : 'rgba(206,222,232,0.85)', color: mic ? '#354c65' : 'rgba(51,71,94,0.62)' }}
         >
@@ -913,22 +940,22 @@ export default function Room() {
             <path d="M5.5 12a6.5 6.5 0 0013 0M12 18.5V21" />
             <path d={mic ? 'M12 12' : 'M3 20L21 4'} />
           </svg>
-          <span className="hidden md:inline">{mic ? 'Mic' : 'Mic tắt'}</span>
+          <span className="hidden md:inline">{mic ? t('room.controls.mic') : t('room.controls.micOff')}</span>
         </button>
         <button
           onClick={() => openTab('chat')}
-          title="Chat"
+          title={t('room.controls.chat')}
           className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)] md:px-5"
           style={{ background: chatOpen && effectiveTab === 'chat' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
             <path d="M20 12.5c0 3.6-3.6 6.5-8 6.5-1 0-2-.15-2.9-.42L4.5 20l1.1-3.3A6.7 6.7 0 014 12.5C4 8.9 7.6 6 12 6s8 2.9 8 6.5z" />
           </svg>
-          <span className="hidden md:inline">Chat</span>
+          <span className="hidden md:inline">{t('room.controls.chat')}</span>
         </button>
         <button
           onClick={() => openTab('music')}
-          title="Nhạc"
+          title={t('room.controls.music')}
           className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)] md:px-5"
           style={{ background: chatOpen && effectiveTab === 'music' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)' }}
         >
@@ -937,12 +964,12 @@ export default function Room() {
             <circle cx="6.5" cy="18" r="2.6" />
             <circle cx="19" cy="16" r="2.6" />
           </svg>
-          <span className="hidden md:inline">Nhạc</span>
+          <span className="hidden md:inline">{t('room.controls.music')}</span>
         </button>
         {isHost && (
           <button
             onClick={() => openTab('host')}
-            title="Quản lý"
+            title={t('room.controls.manage')}
             className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)] md:px-5"
             style={{ background: chatOpen && effectiveTab === 'host' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)' }}
           >
@@ -951,7 +978,7 @@ export default function Room() {
               <circle cx="9" cy="8.5" r="3.2" />
               <path d="M17 4.5l1.15 2.4 2.6.36-1.9 1.82.46 2.58L17 10.44l-2.31 1.22.46-2.58-1.9-1.82 2.6-.36z" />
             </svg>
-            <span className="hidden md:inline">Quản lý</span>
+            <span className="hidden md:inline">{t('room.controls.manage')}</span>
             {queued && (
               <span
                 className="rounded-full px-2 py-[2px] text-xs font-extrabold text-[#7a4a2c]"
@@ -965,7 +992,7 @@ export default function Room() {
         <div className="mx-1 h-[26px] w-px shrink-0" style={{ background: 'rgba(51,71,94,0.13)' }} />
         <button
           onClick={leaveRoom}
-          title="Rời phòng"
+          title={t('room.controls.leave')}
           className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-extrabold text-[#7a3f2c] transition-all duration-[220ms] hover:brightness-95 md:px-[22px]"
           style={{ background: 'oklch(0.86 0.055 45)' }}
         >
@@ -973,7 +1000,7 @@ export default function Room() {
             <path d="M15 5.5V4a2 2 0 00-2-2H6a2 2 0 00-2 2v16a2 2 0 002 2h7a2 2 0 002-2v-1.5" />
             <path d="M11 12h10m-3.5-3.5L21 12l-3.5 3.5" />
           </svg>
-          <span className="hidden md:inline">Rời phòng</span>
+          <span className="hidden md:inline">{t('room.controls.leave')}</span>
         </button>
       </div>
 
@@ -996,9 +1023,14 @@ export default function Room() {
           <div className="flex flex-1 gap-[5px] rounded-[20px] p-[5px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
             {(
               [
-                { key: 'chat' as Tab, name: 'Chat', show: true, badge: '' },
-                { key: 'music' as Tab, name: 'Nhạc', show: true, badge: '' },
-                { key: 'host' as Tab, name: 'Quản lý', show: isHost, badge: queued ? String(pending.length) : '' },
+                { key: 'chat' as Tab, name: t('room.controls.chat'), show: true, badge: '' },
+                { key: 'music' as Tab, name: t('room.controls.music'), show: true, badge: '' },
+                {
+                  key: 'host' as Tab,
+                  name: t('room.controls.manage'),
+                  show: isHost,
+                  badge: queued ? String(pending.length) : '',
+                },
               ] as const
             ).map(
               (x) =>
@@ -1026,7 +1058,7 @@ export default function Room() {
             onClick={() => setChatOpen(false)}
             className="border-none bg-transparent px-1 py-[6px] font-sans text-[13px] font-bold text-[rgba(51,71,94,0.5)]"
           >
-            Thu gọn
+            {t('room.panel.collapse')}
           </button>
         </div>
 
@@ -1056,7 +1088,7 @@ export default function Room() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') send()
                 }}
-                placeholder="Nhắn nhẹ một câu…"
+                placeholder={t('room.panel.chatPlaceholder')}
                 className="min-w-0 flex-1 border-none bg-transparent py-[10px] font-sans text-[13.5px] font-semibold text-[#2c3f55] outline-none"
               />
               <button
@@ -1064,7 +1096,7 @@ export default function Room() {
                 className="rounded-[15px] border-none px-4 py-[10px] font-sans text-[13px] font-extrabold text-[#1e3549]"
                 style={{ background: ACCENT_SOFT }}
               >
-                Gửi
+                {t('room.panel.send')}
               </button>
             </div>
           </div>
@@ -1088,9 +1120,9 @@ export default function Room() {
                 ))}
               </span>
               <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
-                <span className="text-sm font-extrabold text-[#2c3f55]">{track.name}</span>
+                <span className="text-sm font-extrabold text-[#2c3f55]">{currentTrack.name}</span>
                 <span className="text-xs font-semibold text-[rgba(51,71,94,0.5)]">
-                  {musicOn ? 'đang phát · ' + track.mood : 'đã tạm dừng'}
+                  {musicOn ? t('room.music.playing', { mood: currentTrack.mood }) : t('room.music.paused')}
                 </span>
               </div>
               <button
@@ -1124,16 +1156,18 @@ export default function Room() {
 
             <div className="flex flex-col gap-2">
               <div className="flex items-baseline justify-between gap-[10px]">
-                <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">Danh sách phát</span>
+                <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                  {t('room.music.playlist')}
+                </span>
                 <span className="text-xs font-semibold text-[rgba(51,71,94,0.45)]">
-                  {isHost ? 'phát cho cả phòng' : 'chỉ mình bạn nghe'}
+                  {isHost ? t('room.music.broadcastToRoom') : t('room.music.onlyYouHear')}
                 </span>
               </div>
-              {TRACKS.map((t, i) => {
+              {tracks.map((track, i) => {
                 const on = i === trackIndex
                 return (
                   <button
-                    key={t.name}
+                    key={TRACK_KEYS[i]}
                     onClick={() => {
                       if (isRealMode) {
                         setTrackIndexReal(i)
@@ -1161,20 +1195,18 @@ export default function Room() {
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="text-[13.5px] font-extrabold" style={{ color: on ? '#22483f' : '#2c3f55' }}>
-                        {t.name}
+                        {track.name}
                       </span>
-                      <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.48)]">{t.mood}</span>
+                      <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.48)]">{track.mood}</span>
                     </span>
-                    <span className="text-[11.5px] font-extrabold text-[rgba(51,71,94,0.42)]">{t.length}</span>
+                    <span className="text-[11.5px] font-extrabold text-[rgba(51,71,94,0.42)]">{track.length}</span>
                   </button>
                 )
               })}
             </div>
 
             <span className="text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.5)]">
-              {isHost
-                ? 'Bạn là host nên nhạc bạn chọn sẽ phát đồng bộ cho mọi người; ai muốn yên tĩnh có thể kéo âm lượng về 0.'
-                : 'Host đang chọn nhạc cho phòng — bạn chỉ chỉnh được âm lượng của mình.'}
+              {isHost ? t('room.music.hostNote') : t('room.music.memberNote')}
             </span>
           </div>
         )}
@@ -1183,7 +1215,9 @@ export default function Room() {
         {effectiveTab === 'host' && isHost && (
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
             <div className="flex flex-col gap-[9px]">
-              <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">Chế độ vào phòng</span>
+              <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                {t('room.host.admitMode')}
+              </span>
               <div className="flex gap-[7px] rounded-[20px] p-[5px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
                 {(['auto', 'manual'] as Admit[]).map((key) => (
                   <button
@@ -1192,27 +1226,27 @@ export default function Room() {
                     className="flex-1 rounded-2xl border-none px-[6px] py-[10px] font-sans text-[13px] font-extrabold transition-all duration-[220ms]"
                     style={segStyle(admit === key)}
                   >
-                    {key === 'auto' ? 'Tự động duyệt' : 'Duyệt thủ công'}
+                    {key === 'auto' ? t('room.host.autoAdmit') : t('room.host.manualAdmit')}
                   </button>
                 ))}
               </div>
               <span className="text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.58)]">
-                {admit === 'auto'
-                  ? 'Ai có link hoặc mã phòng sẽ vào thẳng, không cần bạn duyệt.'
-                  : 'Người mới sẽ nằm ở hàng chờ cho tới khi bạn bấm Duyệt.'}
+                {admit === 'auto' ? t('room.host.autoAdmitDesc') : t('room.host.manualAdmitDesc')}
               </span>
             </div>
 
             {admit === 'manual' && (
               <div className="flex flex-col gap-[9px]">
                 <div className="flex items-baseline justify-between gap-[10px]">
-                  <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">Hàng chờ duyệt</span>
+                  <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                    {t('room.host.queueTitle')}
+                  </span>
                   {pending.length > 1 && (
                     <button
                       onClick={approveAll}
                       className="border-none bg-transparent font-sans text-[12.5px] font-extrabold text-[#2c5b53]"
                     >
-                      Duyệt tất cả
+                      {t('room.host.approveAll')}
                     </button>
                   )}
                 </div>
@@ -1221,7 +1255,7 @@ export default function Room() {
                     className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[rgba(51,71,94,0.45)]"
                     style={{ background: 'rgba(238,246,248,0.8)' }}
                   >
-                    Chưa có ai đang chờ.
+                    {t('room.host.emptyQueue')}
                   </span>
                 ) : (
                   pending.map((p) => (
@@ -1238,23 +1272,25 @@ export default function Room() {
                       </span>
                       <div className="flex min-w-0 flex-1 flex-col">
                         <span className="text-[13.5px] font-extrabold text-[#2c3f55]">{p.name}</span>
-                        <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.5)]">chờ {p.wait}</span>
+                        <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.5)]">
+                          {t('room.host.waitPrefix', { wait: p.wait })}
+                        </span>
                       </div>
                       <button
                         onClick={() => approve(p)}
-                        title="Cho vào"
+                        title={t('room.host.approveTitle')}
                         className="rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[#1e3549] hover:brightness-[0.97]"
                         style={{ background: ACCENT_SOFT }}
                       >
-                        Duyệt
+                        {t('room.host.approve')}
                       </button>
                       <button
                         onClick={() => reject(p)}
-                        title="Từ chối"
+                        title={t('room.host.rejectTitle')}
                         className="rounded-[14px] border-none px-[11px] py-2 font-sans text-[12.5px] font-extrabold text-[rgba(51,71,94,0.55)] hover:!text-[#7a3f2c]"
                         style={{ background: 'rgba(255,255,255,0.9)' }}
                       >
-                        Bỏ
+                        {t('room.host.reject')}
                       </button>
                     </div>
                   ))
@@ -1264,7 +1300,7 @@ export default function Room() {
 
             <div className="flex flex-col gap-[9px]">
               <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
-                Trong phòng · {members.length} người
+                {t('room.host.membersInRoom', { count: members.length })}
               </span>
               {members.map((u) => (
                 <div key={u.id} className="flex items-center gap-[10px] rounded-[20px] px-3 py-[10px]" style={{ background: 'rgba(238,246,248,0.85)' }}>
@@ -1279,7 +1315,9 @@ export default function Room() {
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col">
                     <span className="text-[13.5px] font-extrabold text-[#2c3f55]">{u.name}</span>
-                    <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.5)]">{u.status}</span>
+                    <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.5)]">
+                      {statusLabel(u.statusKey)}
+                    </span>
                   </div>
                   {isHost && !u.host && (
                     <button
@@ -1287,7 +1325,7 @@ export default function Room() {
                       className="rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[#7a3f2c] hover:!bg-[oklch(0.86_0.055_45)]"
                       style={{ background: 'oklch(0.9 0.045 45)' }}
                     >
-                      Kick
+                      {t('room.host.kick')}
                     </button>
                   )}
                 </div>

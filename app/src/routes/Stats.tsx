@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 
-const WEEKDAY_LABELS = ['T2', '', 'T4', '', 'T6', '', 'CN']
+const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
 
 function mix(percent: number) {
   return `color-mix(in oklab, var(--ff-accent) ${percent}%, white)`
@@ -28,25 +29,26 @@ function startOfMonth(d: Date) {
 function fmtDdMm(d: Date) {
   return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0')
 }
-function formatHistoryDate(iso: string) {
+function formatHistoryDate(iso: string, t: (key: string, options?: Record<string, unknown>) => string) {
   const d = new Date(iso)
   const now = new Date()
   const hhmm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
-  if (d.toDateString() === now.toDateString()) return `Hôm nay ${hhmm}`
+  if (d.toDateString() === now.toDateString()) return t('stats.history.today', { time: hhmm })
   const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
-  if (d.toDateString() === yesterday.toDateString()) return `Hôm qua ${hhmm}`
+  if (d.toDateString() === yesterday.toDateString()) return t('stats.history.yesterday', { time: hhmm })
   return `${fmtDdMm(d)} · ${hhmm}`
 }
 
-type Range = 'Tuần này' | 'Tháng này' | 'Tất cả'
+type Range = 'week' | 'month' | 'all'
 
 type SessionRow = { id: string; minutes: number; room_id: string | null; started_at: string }
 type TodoRow = { id: string; name: string; meta: string | null; completed_at: string | null; created_at: string }
 
 export default function Stats() {
+  const { t } = useTranslation()
   const user = useAuthStore((s) => s.user)
-  const [range, setRange] = useState<Range>('Tuần này')
+  const [range, setRange] = useState<Range>('week')
   const [sessions, setSessions] = useState<SessionRow[]>([])
   const [completedTodos, setCompletedTodos] = useState<TodoRow[]>([])
 
@@ -79,8 +81,8 @@ export default function Stats() {
 
   const rangeStart = useMemo(() => {
     const today = new Date()
-    if (range === 'Tuần này') return startOfWeekMonday(today)
-    if (range === 'Tháng này') return startOfMonth(today)
+    if (range === 'week') return startOfWeekMonday(today)
+    if (range === 'month') return startOfMonth(today)
     return null
   }, [range])
 
@@ -98,24 +100,25 @@ export default function Stats() {
     prevWeekStart.setDate(prevWeekStart.getDate() - 7)
     return sessions
       .filter((s) => {
-        const t = new Date(s.started_at)
-        return t >= prevWeekStart && t < thisWeekStart
+        const startedAt = new Date(s.started_at)
+        return startedAt >= prevWeekStart && startedAt < thisWeekStart
       })
       .reduce((a, s) => a + s.minutes, 0)
   }, [sessions])
 
   let kpi1Delta: string
   let kpi1DeltaColor = 'rgba(51,71,94,0.55)'
-  if (range === 'Tuần này') {
+  if (range === 'week') {
     if (prevWeekMinutes === 0) {
-      kpi1Delta = totalMinutesRange > 0 ? 'Chưa có dữ liệu tuần trước để so sánh' : 'Chưa có phiên nào tuần này'
+      kpi1Delta =
+        totalMinutesRange > 0 ? t('stats.kpi.noDataLastWeek') : t('stats.kpi.noSessionsThisWeek')
     } else {
       const pct = Math.round(((totalMinutesRange - prevWeekMinutes) / prevWeekMinutes) * 100)
-      kpi1Delta = `${pct >= 0 ? '+' : ''}${pct}% so với tuần trước`
+      kpi1Delta = t('stats.kpi.deltaVsLastWeek', { sign: pct >= 0 ? '+' : '', pct })
       kpi1DeltaColor = pct >= 0 ? '#2c5b53' : '#7a3f2c'
     }
   } else {
-    kpi1Delta = range === 'Tháng này' ? 'Tổng phút trong tháng' : 'Tổng phút từ trước tới nay'
+    kpi1Delta = range === 'month' ? t('stats.kpi.totalMinutesMonth') : t('stats.kpi.totalMinutesAll')
   }
 
   const { currentStreak, bestStreak } = useMemo(() => {
@@ -148,45 +151,49 @@ export default function Stats() {
 
   const KPIS = [
     {
-      label: `Phút tập trung${range === 'Tuần này' ? ' tuần này' : range === 'Tháng này' ? ' tháng này' : ''}`,
+      label:
+        range === 'week'
+          ? t('stats.kpi.focusMinutesThisWeek')
+          : range === 'month'
+            ? t('stats.kpi.focusMinutesThisMonth')
+            : t('stats.kpi.focusMinutes'),
       value: totalMinutesRange,
-      unit: 'phút',
+      unit: t('stats.kpi.minutesUnit'),
       delta: kpi1Delta,
       deltaColor: kpi1DeltaColor,
     },
     {
-      label: 'Phiên hoàn thành',
+      label: t('stats.kpi.completedSessions'),
       value: sessionsCountRange,
-      unit: 'phiên',
-      delta: `${groupSessionsCountRange} phiên học cùng bạn`,
+      unit: t('stats.kpi.sessionsUnit'),
+      delta: t('stats.kpi.groupSessions', { count: groupSessionsCountRange }),
       deltaColor: 'rgba(51,71,94,0.55)',
     },
     {
-      label: 'Streak liên tiếp',
+      label: t('stats.kpi.streak'),
       value: currentStreak,
-      unit: 'ngày',
-      delta: `Kỷ lục của bạn: ${bestStreak} ngày`,
+      unit: t('stats.kpi.daysUnit'),
+      delta: t('stats.kpi.bestStreak', { count: bestStreak }),
       deltaColor: 'rgba(51,71,94,0.55)',
     },
   ]
 
   const WEEK = useMemo(() => {
     const monday = startOfWeekMonday(new Date())
-    const labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
-    return labels.map((name, i) => {
+    return WEEKDAY_KEYS.map((key, i) => {
       const dayStart = new Date(monday)
       dayStart.setDate(dayStart.getDate() + i)
       const dayEnd = new Date(dayStart)
       dayEnd.setDate(dayEnd.getDate() + 1)
       const minutes = sessions
         .filter((s) => {
-          const t = new Date(s.started_at)
-          return t >= dayStart && t < dayEnd
+          const startedAt = new Date(s.started_at)
+          return startedAt >= dayStart && startedAt < dayEnd
         })
         .reduce((a, s) => a + s.minutes, 0)
-      return { name, minutes, date: dayStart }
+      return { name: t(`stats.weekdaysShort.${key}`), minutes, date: dayStart }
     })
-  }, [sessions])
+  }, [sessions, t])
 
   const weekTotalMinutes = WEEK.reduce((a, d) => a + d.minutes, 0)
   const MAX_MINUTES = Math.max(1, ...WEEK.map((d) => d.minutes))
@@ -210,17 +217,27 @@ export default function Stats() {
       return {
         lv,
         bg: lv === 0 ? 'rgba(51,71,94,0.07)' : mix(18 + lv * 20),
-        title: lv === 0 ? 'Không học' : `${minutes} phút`,
+        title: lv === 0 ? t('stats.heatmap.noStudy') : t('stats.heatmap.minutes', { count: minutes }),
       }
     })
-  }, [sessions])
+  }, [sessions, t])
   const ACTIVE_DAYS = HEAT_CELLS.filter((c) => c.lv > 0).length
 
-  const HISTORY = completedTodos.map((t) => ({
-    name: t.name,
-    meta: t.meta || '—',
-    date: formatHistoryDate(t.completed_at ?? t.created_at),
+  const HISTORY = completedTodos.map((todo) => ({
+    name: todo.name,
+    meta: todo.meta || t('stats.history.noMeta'),
+    date: formatHistoryDate(todo.completed_at ?? todo.created_at, t),
   }))
+
+  const heatmapSideLabels = [
+    t('stats.weekdaysShort.mon'),
+    '',
+    t('stats.weekdaysShort.wed'),
+    '',
+    t('stats.weekdaysShort.fri'),
+    '',
+    t('stats.weekdaysShort.sun'),
+  ]
 
   return (
     <div
@@ -234,19 +251,21 @@ export default function Stats() {
               className="h-[22px] w-[22px] rounded-[9px]"
               style={{ background: 'linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235))' }}
             />
-            <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[#2f4459]">FocusFlow</span>
-            <span className="text-sm font-semibold text-[rgba(51,71,94,0.5)]">· Thống kê cá nhân</span>
+            <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[#2f4459]">{t('app.name')}</span>
+            <span className="text-sm font-semibold text-[rgba(51,71,94,0.5)]">
+              · {t('stats.headerTag')}
+            </span>
           </div>
           <div
             className="flex gap-1 rounded-[20px] p-[5px]"
             style={{ background: 'rgba(255,255,255,0.7)', boxShadow: '0 6px 18px rgba(58,98,126,0.08)' }}
           >
-            {(['Tuần này', 'Tháng này', 'Tất cả'] as Range[]).map((name) => {
-              const on = range === name
+            {(['week', 'month', 'all'] as Range[]).map((r) => {
+              const on = range === r
               return (
                 <button
-                  key={name}
-                  onClick={() => setRange(name)}
+                  key={r}
+                  onClick={() => setRange(r)}
                   className="rounded-2xl border-none px-[17px] py-[9px] font-sans text-[13px] font-bold transition-all duration-[240ms]"
                   style={{
                     color: on ? '#25415c' : 'rgba(51,71,94,0.55)',
@@ -254,7 +273,7 @@ export default function Stats() {
                     boxShadow: on ? '0 4px 12px rgba(58,98,126,0.1)' : 'none',
                   }}
                 >
-                  {name}
+                  {t(`stats.ranges.${r}`)}
                 </button>
               )
             })}
@@ -288,10 +307,10 @@ export default function Stats() {
             style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
           >
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[16.5px] font-extrabold text-[#2c3f55]">Phút tập trung theo ngày</span>
+              <span className="text-[16.5px] font-extrabold text-[#2c3f55]">{t('stats.barChart.title')}</span>
               <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">
                 {weekRangeLabel}
-                {BEST_DAY ? ` · cao nhất ${BEST_DAY.name}` : ''}
+                {BEST_DAY ? t('stats.barChart.highest', { day: BEST_DAY.name }) : ''}
               </span>
             </div>
             <div className="flex h-[208px] items-end gap-3">
@@ -325,12 +344,14 @@ export default function Stats() {
             style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
           >
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[16.5px] font-extrabold text-[#2c3f55]">Mật độ học 12 tuần</span>
-              <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">{ACTIVE_DAYS}/84 ngày có học</span>
+              <span className="text-[16.5px] font-extrabold text-[#2c3f55]">{t('stats.heatmap.title')}</span>
+              <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">
+                {t('stats.heatmap.activeDays', { count: ACTIVE_DAYS })}
+              </span>
             </div>
             <div className="flex gap-[10px]">
               <div className="flex flex-col justify-between pt-px pb-px">
-                {WEEKDAY_LABELS.map((text, i) => (
+                {heatmapSideLabels.map((text, i) => (
                   <span key={i} className="h-[15px] text-[10.5px] leading-[15px] font-bold text-[rgba(51,71,94,0.4)]">
                     {text}
                   </span>
@@ -346,7 +367,9 @@ export default function Stats() {
               </div>
             </div>
             <div className="flex items-center justify-end gap-[7px]">
-              <span className="text-[11.5px] font-bold text-[rgba(51,71,94,0.42)]">ít</span>
+              <span className="text-[11.5px] font-bold text-[rgba(51,71,94,0.42)]">
+                {t('stats.heatmap.less')}
+              </span>
               {[0, 1, 2, 3, 4].map((lv) => (
                 <div
                   key={lv}
@@ -354,7 +377,9 @@ export default function Stats() {
                   style={{ background: lv === 0 ? 'rgba(51,71,94,0.07)' : mix(18 + lv * 20) }}
                 />
               ))}
-              <span className="text-[11.5px] font-bold text-[rgba(51,71,94,0.42)]">nhiều</span>
+              <span className="text-[11.5px] font-bold text-[rgba(51,71,94,0.42)]">
+                {t('stats.heatmap.more')}
+              </span>
             </div>
           </div>
         </div>
@@ -365,14 +390,14 @@ export default function Stats() {
           style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
         >
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[16.5px] font-extrabold text-[#2c3f55]">Việc đã hoàn thành gần đây</span>
+            <span className="text-[16.5px] font-extrabold text-[#2c3f55]">{t('stats.history.title')}</span>
             <a href="#" onClick={(e) => e.preventDefault()} className="text-[13px] font-bold no-underline">
-              Xem tất cả
+              {t('stats.history.viewAll')}
             </a>
           </div>
           {HISTORY.length === 0 ? (
             <div className="rounded-[22px] px-[18px] py-[22px] text-center text-[13.5px] font-semibold text-[rgba(51,71,94,0.5)]" style={{ background: 'rgba(238,246,248,0.72)' }}>
-              Chưa có việc nào hoàn thành. Đánh dấu xong việc ở Dashboard để thấy ở đây.
+              {t('stats.history.empty')}
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -402,7 +427,7 @@ export default function Stats() {
         </div>
 
         <Link to="/" className="self-center text-[13.5px] font-bold text-[oklch(0.58_0.075_220)] no-underline hover:text-[oklch(0.5_0.08_220)]">
-          ← Về màn hình học
+          {t('stats.backToStudy')}
         </Link>
       </div>
     </div>

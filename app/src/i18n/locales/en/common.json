@@ -1,5 +1,430 @@
 {
   "app": {
     "name": "FocusFlow"
+  },
+  "common": {
+    "loading": "Loading…"
+  },
+  "auth": {
+    "tabs": { "login": "Log in", "signup": "Sign up" },
+    "title": { "login": "Welcome back", "signup": "Create your account" },
+    "subtitle": {
+      "login": "Pick up your study streak right where you left off.",
+      "signup": "Takes about 20 seconds. No card, no ads."
+    },
+    "name": { "label": "Your name", "placeholder": "Alex Nguyen" },
+    "email": { "label": "Email", "placeholder": "you@email.com" },
+    "password": {
+      "label": "Password",
+      "placeholder": "At least 6 characters",
+      "show": "Show",
+      "hide": "Hide"
+    },
+    "forgotPassword": "Forgot password?",
+    "submit": {
+      "processing": "Working on it…",
+      "login": "Log in",
+      "signup": "Create account"
+    },
+    "or": "or",
+    "google": { "login": "Log in with Google", "signup": "Sign up with Google" },
+    "guestLink": "Try it without signing in →",
+    "side": {
+      "badge": "Optional",
+      "desc1": "Sign in to keep your to-dos permanently, use your own wallpaper & music, and get matched with other learners.",
+      "desc2": "Not ready yet? Jump straight into a session — Pomodoro works fine as a guest."
+    },
+    "perks": {
+      "todo": { "title": "To-dos are saved", "desc": "Close the tab and your list stays put" },
+      "wallpaper": { "title": "Your own wallpaper & music", "desc": "Upload your set, use it on any device" },
+      "matching": { "title": "Study with others", "desc": "Get matched for Pomodoro sessions by time" }
+    },
+    "terms": "By continuing, you agree to FocusFlow's Terms & Privacy Policy.",
+    "notice": {
+      "confirmEmail": "Confirmation email sent to {{email}} — open it and click the link to finish signing up."
+    },
+    "errors": {
+      "invalidCredentials": "Wrong email or password.",
+      "alreadyRegistered": "This email already has an account — try logging in instead.",
+      "shortPassword": "Password needs at least 6 characters.",
+      "invalidEmail": "That email address isn't valid.",
+      "rateLimit": "You're going a bit fast — wait a moment and try again."
+    }
+  },
+  "dashboard": {
+    "topbar": {
+      "zen": "Zen",
+      "focusMode": "Focus mode",
+      "dashboardMode": "Dashboard mode",
+      "login": "Log in",
+      "tabFocus": "Focus",
+      "tabDashboard": "Dashboard",
+      "toggleUiTitle": "Hide / show UI",
+      "showUi": "Show UI",
+      "hideUi": "Hide UI"
+    },
+    "clock": {
+      "focusing": "Focusing",
+      "onBreak": "On a break",
+      "session": "Session {{round}} / 4"
+    },
+    "controls": {
+      "pause": "Pause",
+      "start": "Start",
+      "resume": "Resume",
+      "reset": "Reset",
+      "takeBreak": "Take a break",
+      "continueStudy": "Keep studying"
+    },
+    "leftWidgets": {
+      "today": "Today",
+      "focusedMinutes": "minutes focused",
+      "inProgress": "In progress",
+      "allDone": "All done for today 🎉",
+      "remaining": "{{open}} left · {{done}} done"
+    },
+    "rightColumn": {
+      "cameraOn": "Camera is on",
+      "cameraOff": "Camera is off",
+      "you": "You",
+      "turnOffCamera": "Turn off camera",
+      "turnOnCamera": "Turn on camera",
+      "studyTogether": "Study together",
+      "findStudyBuddy": "Find a study buddy online"
+    },
+    "taskbar": {
+      "wallpaperTitle": "Change wallpaper",
+      "wallpaperLabel": "Wallpaper",
+      "musicTitle": "Background music",
+      "musicLabel": "Music",
+      "todoTitle": "To-do list",
+      "todoLabel": "To-do",
+      "studyTogetherTitle": "Study together"
+    },
+    "wallpaperPopup": {
+      "title": "Wallpaper",
+      "close": "Close",
+      "hint": "Drag your own image here to use it as a custom wallpaper."
+    },
+    "musicPopup": {
+      "title": "Background music",
+      "close": "Close",
+      "nowPlaying": "now playing",
+      "selected": "selected",
+      "pause": "Pause music",
+      "play": "Play music"
+    },
+    "todoPanel": {
+      "title": "To-do",
+      "close": "Close",
+      "placeholder": "Add a new task…",
+      "add": "Add",
+      "newTaskMeta": "1 session · New"
+    },
+    "mockTasks": {
+      "t1": { "name": "Review Chapter 4 – Derivatives", "meta": "2 sessions · Math" },
+      "t2": { "name": "Do 10 physics practice questions", "meta": "1 session · Physics" },
+      "t3": { "name": "Read Unit 7", "meta": "1 session · English" },
+      "t4": { "name": "Note down mistakes from the mock test", "meta": "2 sessions · Review" }
+    },
+    "mockTracks": {
+      "rain": "Light rain outside the window",
+      "lofi": "Lo-fi study beats",
+      "cafe": "Coffee shop ambience",
+      "waves": "Slow ocean waves",
+      "whiteNoise": "Soft white noise"
+    }
+  },
+  "matching": {
+    "headerTag": "Study matching",
+    "authNotice": {
+      "text": "Sign in to create a room, get randomly matched, or join a real room.",
+      "login": "Log in"
+    },
+    "roomTypes": {
+      "chill": { "name": "Chill", "rule": "Music on, camera and mic optional." },
+      "hardcore": { "name": "Hardcore", "rule": "Camera required, no music or mic." },
+      "silent": { "name": "Silent", "rule": "No music, no camera, no mic — just a shared timer." },
+      "discuss": { "name": "Discuss", "rule": "Camera and mic on to talk, no music." },
+      "watch": { "name": "Watch", "rule": "Camera required to keep each other accountable, no music or mic." }
+    },
+    "filters": {
+      "title": "Find a study buddy",
+      "subtitle": "Pick a room type and a few preferences — we'll match you with someone on the same rhythm.",
+      "roomTypeLabel": "Room type",
+      "pickOne": "pick 1",
+      "durationLabel": "Session length",
+      "languageLabel": "Language",
+      "randomMatch": "Random match",
+      "createRoom": "Create a room",
+      "roomList": "Browse rooms",
+      "joinByCodeLabel": "Or enter an existing room code",
+      "joinCodePlaceholder": "e.g. G32TZU",
+      "joining": "Joining…",
+      "join": "Join"
+    },
+    "duration": {
+      "25": "25 min",
+      "50": "50 min"
+    },
+    "visibility": {
+      "public": "Public",
+      "private": "Private"
+    },
+    "searching": {
+      "seconds": "sec",
+      "title": "Looking for a match…",
+      "cancel": "Cancel search",
+      "editFilters": "Edit filters",
+      "hints": {
+        "h1": "Checking who else has a room like yours open…",
+        "h2": "Prioritizing people with the same session length.",
+        "h3": "Almost there, hang tight.",
+        "h4": "Taking a while? Try a different room type for a faster match."
+      }
+    },
+    "errors": {
+      "matchServiceDown": "Couldn't reach the matching service — try again later.",
+      "matchGeneric": "Something went wrong — try again later.",
+      "joinGeneric": "Something went wrong — try again.",
+      "invalidCode": "That room code isn't right.",
+      "roomFull": "This room is full.",
+      "createFailed": "Couldn't create the room — try again later."
+    },
+    "rooms": {
+      "title": "Public rooms open now",
+      "countOpen": "{{count}} rooms open",
+      "loading": "Loading…",
+      "loadFailed": "Couldn't load",
+      "liveUpdate": "updates live",
+      "back": "← Back",
+      "loadingList": "Loading room list…",
+      "empty": "No public rooms open right now.",
+      "loadListFailed": "Couldn't load the room list — try again later.",
+      "host": "Host {{name}} · {{minutes}} min",
+      "full": "Full",
+      "joinAction": "Join"
+    },
+    "backToStudy": "← Back to study screen",
+    "create": {
+      "title": "Create a room",
+      "hostLine": "Host: {{name}} · Room type: {{roomType}}",
+      "you": "You",
+      "defaultName": "{{name}}'s room",
+      "nameLabel": "Room name",
+      "namePlaceholder": "e.g. Deep work 8pm",
+      "maxPeopleLabel": "Max people",
+      "maxPeopleValue": "{{count}} people (including you)",
+      "privacyLabel": "Privacy",
+      "publicHint": "Room shows up in the public list — anyone can join.",
+      "privateHint": "Only people with the room code can join.",
+      "submitting": "Creating…",
+      "submit": "Create room",
+      "created": "Created “{{name}}”",
+      "createdMeta": "{{visibility}} · up to {{count}} people · Share this code so friends can join.",
+      "copied": "Copied ✓",
+      "copy": "Copy",
+      "close": "Close",
+      "enterRoom": "Enter room"
+    }
+  },
+  "stats": {
+    "headerTag": "Your stats",
+    "ranges": {
+      "week": "This week",
+      "month": "This month",
+      "all": "All time"
+    },
+    "weekdaysShort": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    },
+    "kpi": {
+      "focusMinutes": "Minutes focused",
+      "focusMinutesThisWeek": "Minutes focused this week",
+      "focusMinutesThisMonth": "Minutes focused this month",
+      "minutesUnit": "min",
+      "noDataLastWeek": "No data from last week to compare yet",
+      "noSessionsThisWeek": "No sessions yet this week",
+      "deltaVsLastWeek": "{{sign}}{{pct}}% vs last week",
+      "totalMinutesMonth": "Total minutes this month",
+      "totalMinutesAll": "Total minutes all time",
+      "completedSessions": "Sessions completed",
+      "sessionsUnit": "sessions",
+      "groupSessions": "{{count}} sessions studied with others",
+      "streak": "Current streak",
+      "daysUnit": "days",
+      "bestStreak": "Your record: {{count}} days"
+    },
+    "barChart": {
+      "title": "Minutes focused by day",
+      "highest": " · highest on {{day}}"
+    },
+    "heatmap": {
+      "title": "12-week study density",
+      "activeDays": "{{count}}/84 active days",
+      "noStudy": "No study",
+      "minutes": "{{count}} min",
+      "less": "less",
+      "more": "more"
+    },
+    "history": {
+      "title": "Recently completed",
+      "viewAll": "View all",
+      "empty": "No tasks completed yet. Check one off in the Dashboard to see it here.",
+      "noMeta": "—",
+      "today": "Today {{time}}",
+      "yesterday": "Yesterday {{time}}"
+    },
+    "backToStudy": "← Back to study screen"
+  },
+  "settings": {
+    "headerTag": "Settings & profile",
+    "profile": {
+      "defaultName": "New user",
+      "streak": "{{days}}-day streak · {{sessions}} sessions this week",
+      "changeAvatar": "Change avatar",
+      "editInfo": "Edit info"
+    },
+    "wallpapers": {
+      "title": "My wallpapers",
+      "count": "{{count}} images",
+      "delete": "Delete",
+      "add": "Add image",
+      "hint": "JPG or PNG, up to 5 MB each.",
+      "tooLarge": "Images can be up to 5 MB."
+    },
+    "music": {
+      "title": "My music",
+      "count": "{{count}} tracks",
+      "delete": "Delete",
+      "upload": "Upload music (MP3, WAV)",
+      "hint": "Click a track's name to rename it. Music only plays during your own session.",
+      "tooLarge": "Music files can be up to 25 MB."
+    },
+    "pomodoro": {
+      "title": "Default Pomodoro",
+      "focusMinutes": "Focus minutes",
+      "minutesValue": "{{count}} min",
+      "breakMinutes": "Break minutes",
+      "autoStartTitle": "Auto-start next session",
+      "autoStartDesc": "Jump straight into studying when the break ends",
+      "saved": "Saved ✓",
+      "save": "Save changes",
+      "resetDefault": "Reset to 25/5"
+    },
+    "language": {
+      "title": "Interface language",
+      "vi": "Tiếng Việt",
+      "en": "English"
+    },
+    "logout": {
+      "hint": "Signing out keeps your wallpapers and music on your account; this device switches to guest mode.",
+      "action": "Log out"
+    },
+    "backToStudy": "← Back to study screen"
+  },
+  "room": {
+    "headerTag": "Study room",
+    "demo": { "two": "2 people", "five": "5 people" },
+    "sync": {
+      "withCount": "Synced with {{count}} people",
+      "withName": "Synced with {{name}}",
+      "fallbackRoom": "the room"
+    },
+    "you": "You",
+    "unknownUser": "Someone",
+    "status": {
+      "host": "host",
+      "focusing": "focusing",
+      "micOn": "mic on",
+      "micOff": "mic off",
+      "camOff": "camera off",
+      "offline": "offline",
+      "justJoined": "just joined"
+    },
+    "wait": {
+      "seconds": "{{count}} sec",
+      "minutes": "{{min}} min {{sec}}"
+    },
+    "mockChat": {
+      "m1": "I'm in, let's start a 25-minute session!",
+      "m2": "Okay, I'll mute my mic to focus — ping me in chat if you need anything.",
+      "m3": "Yep, once the break's over tell me how far you got on chapter 4."
+    },
+    "mockTracks": {
+      "t1": { "name": "Rain at night", "mood": "lofi · mellow" },
+      "t2": { "name": "8am coffee shop", "mood": "soft jazz" },
+      "t3": { "name": "Falling rain", "mood": "ambient noise" },
+      "t4": { "name": "Focus piano", "mood": "piano · low-key" },
+      "t5": { "name": "Distant waves", "mood": "nature" }
+    },
+    "loadingRoom": "Loading room…",
+    "notJoined": {
+      "title": "You haven't joined this room",
+      "desc": "Join with a room code or from the public room list first.",
+      "goToMatching": "Go to Matching"
+    },
+    "waitingApproval": {
+      "title": "Waiting for the host to approve…",
+      "desc": "Room \"{{name}}\" has manual approval on. You'll join as soon as the host accepts.",
+      "cancel": "Cancel and leave"
+    },
+    "pomodoro": {
+      "focusing": "Focusing",
+      "onBreak": "On a break",
+      "sessionBoth": "Session {{round}} / 4 · running for both",
+      "pause": "Pause",
+      "resume": "Resume",
+      "reset": "Reset"
+    },
+    "controls": {
+      "camera": "Camera",
+      "cameraOff": "Camera off",
+      "mic": "Mic",
+      "micOff": "Mic off",
+      "chat": "Chat",
+      "music": "Music",
+      "manage": "Manage",
+      "leave": "Leave room"
+    },
+    "panel": {
+      "collapse": "Collapse",
+      "chatPlaceholder": "Say something…",
+      "send": "Send"
+    },
+    "music": {
+      "playing": "playing · {{mood}}",
+      "paused": "paused",
+      "playlist": "Playlist",
+      "broadcastToRoom": "plays for the whole room",
+      "onlyYouHear": "only you hear this",
+      "hostNote": "You're the host, so whatever you pick plays for everyone in sync — anyone who wants quiet can pull their own volume to 0.",
+      "memberNote": "The host is picking music for the room — you can only adjust your own volume."
+    },
+    "host": {
+      "admitMode": "Admission mode",
+      "autoAdmit": "Auto-admit",
+      "manualAdmit": "Manual approval",
+      "autoAdmitDesc": "Anyone with the link or room code joins right away, no approval needed.",
+      "manualAdmitDesc": "New people wait in the queue until you approve them.",
+      "queueTitle": "Approval queue",
+      "approveAll": "Approve all",
+      "emptyQueue": "No one waiting right now.",
+      "waitPrefix": "waiting {{wait}}",
+      "approve": "Approve",
+      "approveTitle": "Let in",
+      "reject": "Dismiss",
+      "rejectTitle": "Reject",
+      "membersInRoom": "In the room · {{count}} people",
+      "kick": "Kick"
+    },
+    "camOffFeed": "camera is off",
+    "webcamOf": "webcam · {{name}}"
   }
 }

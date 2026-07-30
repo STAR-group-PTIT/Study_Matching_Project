@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 
@@ -7,8 +8,6 @@ type RoomTypeKey = 'chill' | 'hardcore' | 'silent' | 'discuss' | 'watch'
 
 type RoomType = {
   key: RoomTypeKey
-  name: string
-  rule: string
   hue: number
   paths: string[]
   circle: { cx: number; cy: number; r: number } | null
@@ -17,16 +16,12 @@ type RoomType = {
 const ROOM_TYPES: RoomType[] = [
   {
     key: 'chill',
-    name: 'Chill',
-    rule: 'Bật nhạc, tự do bật/tắt cam và mic.',
     hue: 195,
     paths: ['M9 18V6l10-2v12'],
     circle: { cx: 6.5, cy: 18, r: 2.6 },
   },
   {
     key: 'hardcore',
-    name: 'Hardcore',
-    rule: 'Bắt buộc bật cam, tắt nhạc và mic.',
     hue: 45,
     paths: [
       'M12 3c2.5 3 1 5 0 6-1.2-1-2.6-.6-2.6 1.2 0 1.1-1.4 1-1.4-1C6.4 11 5.5 13 5.5 15a6.5 6.5 0 1013 0c0-4-3-8.5-6.5-12z',
@@ -35,16 +30,12 @@ const ROOM_TYPES: RoomType[] = [
   },
   {
     key: 'silent',
-    name: 'Im lặng',
-    rule: 'Không nhạc, không cam, không mic — chỉ đồng hồ chung.',
     hue: 265,
     paths: ['M20.5 14.5A8.5 8.5 0 019.5 3.5a8.5 8.5 0 1011 11z'],
     circle: null,
   },
   {
     key: 'discuss',
-    name: 'Thảo luận',
-    rule: 'Bật cam và mic để trao đổi, không nhạc.',
     hue: 235,
     paths: [
       'M3 15V6.5A2.5 2.5 0 015.5 4h8A2.5 2.5 0 0116 6.5V11a2.5 2.5 0 01-2.5 2.5H7L3 15z',
@@ -54,8 +45,6 @@ const ROOM_TYPES: RoomType[] = [
   },
   {
     key: 'watch',
-    name: 'Giám sát',
-    rule: 'Bắt buộc bật cam để giám sát nhau, tắt nhạc và mic.',
     hue: 150,
     paths: ['M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z'],
     circle: { cx: 12, cy: 12, r: 2.8 },
@@ -74,21 +63,14 @@ type PublicRoomRow = {
   member_count: number
 }
 
-const HINTS = [
-  'Đang xem ai đang mở phòng cùng loại với bạn…',
-  'Ưu tiên người chọn cùng thời lượng phiên.',
-  'Sắp xong rồi, giữ máy giúp mình nhé.',
-  'Nếu lâu quá, thử đổi sang loại phòng khác cho dễ ghép.',
-]
-
 const ACCENT_SOFT = 'var(--ff-accent-soft)'
 const ACCENT_CHIP_ACTIVE = 'var(--ff-accent-chip-active)'
 const ACCENT_BORDER = 'var(--ff-accent-border)'
 
 type Stage = 'filters' | 'searching' | 'rooms'
-type Duration = '25 phút' | '50 phút'
+type Duration = '25' | '50'
 type Language = 'Tiếng Việt' | 'English'
-type Visibility = 'Công khai' | 'Riêng tư'
+type Visibility = 'public' | 'private'
 
 function chipStyle(on: boolean) {
   return {
@@ -110,13 +92,28 @@ function RoomTypeIcon({ type }: { type: RoomType }) {
 }
 
 export default function Matching() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
+
+  const roomTypeLabel = (key: RoomTypeKey) => t(`matching.roomTypes.${key}.name`)
+  const roomTypeRule = (key: RoomTypeKey) => t(`matching.roomTypes.${key}.rule`)
+  const durationLabel = (d: Duration) => t(`matching.duration.${d}`)
+  const visibilityLabel = (v: Visibility) => t(`matching.visibility.${v}`)
+  const hints = useMemo(
+    () => [
+      t('matching.searching.hints.h1'),
+      t('matching.searching.hints.h2'),
+      t('matching.searching.hints.h3'),
+      t('matching.searching.hints.h4'),
+    ],
+    [t],
+  )
 
   const [stage, setStage] = useState<Stage>('filters')
   const [fade, setFade] = useState(1)
   const [roomType, setRoomType] = useState<RoomTypeKey>('chill')
-  const [duration, setDuration] = useState<Duration>('25 phút')
+  const [duration, setDuration] = useState<Duration>('25')
   const [language, setLanguage] = useState<Language>('Tiếng Việt')
   const [waited, setWaited] = useState(0)
   const [matchError, setMatchError] = useState('')
@@ -124,7 +121,7 @@ export default function Matching() {
   const [modal, setModal] = useState(false)
   const [created, setCreated] = useState(false)
   const [roomName, setRoomName] = useState('')
-  const [visibility, setVisibility] = useState<Visibility>('Công khai')
+  const [visibility, setVisibility] = useState<Visibility>('public')
   const [capacity, setCapacity] = useState(4)
   const [roomId, setRoomId] = useState('')
   const [copied, setCopied] = useState(false)
@@ -237,7 +234,7 @@ export default function Matching() {
     if (!requireAuth()) return
     go('searching')
     setMatchError('')
-    const durationMinutes = duration === '25 phút' ? 25 : 50
+    const durationMinutes = Number(duration)
     const languageCode = language === 'Tiếng Việt' ? 'vi' : 'en'
 
     const { data, error } = await supabase.functions.invoke('match-room', {
@@ -245,7 +242,7 @@ export default function Matching() {
     })
 
     if (error) {
-      setMatchError('Không kết nối được dịch vụ ghép cặp, thử lại sau.')
+      setMatchError(t('matching.errors.matchServiceDown'))
       return
     }
     const result = data?.result as { status: string; room_id: string; room_code: string } | null
@@ -254,7 +251,7 @@ export default function Matching() {
     } else if (result?.status === 'queued' && user) {
       subscribeQueue(user.id)
     } else {
-      setMatchError('Có lỗi xảy ra, thử lại sau.')
+      setMatchError(t('matching.errors.matchGeneric'))
     }
   }
 
@@ -267,16 +264,16 @@ export default function Matching() {
     const { data, error } = await supabase.rpc('join_room_by_code', { p_code: code })
     setJoining(false)
     if (error) {
-      setJoinError('Có lỗi xảy ra, thử lại.')
+      setJoinError(t('matching.errors.joinGeneric'))
       return
     }
     const row = data?.[0] as { status: string; room_id: string; member_status: string } | undefined
     if (!row || row.status === 'not_found') {
-      setJoinError('Mã phòng không đúng.')
+      setJoinError(t('matching.errors.invalidCode'))
       return
     }
     if (row.status === 'full') {
-      setJoinError('Phòng đã đầy.')
+      setJoinError(t('matching.errors.roomFull'))
       return
     }
     navigate('/room/' + code)
@@ -308,6 +305,10 @@ export default function Matching() {
     setRoomName('')
   }
 
+  const defaultRoomName = t('matching.create.defaultName', {
+    name: profileName || t('matching.create.you'),
+  })
+
   async function createRoom() {
     if (!user) return
     setCreating(true)
@@ -323,13 +324,13 @@ export default function Matching() {
         .from('rooms')
         .insert({
           code,
-          name: roomName.trim() || `Phòng của ${profileName || 'bạn'}`,
+          name: roomName.trim() || defaultRoomName,
           host_id: user.id,
           room_type: roomType,
-          duration_minutes: duration === '25 phút' ? 25 : 50,
+          duration_minutes: Number(duration),
           language: language === 'Tiếng Việt' ? 'vi' : 'en',
           capacity,
-          visibility: visibility === 'Công khai' ? 'public' : 'private',
+          visibility,
         })
         .select('id, code')
         .single()
@@ -338,14 +339,14 @@ export default function Matching() {
         break
       }
       if (error && error.code !== '23505') {
-        setCreateError('Không tạo được phòng, thử lại sau.')
+        setCreateError(t('matching.errors.createFailed'))
         setCreating(false)
         return
       }
     }
 
     if (!inserted) {
-      setCreateError('Không tạo được phòng, thử lại sau.')
+      setCreateError(t('matching.errors.createFailed'))
       setCreating(false)
       return
     }
@@ -363,7 +364,7 @@ export default function Matching() {
     copyTimer.current = setTimeout(() => setCopied(false), 1800)
   }
 
-  const createdName = roomName.trim() || `Phòng của ${profileName || 'bạn'}`
+  const createdName = roomName.trim() || defaultRoomName
 
   return (
     <div
@@ -381,8 +382,10 @@ export default function Matching() {
             className="h-[22px] w-[22px] rounded-[9px]"
             style={{ background: 'linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235))' }}
           />
-          <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[#2f4459]">FocusFlow</span>
-          <span className="text-sm font-semibold text-[rgba(51,71,94,0.5)]">· Ghép cặp học chung</span>
+          <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[#2f4459]">{t('app.name')}</span>
+          <span className="text-sm font-semibold text-[rgba(51,71,94,0.5)]">
+            · {t('matching.headerTag')}
+          </span>
         </div>
 
         {authNotice && (
@@ -391,14 +394,14 @@ export default function Matching() {
             style={{ background: 'rgba(255,246,238,0.9)', boxShadow: 'inset 0 0 0 1.5px rgba(196,142,96,0.25)' }}
           >
             <span className="text-[13.5px] font-semibold text-[#7a4a2c]">
-              Cần đăng nhập để tạo phòng, ghép ngẫu nhiên hoặc tham gia phòng thật.
+              {t('matching.authNotice.text')}
             </span>
             <Link
               to="/auth"
               className="shrink-0 rounded-[14px] px-4 py-2 text-[13px] font-extrabold text-[#7a4a2c] no-underline"
               style={{ background: 'rgba(226,190,150,0.5)' }}
             >
-              Đăng nhập
+              {t('matching.authNotice.login')}
             </Link>
           </div>
         )}
@@ -416,19 +419,21 @@ export default function Matching() {
           >
             <div>
               <h1 className="m-0 text-[26px] font-extrabold tracking-[-0.5px] text-[#2c3f55]">
-                Tìm bạn học cùng
+                {t('matching.filters.title')}
               </h1>
               <p className="mt-2 mb-0 text-[14.5px] leading-[1.55] font-semibold text-[rgba(51,71,94,0.58)]">
-                Chọn loại phòng và vài tiêu chí, chúng mình ghép bạn với người đang học cùng nhịp.
+                {t('matching.filters.subtitle')}
               </p>
             </div>
 
             <div className="flex flex-col gap-[11px]">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
-                  Loại phòng
+                  {t('matching.filters.roomTypeLabel')}
                 </span>
-                <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.42)]">chọn 1</span>
+                <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.42)]">
+                  {t('matching.filters.pickOne')}
+                </span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {ROOM_TYPES.map((r) => (
@@ -439,7 +444,7 @@ export default function Matching() {
                     style={chipStyle(roomType === r.key)}
                   >
                     <RoomTypeIcon type={r} />
-                    {r.name}
+                    {roomTypeLabel(r.key)}
                   </button>
                 ))}
               </div>
@@ -458,7 +463,7 @@ export default function Matching() {
                   </svg>
                 </span>
                 <span className="text-[13.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.72)]">
-                  {current.rule}
+                  {roomTypeRule(current.key)}
                 </span>
               </div>
             </div>
@@ -466,24 +471,24 @@ export default function Matching() {
             <div className="flex flex-wrap gap-5">
               <div className="flex flex-[1_1_200px] flex-col gap-[11px]">
                 <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
-                  Thời lượng phiên
+                  {t('matching.filters.durationLabel')}
                 </span>
                 <div className="flex gap-2">
-                  {(['25 phút', '50 phút'] as Duration[]).map((name) => (
+                  {(['25', '50'] as Duration[]).map((d) => (
                     <button
-                      key={name}
-                      onClick={() => setDuration(name)}
+                      key={d}
+                      onClick={() => setDuration(d)}
                       className="flex-1 rounded-[18px] border-[1.5px] py-[11px] font-sans text-sm font-bold transition-all duration-[220ms]"
-                      style={chipStyle(duration === name)}
+                      style={chipStyle(duration === d)}
                     >
-                      {name}
+                      {durationLabel(d)}
                     </button>
                   ))}
                 </div>
               </div>
               <div className="flex flex-[1_1_200px] flex-col gap-[11px]">
                 <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
-                  Ngôn ngữ
+                  {t('matching.filters.languageLabel')}
                 </span>
                 <div className="flex gap-2">
                   {(['Tiếng Việt', 'English'] as Language[]).map((name) => (
@@ -506,26 +511,26 @@ export default function Matching() {
                 className="flex-[1_1_180px] rounded-[22px] border-[1.5px] border-transparent px-3 py-[15px] font-sans text-[15.5px] font-extrabold text-[#1e3549] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(58,98,126,0.22)]"
                 style={{ background: ACCENT_SOFT, boxShadow: '0 12px 26px rgba(58,98,126,0.16)' }}
               >
-                Ghép ngẫu nhiên
+                {t('matching.filters.randomMatch')}
               </button>
               <button
                 onClick={openCreate}
                 className="flex-[1_1_180px] rounded-[22px] border-[1.5px] bg-white px-3 py-[15px] font-sans text-[15.5px] font-extrabold text-[#22483f] transition-[transform,background] duration-200 hover:-translate-y-0.5 hover:!bg-[rgba(255,255,255,0.86)]"
                 style={{ borderColor: ACCENT_BORDER }}
               >
-                Tạo phòng mới
+                {t('matching.filters.createRoom')}
               </button>
               <button
                 onClick={() => go('rooms')}
                 className="flex-[1_1_180px] rounded-[22px] border-[1.5px] border-[rgba(51,71,94,0.16)] bg-white px-3 py-[15px] font-sans text-[15.5px] font-extrabold text-[#43596f] transition-[transform,background] duration-200 hover:-translate-y-0.5 hover:!bg-[rgba(255,255,255,0.86)]"
               >
-                Danh sách phòng
+                {t('matching.filters.roomList')}
               </button>
             </div>
 
             <div className="flex flex-col gap-2 border-t border-[rgba(51,71,94,0.1)] pt-5">
               <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
-                Hoặc nhập mã phòng có sẵn
+                {t('matching.filters.joinByCodeLabel')}
               </span>
               <div className="flex gap-2">
                 <input
@@ -538,7 +543,7 @@ export default function Matching() {
                     if (e.key === 'Enter') submitJoinCode()
                   }}
                   maxLength={6}
-                  placeholder="VD: G32TZU"
+                  placeholder={t('matching.filters.joinCodePlaceholder')}
                   className="w-full min-w-0 flex-1 rounded-[18px] border-[1.5px] border-[rgba(51,71,94,0.14)] px-4 py-[13px] font-sans text-[15px] font-bold tracking-[2px] text-[#2c3f55] uppercase outline-none focus:border-[rgba(126,201,198,0.9)] focus:bg-white"
                   style={{ background: 'rgba(240,248,250,0.7)' }}
                 />
@@ -548,7 +553,7 @@ export default function Matching() {
                   className="shrink-0 rounded-[18px] border-none px-5 py-[13px] font-sans text-sm font-extrabold text-[#1e3549] disabled:opacity-50"
                   style={{ background: ACCENT_SOFT }}
                 >
-                  {joining ? 'Đang vào…' : 'Vào phòng'}
+                  {joining ? t('matching.filters.joining') : t('matching.filters.join')}
                 </button>
               </div>
               {joinError && <span className="text-[12.5px] font-semibold text-[#7a3f2c]">{joinError}</span>}
@@ -568,7 +573,7 @@ export default function Matching() {
             }}
           >
             <div className="flex flex-wrap justify-center gap-[7px]">
-              {[current.name, duration, language].map((text) => (
+              {[roomTypeLabel(current.key), durationLabel(duration), language].map((text) => (
                 <span
                   key={text}
                   className="rounded-full px-[14px] py-[7px] text-[12.5px] font-bold text-[#35566b]"
@@ -618,16 +623,18 @@ export default function Matching() {
                 <span className="text-[34px] leading-none font-extrabold text-[#2c3f55] tabular-nums">
                   {waited}
                 </span>
-                <span className="text-[12.5px] font-bold text-[rgba(51,71,94,0.5)]">giây</span>
+                <span className="text-[12.5px] font-bold text-[rgba(51,71,94,0.5)]">
+                  {t('matching.searching.seconds')}
+                </span>
               </div>
             </div>
 
             <div className="flex flex-col gap-[7px] text-center">
               <span className="text-[19px] font-extrabold tracking-[-0.2px] text-[#2c3f55]">
-                Đang tìm người phù hợp…
+                {t('matching.searching.title')}
               </span>
               <span className="text-sm font-semibold text-[rgba(51,71,94,0.55)]">
-                {matchError || HINTS[Math.min(HINTS.length - 1, Math.floor(waited / 8))]}
+                {matchError || hints[Math.min(hints.length - 1, Math.floor(waited / 8))]}
               </span>
             </div>
 
@@ -637,13 +644,13 @@ export default function Matching() {
                 className="rounded-[22px] border-none px-[30px] py-[14px] font-sans text-[15px] font-extrabold text-[#43596f] transition-colors duration-200 hover:!bg-white"
                 style={{ background: 'rgba(255,255,255,0.85)', boxShadow: '0 8px 20px rgba(58,98,126,0.1)' }}
               >
-                Huỷ tìm
+                {t('matching.searching.cancel')}
               </button>
               <button
                 onClick={cancelSearch}
                 className="rounded-[22px] border-none bg-transparent px-[22px] py-[14px] font-sans text-[15px] font-bold text-[rgba(51,71,94,0.6)] transition-colors duration-200 hover:!text-[#2c3f55]"
               >
-                Sửa bộ lọc
+                {t('matching.searching.editFilters')}
               </button>
             </div>
           </div>
@@ -663,10 +670,15 @@ export default function Matching() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="m-0 text-[23px] font-extrabold tracking-[-0.4px] text-[#2c3f55]">
-                  Phòng công khai đang mở
+                  {t('matching.rooms.title')}
                 </h2>
                 <p className="mt-[7px] mb-0 text-sm font-semibold text-[rgba(51,71,94,0.55)]">
-                  {publicRooms ? `${publicRooms.length} phòng đang mở` : loadingRooms ? 'Đang tải…' : 'Không tải được'} · cập nhật liên tục
+                  {publicRooms
+                    ? t('matching.rooms.countOpen', { count: publicRooms.length })
+                    : loadingRooms
+                      ? t('matching.rooms.loading')
+                      : t('matching.rooms.loadFailed')}{' '}
+                  · {t('matching.rooms.liveUpdate')}
                 </p>
               </div>
               <button
@@ -674,7 +686,7 @@ export default function Matching() {
                 className="shrink-0 rounded-[18px] border-none px-[18px] py-[10px] font-sans text-sm font-extrabold text-[#43596f] transition-colors duration-200 hover:!bg-white"
                 style={{ background: 'rgba(255,255,255,0.8)', boxShadow: '0 6px 16px rgba(58,98,126,0.09)' }}
               >
-                ← Quay lại
+                {t('matching.rooms.back')}
               </button>
             </div>
 
@@ -683,21 +695,21 @@ export default function Matching() {
             <div className="flex flex-col gap-[10px]">
               {loadingRooms && (
                 <span className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[rgba(51,71,94,0.45)]" style={{ background: 'rgba(255,255,255,0.6)' }}>
-                  Đang tải danh sách phòng…
+                  {t('matching.rooms.loadingList')}
                 </span>
               )}
               {!loadingRooms && publicRooms?.length === 0 && (
                 <span className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[rgba(51,71,94,0.45)]" style={{ background: 'rgba(255,255,255,0.6)' }}>
-                  Chưa có phòng công khai nào đang mở.
+                  {t('matching.rooms.empty')}
                 </span>
               )}
               {!loadingRooms && publicRooms === null && (
                 <span className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[rgba(51,71,94,0.45)]" style={{ background: 'rgba(255,255,255,0.6)' }}>
-                  Không tải được danh sách phòng, thử lại sau.
+                  {t('matching.rooms.loadListFailed')}
                 </span>
               )}
               {publicRooms?.map((p) => {
-                const t = ROOM_TYPES.find((r) => r.key === p.room_type)!
+                const roomTypeMeta = ROOM_TYPES.find((r) => r.key === p.room_type)!
                 const full = p.member_count >= p.capacity
                 return (
                   <div
@@ -711,15 +723,15 @@ export default function Matching() {
                         <span
                           className="rounded-full px-[11px] py-1 text-[11.5px] font-extrabold tracking-[0.3px]"
                           style={{
-                            background: `oklch(0.93 0.045 ${t.hue})`,
-                            color: `oklch(0.42 0.08 ${t.hue})`,
+                            background: `oklch(0.93 0.045 ${roomTypeMeta.hue})`,
+                            color: `oklch(0.42 0.08 ${roomTypeMeta.hue})`,
                           }}
                         >
-                          {t.name}
+                          {roomTypeLabel(roomTypeMeta.key)}
                         </span>
                       </div>
                       <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.55)]">
-                        Host {p.host_name} · {p.duration_minutes} phút
+                        {t('matching.rooms.host', { name: p.host_name, minutes: p.duration_minutes })}
                       </span>
                     </div>
                     <div className="flex items-center gap-3">
@@ -745,7 +757,7 @@ export default function Matching() {
                           background: full ? 'rgba(51,71,94,0.08)' : ACCENT_SOFT,
                         }}
                       >
-                        {full ? 'Đầy' : 'Tham gia'}
+                        {full ? t('matching.rooms.full') : t('matching.rooms.joinAction')}
                       </button>
                     </div>
                   </div>
@@ -756,7 +768,7 @@ export default function Matching() {
         )}
 
         <Link to="/" className="text-[13.5px] font-bold text-[oklch(0.58_0.075_220)] no-underline hover:text-[oklch(0.5_0.08_220)]">
-          ← Về màn hình học
+          {t('matching.backToStudy')}
         </Link>
       </div>
 
@@ -775,21 +787,24 @@ export default function Matching() {
               <div className="flex flex-col gap-[18px]">
                 <div>
                   <h3 className="m-0 text-xl font-extrabold tracking-[-0.3px] text-[#2c3f55]">
-                    Tạo phòng mới
+                    {t('matching.create.title')}
                   </h3>
                   <p className="mt-[6px] mb-0 text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
-                    Host: {profileName || 'Bạn'} · Loại phòng: {current.name}
+                    {t('matching.create.hostLine', {
+                      name: profileName || t('matching.create.you'),
+                      roomType: roomTypeLabel(current.key),
+                    })}
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-2">
                   <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
-                    Tên phòng
+                    {t('matching.create.nameLabel')}
                   </span>
                   <input
                     value={roomName}
                     onChange={(e) => setRoomName(e.target.value)}
-                    placeholder="VD: Deep work 8h tối"
+                    placeholder={t('matching.create.namePlaceholder')}
                     className="w-full rounded-[18px] border-[1.5px] border-[rgba(51,71,94,0.14)] px-4 py-[13px] font-sans text-[15px] font-bold text-[#2c3f55] outline-none focus:border-[rgba(126,201,198,0.9)] focus:bg-white"
                     style={{ background: 'rgba(240,248,250,0.7)' }}
                   />
@@ -798,10 +813,10 @@ export default function Matching() {
                 <div className="flex flex-col gap-2">
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
-                      Số người tối đa
+                      {t('matching.create.maxPeopleLabel')}
                     </span>
                     <span className="text-[13.5px] font-extrabold text-[#2c5b53]">
-                      {capacity} người (gồm bạn)
+                      {t('matching.create.maxPeopleValue', { count: capacity })}
                     </span>
                   </div>
                   <div className="flex gap-2">
@@ -820,24 +835,24 @@ export default function Matching() {
 
                 <div className="flex flex-col gap-2">
                   <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
-                    Quyền riêng tư
+                    {t('matching.create.privacyLabel')}
                   </span>
                   <div className="flex gap-2">
-                    {(['Công khai', 'Riêng tư'] as Visibility[]).map((name) => (
+                    {(['public', 'private'] as Visibility[]).map((v) => (
                       <button
-                        key={name}
-                        onClick={() => setVisibility(name)}
+                        key={v}
+                        onClick={() => setVisibility(v)}
                         className="flex-1 rounded-[18px] border-[1.5px] py-[11px] font-sans text-sm font-bold transition-all duration-[220ms]"
-                        style={chipStyle(visibility === name)}
+                        style={chipStyle(visibility === v)}
                       >
-                        {name}
+                        {visibilityLabel(v)}
                       </button>
                     ))}
                   </div>
                   <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.5)]">
-                    {visibility === 'Công khai'
-                      ? 'Phòng hiện trong danh sách công khai, ai cũng có thể tham gia.'
-                      : 'Chỉ người có mã phòng mới vào được.'}
+                    {visibility === 'public'
+                      ? t('matching.create.publicHint')
+                      : t('matching.create.privateHint')}
                   </span>
                 </div>
 
@@ -849,7 +864,7 @@ export default function Matching() {
                   className="w-full rounded-[22px] border-none py-[15px] font-sans text-base font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-60"
                   style={{ background: ACCENT_SOFT, boxShadow: '0 12px 26px rgba(58,98,126,0.16)' }}
                 >
-                  {creating ? 'Đang tạo…' : 'Tạo phòng'}
+                  {creating ? t('matching.create.submitting') : t('matching.create.submit')}
                 </button>
               </div>
             ) : (
@@ -863,9 +878,14 @@ export default function Matching() {
                   </svg>
                 </span>
                 <div>
-                  <h3 className="m-0 text-xl font-extrabold text-[#2c3f55]">Đã tạo “{createdName}”</h3>
+                  <h3 className="m-0 text-xl font-extrabold text-[#2c3f55]">
+                    {t('matching.create.created', { name: createdName })}
+                  </h3>
                   <p className="mt-[6px] mb-0 text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
-                    {visibility} · tối đa {capacity} người · Chia sẻ mã này để bạn bè vào phòng.
+                    {t('matching.create.createdMeta', {
+                      visibility: visibilityLabel(visibility),
+                      count: capacity,
+                    })}
                   </p>
                 </div>
                 <div
@@ -880,7 +900,7 @@ export default function Matching() {
                     className="rounded-[15px] border-none px-4 py-[10px] font-sans text-[13.5px] font-extrabold text-[#22483f] hover:brightness-[0.97]"
                     style={{ background: ACCENT_SOFT }}
                   >
-                    {copied ? 'Đã chép ✓' : 'Sao chép'}
+                    {copied ? t('matching.create.copied') : t('matching.create.copy')}
                   </button>
                 </div>
                 <div className="flex w-full gap-[9px]">
@@ -888,14 +908,14 @@ export default function Matching() {
                     onClick={() => setModal(false)}
                     className="flex-1 rounded-[20px] border-[1.5px] border-[rgba(51,71,94,0.16)] bg-white py-[13px] font-sans text-[14.5px] font-extrabold text-[#43596f] hover:!bg-[rgba(240,248,250,0.8)]"
                   >
-                    Đóng
+                    {t('matching.create.close')}
                   </button>
                   <button
                     onClick={() => navigate('/room/' + roomId)}
                     className="flex-1 rounded-[20px] border-none py-[13px] text-center font-sans text-[14.5px] font-extrabold text-[#1e3549]"
                     style={{ background: ACCENT_SOFT }}
                   >
-                    Vào phòng
+                    {t('matching.create.enterRoom')}
                   </button>
                 </div>
               </div>

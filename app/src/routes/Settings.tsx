@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 
@@ -48,6 +49,7 @@ function initials(name: string) {
 }
 
 export default function Settings() {
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
 
@@ -183,7 +185,7 @@ export default function Settings() {
     e.target.value = ''
     if (!file || !user) return
     if (file.size > MAX_WALLPAPER_BYTES) {
-      alert('Ảnh tối đa 5 MB.')
+      alert(t('settings.wallpapers.tooLarge'))
       return
     }
     const path = `${user.id}/${crypto.randomUUID()}-${file.name}`
@@ -206,21 +208,21 @@ export default function Settings() {
   }
 
   function renameTrack(id: string, name: string) {
-    setTracks((ts) => ts.map((t) => (t.id === id ? { ...t, name } : t)))
+    setTracks((ts) => ts.map((track) => (track.id === id ? { ...track, name } : track)))
   }
-  function commitTrackName(t: Track) {
+  function commitTrackName(track: Track) {
     supabase
       .from('tracks')
-      .update({ name: t.name })
-      .eq('id', t.id)
+      .update({ name: track.name })
+      .eq('id', track.id)
       .then(({ error }) => {
         if (error) console.error('rename track failed', error)
       })
   }
-  async function removeTrack(t: Track) {
-    setTracks((ts) => ts.filter((x) => x.id !== t.id))
-    await supabase.storage.from('tracks').remove([t.path])
-    const { error } = await supabase.from('tracks').delete().eq('id', t.id)
+  async function removeTrack(track: Track) {
+    setTracks((ts) => ts.filter((x) => x.id !== track.id))
+    await supabase.storage.from('tracks').remove([track.path])
+    const { error } = await supabase.from('tracks').delete().eq('id', track.id)
     if (error) console.error('remove track failed', error)
   }
   async function handleTrackFile(e: ChangeEvent<HTMLInputElement>) {
@@ -228,7 +230,7 @@ export default function Settings() {
     e.target.value = ''
     if (!file || !user) return
     if (file.size > MAX_TRACK_BYTES) {
-      alert('Nhạc tối đa 25 MB.')
+      alert(t('settings.music.tooLarge'))
       return
     }
     const durationSeconds = await readAudioDuration(file)
@@ -265,8 +267,10 @@ export default function Settings() {
             className="h-[22px] w-[22px] rounded-[9px]"
             style={{ background: 'linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235))' }}
           />
-          <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[#2f4459]">FocusFlow</span>
-          <span className="text-sm font-semibold text-[rgba(51,71,94,0.5)]">· Cài đặt &amp; hồ sơ</span>
+          <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[#2f4459]">{t('app.name')}</span>
+          <span className="text-sm font-semibold text-[rgba(51,71,94,0.5)]">
+            · {t('settings.headerTag')}
+          </span>
         </div>
 
         {/* profile */}
@@ -285,11 +289,11 @@ export default function Settings() {
           </div>
           <div className="flex flex-[1_1_200px] flex-col gap-1">
             <span className="text-[22px] font-extrabold tracking-[-0.3px] text-[#2c3f55]">
-              {profileName || 'Người dùng mới'}
+              {profileName || t('settings.profile.defaultName')}
             </span>
             <span className="text-sm font-semibold text-[rgba(51,71,94,0.55)]">{user?.email}</span>
             <span className="text-[13px] font-bold text-[#2c5b53]">
-              Streak {streak} ngày · {sessionsThisWeek} phiên tuần này
+              {t('settings.profile.streak', { days: streak, sessions: sessionsThisWeek })}
             </span>
           </div>
           <div className="flex flex-wrap gap-[9px]">
@@ -297,12 +301,12 @@ export default function Settings() {
               className="rounded-[20px] border-none px-5 py-[13px] font-sans text-sm font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
               style={{ background: ACCENT_SOFT }}
             >
-              Đổi ảnh đại diện
+              {t('settings.profile.changeAvatar')}
             </button>
             <button
               className="rounded-[20px] border-[1.5px] border-[rgba(51,71,94,0.14)] bg-[rgba(255,255,255,0.8)] px-[18px] py-[13px] font-sans text-sm font-bold text-[#445c74] transition-colors duration-200 hover:!bg-white"
             >
-              Sửa thông tin
+              {t('settings.profile.editInfo')}
             </button>
           </div>
         </div>
@@ -313,8 +317,10 @@ export default function Settings() {
           style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
         >
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[17px] font-extrabold text-[#2c3f55]">Wallpaper của tôi</span>
-            <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">{wallpapers.length} ảnh</span>
+            <span className="text-[17px] font-extrabold text-[#2c3f55]">{t('settings.wallpapers.title')}</span>
+            <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">
+              {t('settings.wallpapers.count', { count: wallpapers.length })}
+            </span>
           </div>
           <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
             {wallpapers.map((w, i) => (
@@ -337,7 +343,7 @@ export default function Settings() {
                 </span>
                 <button
                   onClick={() => removeWallpaper(w)}
-                  title="Xoá"
+                  title={t('settings.wallpapers.delete')}
                   className="absolute top-2 right-2 flex h-[26px] w-[26px] items-center justify-center rounded-[10px] border-none text-[#7a3f2c] opacity-50 transition-all duration-200 hover:!bg-[oklch(0.88_0.05_45)] hover:opacity-100"
                   style={{ background: 'rgba(255,255,255,0.8)' }}
                 >
@@ -353,12 +359,12 @@ export default function Settings() {
               style={{ background: 'rgba(238,246,248,0.6)' }}
             >
               <span className="text-[22px] leading-none font-bold">+</span>
-              Thêm ảnh
+              {t('settings.wallpapers.add')}
             </button>
             <input ref={wallpaperInputRef} type="file" accept="image/jpeg,image/png" hidden onChange={handleWallpaperFile} />
           </div>
           <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.45)]">
-            JPG hoặc PNG, tối đa 5 MB mỗi ảnh.
+            {t('settings.wallpapers.hint')}
           </span>
         </div>
 
@@ -368,13 +374,15 @@ export default function Settings() {
           style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
         >
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[17px] font-extrabold text-[#2c3f55]">Nhạc của tôi</span>
-            <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">{tracks.length} bài</span>
+            <span className="text-[17px] font-extrabold text-[#2c3f55]">{t('settings.music.title')}</span>
+            <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">
+              {t('settings.music.count', { count: tracks.length })}
+            </span>
           </div>
           <div className="flex flex-col gap-2">
-            {tracks.map((t) => (
+            {tracks.map((track) => (
               <div
-                key={t.id}
+                key={track.id}
                 className="flex items-center gap-[13px] rounded-[22px] px-4 py-[13px] transition-colors duration-200 hover:!bg-white"
                 style={{ background: 'rgba(238,246,248,0.72)' }}
               >
@@ -390,17 +398,21 @@ export default function Settings() {
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
                   <input
-                    value={t.name}
-                    onChange={(e) => renameTrack(t.id, e.target.value)}
-                    onBlur={() => commitTrackName(t)}
+                    value={track.name}
+                    onChange={(e) => renameTrack(track.id, e.target.value)}
+                    onBlur={() => commitTrackName(track)}
                     className="w-full rounded-lg border-none bg-transparent py-[2px] font-sans text-[14.5px] font-bold text-[#2c3f55] outline-none focus:!bg-[rgba(126,201,198,0.14)]"
                   />
-                  <span className="font-mono text-[11.5px] text-[rgba(51,71,94,0.45)]">{t.path.split('/').pop()}</span>
+                  <span className="font-mono text-[11.5px] text-[rgba(51,71,94,0.45)]">
+                    {track.path.split('/').pop()}
+                  </span>
                 </div>
-                <span className="text-[13px] font-bold text-[rgba(51,71,94,0.5)]">{fmtDuration(t.durationSeconds)}</span>
+                <span className="text-[13px] font-bold text-[rgba(51,71,94,0.5)]">
+                  {fmtDuration(track.durationSeconds)}
+                </span>
                 <button
-                  onClick={() => removeTrack(t)}
-                  title="Xoá"
+                  onClick={() => removeTrack(track)}
+                  title={t('settings.music.delete')}
                   className="flex h-[30px] w-[30px] items-center justify-center rounded-xl border-none text-[#7a3f2c] opacity-60 transition-all duration-200 hover:!bg-[oklch(0.88_0.05_45)] hover:opacity-100"
                   style={{ background: 'rgba(255,255,255,0.9)' }}
                 >
@@ -417,11 +429,11 @@ export default function Settings() {
             style={{ background: 'rgba(238,246,248,0.6)' }}
           >
             <span className="text-[19px] leading-none font-bold">+</span>
-            Upload nhạc (MP3, WAV)
+            {t('settings.music.upload')}
           </button>
           <input ref={trackInputRef} type="file" accept="audio/mpeg,audio/wav,audio/*" hidden onChange={handleTrackFile} />
           <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.45)]">
-            Bấm vào tên bài để đổi tên. Nhạc chỉ phát trong phiên học của bạn.
+            {t('settings.music.hint')}
           </span>
         </div>
 
@@ -430,14 +442,16 @@ export default function Settings() {
           className="flex flex-col gap-5 rounded-[32px] px-7 pt-[26px] pb-6"
           style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
         >
-          <span className="text-[17px] font-extrabold text-[#2c3f55]">Pomodoro mặc định</span>
+          <span className="text-[17px] font-extrabold text-[#2c3f55]">{t('settings.pomodoro.title')}</span>
           <div className="grid gap-[22px]" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
             <div className="flex flex-col gap-[6px]">
               <div className="flex items-baseline justify-between">
                 <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
-                  Phút tập trung
+                  {t('settings.pomodoro.focusMinutes')}
                 </span>
-                <span className="text-[15px] font-extrabold text-[#2c5b53]">{focus} phút</span>
+                <span className="text-[15px] font-extrabold text-[#2c5b53]">
+                  {t('settings.pomodoro.minutesValue', { count: focus })}
+                </span>
               </div>
               <input
                 type="range"
@@ -456,9 +470,11 @@ export default function Settings() {
             <div className="flex flex-col gap-[6px]">
               <div className="flex items-baseline justify-between">
                 <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
-                  Phút nghỉ
+                  {t('settings.pomodoro.breakMinutes')}
                 </span>
-                <span className="text-[15px] font-extrabold text-[#2c5b53]">{brk} phút</span>
+                <span className="text-[15px] font-extrabold text-[#2c5b53]">
+                  {t('settings.pomodoro.minutesValue', { count: brk })}
+                </span>
               </div>
               <input
                 type="range"
@@ -480,9 +496,11 @@ export default function Settings() {
             style={{ background: 'rgba(238,246,248,0.72)' }}
           >
             <div className="flex flex-col gap-[2px]">
-              <span className="text-[14.5px] font-bold text-[#2c3f55]">Tự động bắt đầu phiên tiếp theo</span>
+              <span className="text-[14.5px] font-bold text-[#2c3f55]">
+                {t('settings.pomodoro.autoStartTitle')}
+              </span>
               <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.48)]">
-                Hết giờ nghỉ là vào phiên học luôn
+                {t('settings.pomodoro.autoStartDesc')}
               </span>
             </div>
             <button
@@ -502,14 +520,44 @@ export default function Settings() {
               className="rounded-[22px] border-none px-[26px] py-[14px] font-sans text-[14.5px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
               style={{ background: ACCENT_SOFT }}
             >
-              {saved ? 'Đã lưu ✓' : 'Lưu thay đổi'}
+              {saved ? t('settings.pomodoro.saved') : t('settings.pomodoro.save')}
             </button>
             <button
               onClick={resetDefaults}
               className="rounded-[22px] border-[1.5px] border-[rgba(51,71,94,0.14)] bg-[rgba(255,255,255,0.8)] px-5 py-[14px] font-sans text-[14.5px] font-bold text-[#445c74] transition-colors duration-200 hover:!bg-white"
             >
-              Về mặc định 25/5
+              {t('settings.pomodoro.resetDefault')}
             </button>
+          </div>
+        </div>
+
+        {/* language */}
+        <div
+          className="flex flex-wrap items-center justify-between gap-[14px] rounded-[32px] px-7 py-[22px]"
+          style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
+        >
+          <span className="text-[14.5px] font-bold text-[#2c3f55]">{t('settings.language.title')}</span>
+          <div
+            className="flex gap-1 rounded-[20px] p-[5px]"
+            style={{ background: 'rgba(238,246,248,0.9)' }}
+          >
+            {(['vi', 'en'] as const).map((lng) => {
+              const on = i18n.resolvedLanguage === lng
+              return (
+                <button
+                  key={lng}
+                  onClick={() => void i18n.changeLanguage(lng)}
+                  className="rounded-2xl border-none px-4 py-[9px] font-sans text-[13px] font-bold transition-all duration-[240ms]"
+                  style={{
+                    color: on ? '#25415c' : 'rgba(51,71,94,0.55)',
+                    background: on ? 'rgba(255,255,255,0.98)' : 'transparent',
+                    boxShadow: on ? '0 4px 12px rgba(58,98,126,0.1)' : 'none',
+                  }}
+                >
+                  {t(`settings.language.${lng}`)}
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -519,7 +567,7 @@ export default function Settings() {
           style={{ borderTop: '1.5px solid rgba(51,71,94,0.1)' }}
         >
           <span className="max-w-[420px] text-[13.5px] leading-[1.55] font-semibold text-[rgba(51,71,94,0.5)]">
-            Đăng xuất sẽ giữ lại wallpaper và nhạc trên tài khoản; máy này chuyển về chế độ khách.
+            {t('settings.logout.hint')}
           </span>
           <button
             onClick={async () => {
@@ -533,12 +581,12 @@ export default function Settings() {
               <path d="M15 5.5V4a2 2 0 00-2-2H6a2 2 0 00-2 2v16a2 2 0 002 2h7a2 2 0 002-2v-1.5" />
               <path d="M11 12h10m-3.5-3.5L21 12l-3.5 3.5" />
             </svg>
-            Đăng xuất
+            {t('settings.logout.action')}
           </button>
         </div>
 
         <Link to="/" className="mt-[6px] self-center text-[13.5px] font-bold text-[oklch(0.58_0.075_220)] no-underline hover:text-[oklch(0.5_0.08_220)]">
-          ← Về màn hình học
+          {t('settings.backToStudy')}
         </Link>
       </div>
     </div>
