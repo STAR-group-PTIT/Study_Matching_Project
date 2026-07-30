@@ -61,10 +61,10 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Trạng thái nhạc đồng bộ (host điều khiển phát, member chỉnh volume riêng)
 - [x] Presence (ai đang online trong phòng)
 
-## Giai đoạn 6 — Video call (LiveKit)
-- [ ] Edge Function cấp token LiveKit theo room/user
-- [ ] Tích hợp LiveKit React SDK vào lưới video đã dựng ở GĐ1
-- [ ] Toggle cam/mic thật, badge trạng thái theo track state thật
+## Giai đoạn 6 — Video call (LiveKit) ✅ Code xong 2026-07-30, chờ user tạo project LiveKit + deploy
+- [x] Edge Function cấp token LiveKit theo room/user
+- [x] Tích hợp LiveKit SDK (`livekit-client`, không dùng `@livekit/components-react` vì UI đã tự dựng pixel-perfect từ GĐ1) vào lưới video đã dựng ở GĐ1
+- [x] Toggle cam/mic thật, badge trạng thái theo track state thật
 
 ## Giai đoạn 7 — Stats, Settings, Storage
 - [ ] Tính KPI thật từ `focus_sessions`

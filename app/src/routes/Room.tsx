@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { Room as LiveKitRoom, RoomEvent, Track } from 'livekit-client'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 
@@ -79,6 +80,31 @@ const FOCUS_MINUTES = 25
 const BREAK_MINUTES = 5
 const ACCENT = 'var(--ff-accent)'
 const ACCENT_SOFT = 'var(--ff-accent-soft)'
+
+function TrackMediaEl({ track, kind, mirror }: { track: MediaStreamTrack; kind: 'video' | 'audio'; mirror?: boolean }) {
+  const ref = useRef<HTMLVideoElement & HTMLAudioElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.srcObject = new MediaStream([track])
+    return () => {
+      el.srcObject = null
+    }
+  }, [track])
+  if (kind === 'video') {
+    return (
+      <video
+        ref={ref}
+        autoPlay
+        playsInline
+        muted
+        className="absolute inset-0 h-full w-full object-cover"
+        style={mirror ? { transform: 'scaleX(-1)' } : undefined}
+      />
+    )
+  }
+  return <audio ref={ref} autoPlay />
+}
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/)
@@ -203,6 +229,7 @@ export default function Room() {
 
   useEffect(() => {
     if (!realRoom || !user) return
+    const uid = user.id
     let cancelled = false
     setMembersLoaded(false)
 
@@ -220,9 +247,9 @@ export default function Room() {
               .map((r) => ({
                 id: r.user_id,
                 name: r.name,
-                status: r.user_id === user.id ? 'đang tập trung' : 'đang tập trung',
+                status: r.user_id === uid ? 'đang tập trung' : 'đang tập trung',
                 host: r.user_id === realRoom!.host_id,
-                me: r.user_id === user.id,
+                me: r.user_id === uid,
               })),
           )
           setPending(
@@ -230,7 +257,7 @@ export default function Room() {
               .filter((r) => r.status === 'pending')
               .map((r) => ({ id: r.id, userId: r.user_id, name: r.name, wait: relativeWait(r.joined_at) })),
           )
-          const mine = rows.find((r) => r.user_id === user.id)
+          const mine = rows.find((r) => r.user_id === uid)
           setMyStatus(mine ? mine.status : null)
           setMembersLoaded(true)
         })
@@ -367,6 +394,82 @@ export default function Room() {
     }
   }, [roomId, user])
 
+  const lkRoomRef = useRef<LiveKitRoom | null>(null)
+  const [videoTracks, setVideoTracks] = useState<Record<string, MediaStreamTrack>>({})
+  const [audioTracks, setAudioTracks] = useState<Record<string, MediaStreamTrack>>({})
+  const camRef = useRef(cam)
+  camRef.current = cam
+  const micRef = useRef(mic)
+  micRef.current = mic
+
+  // Connect to LiveKit only once actually admitted ('member', not 'pending') — mirrors
+  // the same gate the livekit-token Edge Function enforces server-side.
+  useEffect(() => {
+    if (!isRealMode || !code || myStatus !== 'member') return
+    let cancelled = false
+    const lkRoom = new LiveKitRoom({ adaptiveStream: true, dynacast: true })
+    lkRoomRef.current = lkRoom
+
+    function setTrack(identity: string, track: Track) {
+      if (track.kind === Track.Kind.Video) {
+        setVideoTracks((m) => ({ ...m, [identity]: track.mediaStreamTrack }))
+      } else if (track.kind === Track.Kind.Audio) {
+        setAudioTracks((m) => ({ ...m, [identity]: track.mediaStreamTrack }))
+      }
+    }
+    function clearTrack(identity: string, track: Track) {
+      const key = track.kind === Track.Kind.Video ? 'video' : track.kind === Track.Kind.Audio ? 'audio' : null
+      if (!key) return
+      const setter = key === 'video' ? setVideoTracks : setAudioTracks
+      setter((m) => {
+        if (!(identity in m)) return m
+        const next = { ...m }
+        delete next[identity]
+        return next
+      })
+    }
+
+    lkRoom
+      .on(RoomEvent.TrackSubscribed, (track, _pub, participant) => setTrack(participant.identity, track))
+      .on(RoomEvent.TrackUnsubscribed, (track, _pub, participant) => clearTrack(participant.identity, track))
+      .on(RoomEvent.LocalTrackPublished, (pub) => {
+        if (pub.track) setTrack(lkRoom.localParticipant.identity, pub.track)
+      })
+      .on(RoomEvent.LocalTrackUnpublished, (pub) => {
+        if (pub.track) clearTrack(lkRoom.localParticipant.identity, pub.track)
+      })
+
+    supabase.functions
+      .invoke<{ token?: string; error?: string }>('livekit-token', { body: { code } })
+      .then(async ({ data, error }) => {
+        if (cancelled || error || !data?.token) return
+        await lkRoom.connect(import.meta.env.VITE_LIVEKIT_URL, data.token)
+        if (cancelled) {
+          lkRoom.disconnect()
+          return
+        }
+        await lkRoom.localParticipant.setCameraEnabled(camRef.current)
+        await lkRoom.localParticipant.setMicrophoneEnabled(micRef.current)
+      })
+
+    return () => {
+      cancelled = true
+      lkRoom.disconnect()
+      lkRoomRef.current = null
+      setVideoTracks({})
+      setAudioTracks({})
+    }
+  }, [isRealMode, code, myStatus])
+
+  useEffect(() => {
+    if (!isRealMode) return
+    lkRoomRef.current?.localParticipant.setCameraEnabled(cam).catch(() => {})
+  }, [cam, isRealMode])
+  useEffect(() => {
+    if (!isRealMode) return
+    lkRoomRef.current?.localParticipant.setMicrophoneEnabled(mic).catch(() => {})
+  }, [mic, isRealMode])
+
   const runningRef = useRef(running)
   runningRef.current = running
 
@@ -495,8 +598,11 @@ export default function Room() {
   const tiles = members.map((u) => {
     const me = !!u.me
     const online = !isRealMode || me || onlineIds.has(u.id)
-    const displayStatus = isRealMode && !me ? (online ? 'đang tập trung' : 'ngoại tuyến') : u.status
-    const camOff = me ? !cam : displayStatus.includes('cam tắt')
+    const videoTrack = isRealMode ? videoTracks[u.id] : undefined
+    const audioTrack = isRealMode && !me ? audioTracks[u.id] : undefined
+    const camOff = me ? !cam : isRealMode ? !videoTrack : (u.status.includes('cam tắt') as boolean)
+    const displayStatus =
+      isRealMode && !me ? (!online ? 'ngoại tuyến' : audioTrack ? 'đang tập trung' : 'mic tắt') : u.status
     return {
       id: u.id,
       name: u.name,
@@ -504,6 +610,8 @@ export default function Room() {
       status: me ? (mic ? 'mic bật' : 'mic tắt') : displayStatus,
       statusColor: me ? (mic ? '#2c5b53' : 'rgba(51,71,94,0.45)') : online ? 'rgba(51,71,94,0.45)' : 'rgba(51,71,94,0.3)',
       feedLabel: camOff ? 'camera đang tắt' : 'webcam · ' + u.name,
+      videoTrack: camOff ? undefined : videoTrack,
+      audioTrack,
       avatarBg: me ? 'rgba(140,205,196,0.55)' : 'rgba(160,200,225,0.5)',
       avatarColor: me ? '#22483f' : '#2b4d68',
       tileBorder: me ? '2.5px solid rgba(126,201,198,0.95)' : '2px solid rgba(140,205,196,0.45)',
@@ -668,14 +776,19 @@ export default function Room() {
                   background: 'repeating-linear-gradient(135deg, #e3eef2 0 12px, #dae8ee 12px 24px)',
                 }}
               >
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-[6px]">
-                  <span
-                    className="rounded-[11px] px-3 py-[7px] font-mono text-xs tracking-[0.5px] text-[rgba(51,71,94,0.5)]"
-                    style={{ background: 'rgba(255,255,255,0.7)' }}
-                  >
-                    {t.feedLabel}
-                  </span>
-                </div>
+                {t.videoTrack ? (
+                  <TrackMediaEl track={t.videoTrack} kind="video" mirror={t.self} />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-[6px]">
+                    <span
+                      className="rounded-[11px] px-3 py-[7px] font-mono text-xs tracking-[0.5px] text-[rgba(51,71,94,0.5)]"
+                      style={{ background: 'rgba(255,255,255,0.7)' }}
+                    >
+                      {t.feedLabel}
+                    </span>
+                  </div>
+                )}
+                {t.audioTrack && <TrackMediaEl track={t.audioTrack} kind="audio" />}
                 <div
                   className="absolute top-3 left-3 flex items-center gap-2 rounded-[18px] py-[6px] pr-[13px] pl-[7px]"
                   style={{ background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(14px)', boxShadow: '0 5px 15px rgba(58,98,126,0.1)' }}
