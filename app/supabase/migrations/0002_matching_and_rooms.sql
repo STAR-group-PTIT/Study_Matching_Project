@@ -139,13 +139,15 @@ begin
     return;
   end if;
 
-  select * into v_existing from public.room_members where room_id = v_room.id and user_id = v_uid;
+  select * into v_existing from public.room_members
+    where room_members.room_id = v_room.id and room_members.user_id = v_uid;
   if found then
     return query select 'already_joined'::text, v_room.id, v_existing.status;
     return;
   end if;
 
-  select count(*) into v_member_count from public.room_members where room_id = v_room.id and status = 'member';
+  select count(*) into v_member_count from public.room_members
+    where room_members.room_id = v_room.id and room_members.status = 'member';
   if v_member_count >= v_room.capacity then
     return query select 'full'::text, v_room.id, null::text;
     return;

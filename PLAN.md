@@ -55,7 +55,7 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Ghép ngẫu nhiên (matching queue, qua Edge Function `match-room`)
 - [x] Chế độ duyệt auto/manual, hàng chờ, kick (Supabase Realtime Postgres changes)
 
-## Giai đoạn 5 — Đồng bộ realtime trong phòng ✅ Code xong 2026-07-29, chờ user chạy migration 0003
+## Giai đoạn 5 — Đồng bộ realtime trong phòng ✅ Verify xong bằng test thật 2 tài khoản 2026-07-30
 - [x] Pomodoro đồng bộ (host = nguồn thời gian, broadcast)
 - [x] Chat realtime
 - [x] Trạng thái nhạc đồng bộ (host điều khiển phát, member chỉnh volume riêng)
