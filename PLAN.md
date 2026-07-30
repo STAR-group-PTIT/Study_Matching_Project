@@ -72,8 +72,8 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Lưu Pomodoro defaults vào `profiles` (đã làm sớm ở GĐ3; GĐ7 nối tiếp: Dashboard giờ thực sự dùng các giá trị đó cho timer)
 
 ## Giai đoạn 8 — Responsive, polish, deploy
-- [ ] Bottom sheet cho panel phải trên mobile
-- [ ] QA toàn luồng: Auth → Dashboard → Matching → Room → Rời phòng → Stats/Settings
+- [x] Bottom sheet cho panel phải trên mobile — xong 2026-07-30
+- [x] QA toàn luồng: Auth → Dashboard → Matching → Room → Rời phòng → Stats/Settings — xong 2026-07-30 (phát hiện + fix thêm vài lỗi tràn màn hình mobile ngoài kế hoạch, xem CONTEXT.md)
 - [ ] Deploy frontend (Vercel/Netlify) + Supabase production
 - [ ] Kiểm tra i18n vi/en đầy đủ
 

@@ -761,11 +761,7 @@ export default function Room() {
 
       {/* video stage */}
       <div
-        className="absolute inset-0 py-[84px] pl-[26px]"
-        style={{
-          paddingRight: chatOpen ? '392px' : '26px',
-          transition: 'padding 420ms cubic-bezier(0.22,1,0.36,1)',
-        }}
+        className={`absolute inset-0 py-[84px] pr-[26px] pl-[26px] transition-[padding] duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${chatOpen ? 'md:pr-[392px]' : 'md:pr-[26px]'}`}
       >
         <div
           className="relative h-full w-full overflow-hidden rounded-[34px] p-4"
@@ -890,12 +886,13 @@ export default function Room() {
 
       {/* bottom controls */}
       <div
-        className="absolute bottom-7 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-[26px] p-[10px]"
+        className="absolute bottom-4 left-1/2 z-30 flex max-w-[calc(100vw-24px)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-[26px] p-[8px] md:bottom-7 md:max-w-none md:gap-2 md:p-[10px]"
         style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px rgba(58,98,126,0.15)' }}
       >
         <button
           onClick={() => setCam((c) => !c)}
-          className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:brightness-[1.03]"
+          title={cam ? 'Camera' : 'Camera tắt'}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:brightness-[1.03] md:px-5"
           style={{ background: cam ? 'rgba(255,255,255,0.4)' : 'rgba(206,222,232,0.85)', color: cam ? '#354c65' : 'rgba(51,71,94,0.62)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -903,11 +900,12 @@ export default function Room() {
             <path d="M15.5 11.5l6-3v7l-6-3z" />
             <path d={cam ? 'M12 12' : 'M3 20L21 4'} />
           </svg>
-          {cam ? 'Camera' : 'Camera tắt'}
+          <span className="hidden md:inline">{cam ? 'Camera' : 'Camera tắt'}</span>
         </button>
         <button
           onClick={() => setMic((v) => !v)}
-          className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:brightness-[1.03]"
+          title={mic ? 'Mic' : 'Mic tắt'}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:brightness-[1.03] md:px-5"
           style={{ background: mic ? 'rgba(255,255,255,0.4)' : 'rgba(206,222,232,0.85)', color: mic ? '#354c65' : 'rgba(51,71,94,0.62)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -915,21 +913,23 @@ export default function Room() {
             <path d="M5.5 12a6.5 6.5 0 0013 0M12 18.5V21" />
             <path d={mic ? 'M12 12' : 'M3 20L21 4'} />
           </svg>
-          {mic ? 'Mic' : 'Mic tắt'}
+          <span className="hidden md:inline">{mic ? 'Mic' : 'Mic tắt'}</span>
         </button>
         <button
           onClick={() => openTab('chat')}
-          className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)]"
+          title="Chat"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)] md:px-5"
           style={{ background: chatOpen && effectiveTab === 'chat' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
             <path d="M20 12.5c0 3.6-3.6 6.5-8 6.5-1 0-2-.15-2.9-.42L4.5 20l1.1-3.3A6.7 6.7 0 014 12.5C4 8.9 7.6 6 12 6s8 2.9 8 6.5z" />
           </svg>
-          Chat
+          <span className="hidden md:inline">Chat</span>
         </button>
         <button
           onClick={() => openTab('music')}
-          className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)]"
+          title="Nhạc"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)] md:px-5"
           style={{ background: chatOpen && effectiveTab === 'music' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -937,12 +937,13 @@ export default function Room() {
             <circle cx="6.5" cy="18" r="2.6" />
             <circle cx="19" cy="16" r="2.6" />
           </svg>
-          Nhạc
+          <span className="hidden md:inline">Nhạc</span>
         </button>
         {isHost && (
           <button
             onClick={() => openTab('host')}
-            className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)]"
+            title="Quản lý"
+            className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)] md:px-5"
             style={{ background: chatOpen && effectiveTab === 'host' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)' }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -950,7 +951,7 @@ export default function Room() {
               <circle cx="9" cy="8.5" r="3.2" />
               <path d="M17 4.5l1.15 2.4 2.6.36-1.9 1.82.46 2.58L17 10.44l-2.31 1.22.46-2.58-1.9-1.82 2.6-.36z" />
             </svg>
-            Quản lý
+            <span className="hidden md:inline">Quản lý</span>
             {queued && (
               <span
                 className="rounded-full px-2 py-[2px] text-xs font-extrabold text-[#7a4a2c]"
@@ -961,33 +962,36 @@ export default function Room() {
             )}
           </button>
         )}
-        <div className="mx-1 h-[26px] w-px" style={{ background: 'rgba(51,71,94,0.13)' }} />
+        <div className="mx-1 h-[26px] w-px shrink-0" style={{ background: 'rgba(51,71,94,0.13)' }} />
         <button
           onClick={leaveRoom}
-          className="flex items-center gap-[9px] rounded-[19px] border-none px-[22px] py-3 font-sans text-sm font-extrabold text-[#7a3f2c] transition-all duration-[220ms] hover:brightness-95"
+          title="Rời phòng"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-extrabold text-[#7a3f2c] transition-all duration-[220ms] hover:brightness-95 md:px-[22px]"
           style={{ background: 'oklch(0.86 0.055 45)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
             <path d="M15 5.5V4a2 2 0 00-2-2H6a2 2 0 00-2 2v16a2 2 0 002 2h7a2 2 0 002-2v-1.5" />
             <path d="M11 12h10m-3.5-3.5L21 12l-3.5 3.5" />
           </svg>
-          Rời phòng
+          <span className="hidden md:inline">Rời phòng</span>
         </button>
       </div>
 
-      {/* side panel */}
+      {/* side panel — bottom sheet on mobile, side panel on md+ */}
       <div
-        className="absolute top-[84px] right-[26px] bottom-[112px] z-[28] flex w-[340px] flex-col gap-[14px] rounded-[30px] p-[18px]"
+        className={`fixed inset-x-3 bottom-[112px] z-[28] flex max-h-[60vh] flex-col gap-[14px] rounded-[26px] p-[18px] md:absolute md:inset-x-auto md:top-[84px] md:right-[26px] md:max-h-none md:w-[340px] md:rounded-[30px] ${
+          chatOpen ? 'translate-y-0 md:translate-x-0' : 'translate-y-[calc(100%+24px)] md:translate-y-0 md:translate-x-[380px]'
+        }`}
         style={{
           background: 'rgba(255,255,255,0.84)',
           backdropFilter: 'blur(22px)',
           boxShadow: '0 18px 46px rgba(58,98,126,0.15)',
-          transform: `translateX(${chatOpen ? '0px' : '380px'})`,
           opacity: chatOpen ? 1 : 0,
           pointerEvents: chatOpen ? 'auto' : 'none',
           transition: 'transform 440ms cubic-bezier(0.22,1,0.36,1), opacity 340ms ease',
         }}
       >
+        <div className="mx-auto -mt-1 mb-1 h-1 w-9 shrink-0 rounded-full bg-[rgba(51,71,94,0.16)] md:hidden" />
         <div className="flex items-center gap-2">
           <div className="flex flex-1 gap-[5px] rounded-[20px] p-[5px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
             {(

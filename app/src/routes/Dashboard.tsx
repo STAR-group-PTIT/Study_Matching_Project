@@ -244,7 +244,7 @@ export default function Dashboard() {
       />
 
       {/* top bar */}
-      <div className="absolute top-[26px] right-8 left-8 z-40 flex items-center justify-between gap-4">
+      <div className="absolute top-[26px] right-8 left-8 z-40 flex flex-wrap items-center justify-between gap-4">
         <div
           className="flex items-center gap-[11px] rounded-[22px] py-[9px] pr-[18px] pl-[13px]"
           style={{
@@ -455,9 +455,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* left widgets */}
+      {/* left widgets — hidden on mobile (would overlap the right column at narrow widths) */}
       <div
-        className="absolute top-24 left-8 flex w-[232px] flex-col gap-[14px]"
+        className="absolute top-24 left-8 hidden w-[232px] flex-col gap-[14px] md:flex"
         style={{
           ...dashStyleBase,
           transform: `translateX(${dashVisible ? '0px' : '-24px'})`,
@@ -513,9 +513,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* right column */}
+      {/* right column — hidden on mobile, see left widgets comment */}
       <div
-        className="absolute top-24 right-8 z-20 flex w-[248px] flex-col gap-[14px]"
+        className="absolute top-24 right-8 z-20 hidden w-[248px] flex-col gap-[14px] md:flex"
         style={{
           ...dashStyleBase,
           transform: `translateX(${dashVisible ? '0px' : '24px'})`,
@@ -615,7 +615,7 @@ export default function Dashboard() {
 
       {/* taskbar */}
       <div
-        className="absolute bottom-[34px] left-1/2 flex items-center gap-2 rounded-[26px] p-[10px]"
+        className="absolute bottom-[34px] left-1/2 flex max-w-[calc(100vw-24px)] items-center gap-1 overflow-x-auto rounded-[26px] p-[8px] md:max-w-none md:gap-2 md:p-[10px]"
         style={{
           ...dashStyleBase,
           background: 'rgba(255,255,255,0.66)',
@@ -628,7 +628,7 @@ export default function Dashboard() {
         <button
           onClick={() => togglePanel('wp')}
           title="Đổi hình nền"
-          className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)]"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:px-5"
           style={{ background: panel === 'wp' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)' }}
         >
           <svg
@@ -644,12 +644,12 @@ export default function Dashboard() {
             <circle cx="9" cy="10" r="1.8" />
             <path d="M4 18l5.5-5 4 3.4 3-2.4L20 18" />
           </svg>
-          Hình nền
+          <span className="hidden md:inline">Hình nền</span>
         </button>
         <button
           onClick={() => togglePanel('music')}
           title="Nhạc nền"
-          className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)]"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:px-5"
           style={{
             background: panel === 'music' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)',
           }}
@@ -667,12 +667,12 @@ export default function Dashboard() {
             <circle cx="18" cy="15" r="3" />
             <path d="M10 17V6l11-2v11" />
           </svg>
-          Nhạc nền
+          <span className="hidden md:inline">Nhạc nền</span>
         </button>
         <button
           onClick={() => togglePanel('todo')}
           title="Danh sách việc"
-          className="flex items-center gap-[9px] rounded-[19px] border-none px-5 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)]"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:px-5"
           style={{ background: panel === 'todo' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)' }}
         >
           <svg
@@ -689,7 +689,7 @@ export default function Dashboard() {
             <path d="M13 8h7" />
             <path d="M13 17h7" />
           </svg>
-          To-do
+          <span className="hidden md:inline">To-do</span>
           <span
             className="rounded-full px-2 py-[2px] text-xs font-extrabold text-[#2c5b53]"
             style={{ background: 'rgba(120,190,180,0.28)' }}
@@ -697,6 +697,27 @@ export default function Dashboard() {
             {openCount}
           </span>
         </button>
+        <Link
+          to="/matching"
+          title="Học cùng nhau"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] no-underline transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:hidden"
+          style={{ background: 'rgba(255,255,255,0.35)' }}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+          >
+            <circle cx="9" cy="8.5" r="3.2" />
+            <path d="M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19" />
+            <path d="M16.4 5.6a3.2 3.2 0 010 5.8" />
+            <path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1" />
+          </svg>
+        </Link>
       </div>
 
       {/* wallpaper popup */}
