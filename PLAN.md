@@ -75,7 +75,7 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Bottom sheet cho panel phải trên mobile — xong 2026-07-30
 - [x] QA toàn luồng: Auth → Dashboard → Matching → Room → Rời phòng → Stats/Settings — xong 2026-07-30 (phát hiện + fix thêm vài lỗi tràn màn hình mobile ngoài kế hoạch, xem CONTEXT.md)
 - [ ] Deploy frontend (Vercel/Netlify) + Supabase production
-- [ ] Kiểm tra i18n vi/en đầy đủ
+- [x] Kiểm tra i18n vi/en đầy đủ — xong 2026-07-30 (chi tiết CONTEXT.md)
 
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).

@@ -17,9 +17,12 @@ type RoomRow = {
   admit_mode: 'auto' | 'manual'
   capacity: number
   duration_minutes: number
+  break_minutes: number
+  session_count: number
   timer_phase: 'focus' | 'break'
   timer_round: number
   timer_running: boolean
+  timer_done: boolean
   timer_remaining_seconds: number | null
   timer_updated_at: string
   music_on: boolean
@@ -49,7 +52,7 @@ function relativeWait(iso: string, t: (key: string, options?: Record<string, unk
 }
 
 function phaseTotalSeconds(r: RoomRow, phase: 'focus' | 'break') {
-  return (phase === 'focus' ? r.duration_minutes : BREAK_MINUTES) * 60
+  return (phase === 'focus' ? r.duration_minutes : r.break_minutes) * 60
 }
 function computeLeftFromRoom(r: RoomRow) {
   const base = r.timer_remaining_seconds ?? phaseTotalSeconds(r, r.timer_phase)
@@ -69,6 +72,7 @@ const TRACK_LENGTHS: Record<(typeof TRACK_KEYS)[number], string> = {
 
 const FOCUS_MINUTES = 25
 const BREAK_MINUTES = 5
+const SESSION_COUNT_DEFAULT = 4
 const ACCENT = 'var(--ff-accent)'
 const ACCENT_SOFT = 'var(--ff-accent-soft)'
 
@@ -166,6 +170,9 @@ export default function Room() {
   const [phase, setPhase] = useState<Phase>('focus')
   const [left, setLeft] = useState(focusSecs() - 512)
   const [round, setRound] = useState(2)
+  const [done, setDone] = useState(false)
+  const roundRef = useRef(round)
+  roundRef.current = round
 
   const [cam, setCam] = useState(true)
   const [mic, setMic] = useState(false)
@@ -207,7 +214,7 @@ export default function Room() {
     supabase
       .from('rooms')
       .select(
-        'id, code, name, host_id, admit_mode, capacity, duration_minutes, timer_phase, timer_round, timer_running, timer_remaining_seconds, timer_updated_at, music_on, music_track_index',
+        'id, code, name, host_id, admit_mode, capacity, duration_minutes, break_minutes, session_count, timer_phase, timer_round, timer_running, timer_done, timer_remaining_seconds, timer_updated_at, music_on, music_track_index',
       )
       .eq('code', code.toUpperCase())
       .maybeSingle()
@@ -242,6 +249,7 @@ export default function Room() {
     setPhase(realRoom.timer_phase)
     setRunning(realRoom.timer_running)
     setRound(realRoom.timer_round)
+    setDone(realRoom.timer_done)
     setLeft(computeLeftFromRoom(realRoom))
     setMusicOn(realRoom.music_on)
     setTrackIndex(realRoom.music_track_index)
@@ -254,7 +262,7 @@ export default function Room() {
     if (!realRoom || !user) return
     const prevPhase = prevRealPhaseRef.current
     if (prevPhase !== null && prevPhase !== realRoom.timer_phase && myStatus === 'member') {
-      const completedMinutes = prevPhase === 'focus' ? realRoom.duration_minutes : BREAK_MINUTES
+      const completedMinutes = prevPhase === 'focus' ? realRoom.duration_minutes : realRoom.break_minutes
       const startedAt = new Date(Date.now() - completedMinutes * 60000).toISOString()
       supabase
         .from('focus_sessions')
@@ -363,6 +371,20 @@ export default function Room() {
     if (!realRoom || flippingRef.current) return
     flippingRef.current = true
     const nextPhase: Phase = realRoom.timer_phase === 'focus' ? 'break' : 'focus'
+    const isFinalCompletion = nextPhase === 'focus' && realRoom.timer_round >= realRoom.session_count
+    if (isFinalCompletion) {
+      await supabase
+        .from('rooms')
+        .update({
+          timer_running: false,
+          timer_done: true,
+          timer_remaining_seconds: 0,
+          timer_updated_at: new Date().toISOString(),
+        })
+        .eq('id', realRoom.id)
+      flippingRef.current = false
+      return
+    }
     await supabase
       .from('rooms')
       .update({
@@ -375,6 +397,20 @@ export default function Room() {
       .eq('id', realRoom.id)
     flippingRef.current = false
   }, [realRoom])
+  async function startNewRoundReal() {
+    if (!realRoom) return
+    await supabase
+      .from('rooms')
+      .update({
+        timer_phase: 'focus',
+        timer_round: 1,
+        timer_done: false,
+        timer_running: true,
+        timer_remaining_seconds: phaseTotalSeconds(realRoom, 'focus'),
+        timer_updated_at: new Date().toISOString(),
+      })
+      .eq('id', realRoom.id)
+  }
   async function setMusicOnReal(next: boolean) {
     if (!realRoom) return
     await supabase.from('rooms').update({ music_on: next }).eq('id', realRoom.id)
@@ -527,7 +563,13 @@ export default function Room() {
         if (prevLeft <= 1) {
           setPhase((prevPhase) => {
             const next: Phase = prevPhase === 'focus' ? 'break' : 'focus'
-            if (next === 'focus') setRound((r) => r + 1)
+            const isFinalCompletion = next === 'focus' && roundRef.current >= SESSION_COUNT_DEFAULT
+            if (next === 'focus' && !isFinalCompletion) setRound((r) => r + 1)
+            if (isFinalCompletion) {
+              setDone(true)
+              setRunning(false)
+              return prevPhase
+            }
             return next
           })
           return 0
@@ -551,6 +593,7 @@ export default function Room() {
   }, [phase, isRealMode])
 
   const total = isRealMode && realRoom ? phaseTotalSeconds(realRoom, phase) : phase === 'focus' ? focusSecs() : breakSecs()
+  const sessionCount = isRealMode && realRoom ? realRoom.session_count : SESSION_COUNT_DEFAULT
   const progress = Math.min(1, Math.max(0, 1 - left / total))
   const dashOffset = 270.2 * (1 - progress)
   const m = Math.floor(left / 60)
@@ -581,6 +624,17 @@ export default function Room() {
     }
     setLeft(total)
     setRunning(false)
+  }
+  function startNewRound() {
+    if (isRealMode) {
+      startNewRoundReal()
+      return
+    }
+    setPhase('focus')
+    setRound(1)
+    setDone(false)
+    setLeft(focusSecs())
+    setRunning(true)
   }
   function toggleRunning() {
     if (isRealMode) {
@@ -879,34 +933,55 @@ export default function Room() {
               style={{ strokeDashoffset: dashOffset, transition: 'stroke-dashoffset 980ms linear' }}
             />
           </svg>
-          <span className="relative text-xl font-extrabold text-[#2c3f55] tabular-nums">{timeText}</span>
+          <span className="relative text-xl font-extrabold text-[#2c3f55] tabular-nums">
+            {done ? '🎉' : timeText}
+          </span>
         </div>
         <div className="flex flex-col gap-2">
           <div className="flex flex-col gap-px">
             <span className="text-xs font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.5)] uppercase">
-              {phase === 'focus' ? t('room.pomodoro.focusing') : t('room.pomodoro.onBreak')}
+              {done
+                ? t('room.pomodoro.doneTitle')
+                : phase === 'focus'
+                  ? t('room.pomodoro.focusing')
+                  : t('room.pomodoro.onBreak')}
             </span>
             <span className="text-[13.5px] font-bold text-[#2c3f55]">
-              {t('room.pomodoro.sessionBoth', { round })}
+              {done
+                ? t('room.pomodoro.doneHint', { count: sessionCount })
+                : t('room.pomodoro.sessionBoth', { round, total: sessionCount })}
             </span>
           </div>
           <div className="flex gap-[7px]">
-            <button
-              onClick={toggleRunning}
-              disabled={isRealMode && !isHost}
-              className="rounded-2xl border-none px-[18px] py-[9px] font-sans text-[13px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:enabled:-translate-y-px disabled:opacity-50"
-              style={{ background: ACCENT_SOFT }}
-            >
-              {running ? t('room.pomodoro.pause') : t('room.pomodoro.resume')}
-            </button>
-            <button
-              onClick={resetTimer}
-              disabled={isRealMode && !isHost}
-              className="rounded-2xl border-none px-4 py-[9px] font-sans text-[13px] font-bold text-[#4a637d] hover:enabled:!bg-white disabled:opacity-50"
-              style={{ background: 'rgba(255,255,255,0.7)' }}
-            >
-              {t('room.pomodoro.reset')}
-            </button>
+            {done ? (
+              <button
+                onClick={startNewRound}
+                disabled={isRealMode && !isHost}
+                className="rounded-2xl border-none px-[18px] py-[9px] font-sans text-[13px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:enabled:-translate-y-px disabled:opacity-50"
+                style={{ background: ACCENT_SOFT }}
+              >
+                {t('room.pomodoro.newRound')}
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={toggleRunning}
+                  disabled={isRealMode && !isHost}
+                  className="rounded-2xl border-none px-[18px] py-[9px] font-sans text-[13px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:enabled:-translate-y-px disabled:opacity-50"
+                  style={{ background: ACCENT_SOFT }}
+                >
+                  {running ? t('room.pomodoro.pause') : t('room.pomodoro.resume')}
+                </button>
+                <button
+                  onClick={resetTimer}
+                  disabled={isRealMode && !isHost}
+                  className="rounded-2xl border-none px-4 py-[9px] font-sans text-[13px] font-bold text-[#4a637d] hover:enabled:!bg-white disabled:opacity-50"
+                  style={{ background: 'rgba(255,255,255,0.7)' }}
+                >
+                  {t('room.pomodoro.reset')}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -68,7 +68,6 @@ const ACCENT_CHIP_ACTIVE = 'var(--ff-accent-chip-active)'
 const ACCENT_BORDER = 'var(--ff-accent-border)'
 
 type Stage = 'filters' | 'searching' | 'rooms'
-type Duration = '25' | '50'
 type Language = 'Tiếng Việt' | 'English'
 type Visibility = 'public' | 'private'
 
@@ -98,7 +97,6 @@ export default function Matching() {
 
   const roomTypeLabel = (key: RoomTypeKey) => t(`matching.roomTypes.${key}.name`)
   const roomTypeRule = (key: RoomTypeKey) => t(`matching.roomTypes.${key}.rule`)
-  const durationLabel = (d: Duration) => t(`matching.duration.${d}`)
   const visibilityLabel = (v: Visibility) => t(`matching.visibility.${v}`)
   const hints = useMemo(
     () => [
@@ -113,7 +111,9 @@ export default function Matching() {
   const [stage, setStage] = useState<Stage>('filters')
   const [fade, setFade] = useState(1)
   const [roomType, setRoomType] = useState<RoomTypeKey>('chill')
-  const [duration, setDuration] = useState<Duration>('25')
+  const [focusMinutes, setFocusMinutes] = useState(25)
+  const [breakMinutes, setBreakMinutes] = useState(5)
+  const [sessionCount, setSessionCount] = useState(4)
   const [language, setLanguage] = useState<Language>('Tiếng Việt')
   const [waited, setWaited] = useState(0)
   const [matchError, setMatchError] = useState('')
@@ -234,7 +234,7 @@ export default function Matching() {
     if (!requireAuth()) return
     go('searching')
     setMatchError('')
-    const durationMinutes = Number(duration)
+    const durationMinutes = focusMinutes
     const languageCode = language === 'Tiếng Việt' ? 'vi' : 'en'
 
     const { data, error } = await supabase.functions.invoke('match-room', {
@@ -327,7 +327,9 @@ export default function Matching() {
           name: roomName.trim() || defaultRoomName,
           host_id: user.id,
           room_type: roomType,
-          duration_minutes: Number(duration),
+          duration_minutes: focusMinutes,
+          break_minutes: breakMinutes,
+          session_count: sessionCount,
           language: language === 'Tiếng Việt' ? 'vi' : 'en',
           capacity,
           visibility,
@@ -468,40 +470,113 @@ export default function Matching() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-5">
-              <div className="flex flex-[1_1_200px] flex-col gap-[11px]">
-                <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
-                  {t('matching.filters.durationLabel')}
+            <div className="flex flex-col gap-[11px]">
+              <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                {t('matching.filters.durationLabel')}
+              </span>
+              <div className="flex flex-col gap-[9px]">
+                <span className="text-[11.5px] font-bold text-[rgba(51,71,94,0.5)]">
+                  {t('matching.filters.presetsLabel')}
                 </span>
                 <div className="flex gap-2">
-                  {(['25', '50'] as Duration[]).map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => setDuration(d)}
-                      className="flex-1 rounded-[18px] border-[1.5px] py-[11px] font-sans text-sm font-bold transition-all duration-[220ms]"
-                      style={chipStyle(duration === d)}
-                    >
-                      {durationLabel(d)}
-                    </button>
-                  ))}
+                  <button
+                    onClick={() => {
+                      setFocusMinutes(25)
+                      setBreakMinutes(5)
+                    }}
+                    className="rounded-[18px] border-[1.5px] px-5 py-[10px] font-sans text-sm font-bold transition-all duration-[220ms]"
+                    style={chipStyle(focusMinutes === 25 && breakMinutes === 5)}
+                  >
+                    25 : 5
+                  </button>
+                  <button
+                    onClick={() => {
+                      setFocusMinutes(50)
+                      setBreakMinutes(10)
+                    }}
+                    className="rounded-[18px] border-[1.5px] px-5 py-[10px] font-sans text-sm font-bold transition-all duration-[220ms]"
+                    style={chipStyle(focusMinutes === 50 && breakMinutes === 10)}
+                  >
+                    50 : 10
+                  </button>
                 </div>
               </div>
-              <div className="flex flex-[1_1_200px] flex-col gap-[11px]">
-                <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
-                  {t('matching.filters.languageLabel')}
-                </span>
-                <div className="flex gap-2">
-                  {(['Tiếng Việt', 'English'] as Language[]).map((name) => (
-                    <button
-                      key={name}
-                      onClick={() => setLanguage(name)}
-                      className="flex-1 rounded-[18px] border-[1.5px] py-[11px] font-sans text-sm font-bold transition-all duration-[220ms]"
-                      style={chipStyle(language === name)}
-                    >
-                      {name}
-                    </button>
-                  ))}
+              <div className="flex flex-wrap gap-5">
+                <div className="flex flex-[1_1_160px] flex-col gap-[6px]">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-[11.5px] font-bold text-[rgba(51,71,94,0.5)]">
+                      {t('matching.filters.focusMinutesLabel')}
+                    </span>
+                    <span className="text-[13px] font-extrabold text-[#2c5b53]">
+                      {t('matching.filters.minutesValue', { count: focusMinutes })}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={5}
+                    max={60}
+                    step={5}
+                    value={focusMinutes}
+                    onChange={(e) => setFocusMinutes(Number(e.target.value))}
+                    className="ff-range-lg"
+                  />
                 </div>
+                <div className="flex flex-[1_1_160px] flex-col gap-[6px]">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-[11.5px] font-bold text-[rgba(51,71,94,0.5)]">
+                      {t('matching.filters.breakMinutesLabel')}
+                    </span>
+                    <span className="text-[13px] font-extrabold text-[#2c5b53]">
+                      {t('matching.filters.minutesValue', { count: breakMinutes })}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={20}
+                    step={1}
+                    value={breakMinutes}
+                    onChange={(e) => setBreakMinutes(Number(e.target.value))}
+                    className="ff-range-lg"
+                  />
+                </div>
+                <div className="flex flex-[1_1_160px] flex-col gap-[6px]">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-[11.5px] font-bold text-[rgba(51,71,94,0.5)]">
+                      {t('matching.filters.sessionCountLabel')}
+                    </span>
+                    <span className="text-[13px] font-extrabold text-[#2c5b53]">
+                      {t('matching.filters.sessionsValue', { count: sessionCount })}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={12}
+                    step={1}
+                    value={sessionCount}
+                    onChange={(e) => setSessionCount(Number(e.target.value))}
+                    className="ff-range-lg"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-[11px]">
+              <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                {t('matching.filters.languageLabel')}
+              </span>
+              <div className="flex gap-2">
+                {(['Tiếng Việt', 'English'] as Language[]).map((name) => (
+                  <button
+                    key={name}
+                    onClick={() => setLanguage(name)}
+                    className="flex-1 rounded-[18px] border-[1.5px] py-[11px] font-sans text-sm font-bold transition-all duration-[220ms]"
+                    style={chipStyle(language === name)}
+                  >
+                    {name}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -573,7 +648,7 @@ export default function Matching() {
             }}
           >
             <div className="flex flex-wrap justify-center gap-[7px]">
-              {[roomTypeLabel(current.key), durationLabel(duration), language].map((text) => (
+              {[roomTypeLabel(current.key), t('matching.filters.minutesValue', { count: focusMinutes }), language].map((text) => (
                 <span
                   key={text}
                   className="rounded-full px-[14px] py-[7px] text-[12.5px] font-bold text-[#35566b]"

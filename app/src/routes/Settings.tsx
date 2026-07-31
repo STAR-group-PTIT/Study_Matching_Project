@@ -57,6 +57,7 @@ export default function Settings() {
   const [tracks, setTracks] = useState<Track[]>([])
   const [focus, setFocus] = useState(25)
   const [brk, setBrk] = useState(5)
+  const [sessionCount, setSessionCount] = useState(4)
   const [auto, setAuto] = useState(true)
   const [profileName, setProfileName] = useState('')
   const [saved, setSaved] = useState(false)
@@ -67,7 +68,7 @@ export default function Settings() {
     if (!user) return
     supabase
       .from('profiles')
-      .select('name, focus_minutes, break_minutes, auto_start_next')
+      .select('name, focus_minutes, break_minutes, session_count, auto_start_next')
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
@@ -75,6 +76,7 @@ export default function Settings() {
         setProfileName(data.name)
         setFocus(data.focus_minutes)
         setBrk(data.break_minutes)
+        setSessionCount(data.session_count)
         setAuto(data.auto_start_next)
       })
   }, [user])
@@ -165,7 +167,7 @@ export default function Settings() {
     if (!user) return
     const { error } = await supabase
       .from('profiles')
-      .update({ focus_minutes: focus, break_minutes: brk, auto_start_next: auto })
+      .update({ focus_minutes: focus, break_minutes: brk, session_count: sessionCount, auto_start_next: auto })
       .eq('id', user.id)
     if (!error) {
       setSaved(true)
@@ -254,6 +256,11 @@ export default function Settings() {
   function resetDefaults() {
     setFocus(25)
     setBrk(5)
+    setSessionCount(4)
+  }
+  function applyPreset(presetFocus: number, presetBreak: number) {
+    setFocus(presetFocus)
+    setBrk(presetBreak)
   }
 
   return (
@@ -443,6 +450,35 @@ export default function Settings() {
           style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
         >
           <span className="text-[17px] font-extrabold text-[#2c3f55]">{t('settings.pomodoro.title')}</span>
+          <div className="flex flex-col gap-[9px]">
+            <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+              {t('settings.pomodoro.presetsLabel')}
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => applyPreset(25, 5)}
+                className="rounded-[18px] border-[1.5px] px-5 py-[10px] font-sans text-sm font-bold transition-all duration-[220ms]"
+                style={{
+                  background: focus === 25 && brk === 5 ? 'var(--ff-accent-chip-active)' : 'rgba(255,255,255,0.72)',
+                  borderColor: focus === 25 && brk === 5 ? 'var(--ff-accent-border)' : 'rgba(51,71,94,0.12)',
+                  color: focus === 25 && brk === 5 ? '#22483f' : 'rgba(51,71,94,0.68)',
+                }}
+              >
+                25 : 5
+              </button>
+              <button
+                onClick={() => applyPreset(50, 10)}
+                className="rounded-[18px] border-[1.5px] px-5 py-[10px] font-sans text-sm font-bold transition-all duration-[220ms]"
+                style={{
+                  background: focus === 50 && brk === 10 ? 'var(--ff-accent-chip-active)' : 'rgba(255,255,255,0.72)',
+                  borderColor: focus === 50 && brk === 10 ? 'var(--ff-accent-border)' : 'rgba(51,71,94,0.12)',
+                  color: focus === 50 && brk === 10 ? '#22483f' : 'rgba(51,71,94,0.68)',
+                }}
+              >
+                50 : 10
+              </button>
+            </div>
+          </div>
           <div className="grid gap-[22px]" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
             <div className="flex flex-col gap-[6px]">
               <div className="flex items-baseline justify-between">
@@ -456,7 +492,7 @@ export default function Settings() {
               <input
                 type="range"
                 min={5}
-                max={60}
+                max={120}
                 step={5}
                 value={focus}
                 onChange={(e) => setFocus(Number(e.target.value))}
@@ -464,7 +500,7 @@ export default function Settings() {
               />
               <div className="flex justify-between text-[11.5px] font-semibold text-[rgba(51,71,94,0.4)]">
                 <span>5</span>
-                <span>60</span>
+                <span>120</span>
               </div>
             </div>
             <div className="flex flex-col gap-[6px]">
@@ -488,6 +524,29 @@ export default function Settings() {
               <div className="flex justify-between text-[11.5px] font-semibold text-[rgba(51,71,94,0.4)]">
                 <span>1</span>
                 <span>20</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-[6px]">
+              <div className="flex items-baseline justify-between">
+                <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                  {t('settings.pomodoro.sessionCount')}
+                </span>
+                <span className="text-[15px] font-extrabold text-[#2c5b53]">
+                  {t('settings.pomodoro.sessionsValue', { count: sessionCount })}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={12}
+                step={1}
+                value={sessionCount}
+                onChange={(e) => setSessionCount(Number(e.target.value))}
+                className="ff-range-lg"
+              />
+              <div className="flex justify-between text-[11.5px] font-semibold text-[rgba(51,71,94,0.4)]">
+                <span>1</span>
+                <span>12</span>
               </div>
             </div>
           </div>

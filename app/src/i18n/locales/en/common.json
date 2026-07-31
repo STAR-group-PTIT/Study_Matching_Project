@@ -66,25 +66,29 @@
     "clock": {
       "focusing": "Focusing",
       "onBreak": "On a break",
-      "session": "Session {{round}} / 4"
+      "doneTitle": "All done ✓",
+      "doneHint": "You've completed {{count}} sessions today 🎉",
+      "editHint": "Enter to save · Esc to cancel",
+      "loopLabel": "Loop",
+      "workLabel": "Work",
+      "breakColumnLabel": "Break",
+      "pomodoroMode": "Pomodoro mode",
+      "endlessMode": "Endless mode (count up)"
     },
     "controls": {
       "pause": "Pause",
       "start": "Start",
       "resume": "Resume",
-      "reset": "Reset",
-      "takeBreak": "Take a break",
-      "continueStudy": "Keep studying"
+      "cancel": "Cancel",
+      "skip": "Skip",
+      "newRound": "Start a new round"
     },
     "leftWidgets": {
-      "today": "Today",
-      "focusedMinutes": "minutes focused",
       "inProgress": "In progress",
       "allDone": "All done for today 🎉",
       "remaining": "{{open}} left · {{done}} done"
     },
     "rightColumn": {
-      "cameraOn": "Camera is on",
       "cameraOff": "Camera is off",
       "you": "You",
       "turnOffCamera": "Turn off camera",
@@ -99,7 +103,9 @@
       "musicLabel": "Music",
       "todoTitle": "To-do list",
       "todoLabel": "To-do",
-      "studyTogetherTitle": "Study together"
+      "studyTogetherTitle": "Study together",
+      "settingsTitle": "Settings",
+      "settingsLabel": "Settings"
     },
     "wallpaperPopup": {
       "title": "Wallpaper",
@@ -154,6 +160,12 @@
       "roomTypeLabel": "Room type",
       "pickOne": "pick 1",
       "durationLabel": "Session length",
+      "presetsLabel": "Quick presets",
+      "focusMinutesLabel": "Focus minutes",
+      "breakMinutesLabel": "Break minutes",
+      "sessionCountLabel": "Number of sessions",
+      "minutesValue": "{{count}} min",
+      "sessionsValue": "{{count}} sessions",
       "languageLabel": "Language",
       "randomMatch": "Random match",
       "createRoom": "Create a room",
@@ -162,10 +174,6 @@
       "joinCodePlaceholder": "e.g. G32TZU",
       "joining": "Joining…",
       "join": "Join"
-    },
-    "duration": {
-      "25": "25 min",
-      "50": "50 min"
     },
     "visibility": {
       "public": "Public",
@@ -309,14 +317,17 @@
     },
     "pomodoro": {
       "title": "Default Pomodoro",
+      "presetsLabel": "Quick presets",
       "focusMinutes": "Focus minutes",
       "minutesValue": "{{count}} min",
       "breakMinutes": "Break minutes",
+      "sessionCount": "Number of sessions",
+      "sessionsValue": "{{count}} sessions",
       "autoStartTitle": "Auto-start next session",
       "autoStartDesc": "Jump straight into studying when the break ends",
       "saved": "Saved ✓",
       "save": "Save changes",
-      "resetDefault": "Reset to 25/5"
+      "resetDefault": "Reset to 25/5 · 4 sessions"
     },
     "language": {
       "title": "Interface language",
@@ -378,10 +389,13 @@
     "pomodoro": {
       "focusing": "Focusing",
       "onBreak": "On a break",
-      "sessionBoth": "Session {{round}} / 4 · running for both",
+      "sessionBoth": "Session {{round}} / {{total}} · running for both",
+      "doneTitle": "All done ✓",
+      "doneHint": "The room completed {{count}} sessions today 🎉",
       "pause": "Pause",
       "resume": "Resume",
-      "reset": "Reset"
+      "reset": "Reset",
+      "newRound": "Start a new round"
     },
     "controls": {
       "camera": "Camera",
