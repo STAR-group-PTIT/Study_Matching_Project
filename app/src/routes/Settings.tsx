@@ -25,7 +25,7 @@ const ACCENT_PRESETS = [
 ] as const
 
 type Wallpaper = { id: string; name: string; path: string; url: string | null }
-type Track = { id: string; name: string; path: string; durationSeconds: number | null }
+type Track = { id: string; name: string; path: string; durationSeconds: number | null; isDefault: boolean }
 type Tab = 'profile' | 'app'
 
 function fmtDuration(sec: number | null) {
@@ -134,12 +134,20 @@ export default function Settings() {
     let cancelled = false
     supabase
       .from('tracks')
-      .select('id, name, storage_path, duration_seconds')
+      .select('id, name, storage_path, duration_seconds, is_default')
       .eq('user_id', user.id)
       .order('created_at')
       .then(({ data }) => {
         if (cancelled || !data) return
-        setTracks(data.map((r) => ({ id: r.id, name: r.name, path: r.storage_path, durationSeconds: r.duration_seconds })))
+        setTracks(
+          data.map((r) => ({
+            id: r.id,
+            name: r.name,
+            path: r.storage_path,
+            durationSeconds: r.duration_seconds,
+            isDefault: r.is_default,
+          })),
+        )
       })
     return () => {
       cancelled = true
@@ -340,6 +348,15 @@ export default function Settings() {
     const { error } = await supabase.from('tracks').delete().eq('id', track.id)
     if (error) console.error('remove track failed', error)
   }
+  async function toggleDefault(track: Track) {
+    const next = !track.isDefault
+    setTracks((ts) => ts.map((x) => (x.id === track.id ? { ...x, isDefault: next } : x)))
+    const { error } = await supabase.from('tracks').update({ is_default: next }).eq('id', track.id)
+    if (error) {
+      console.error('toggle default track failed', error)
+      setTracks((ts) => ts.map((x) => (x.id === track.id ? { ...x, isDefault: !next } : x)))
+    }
+  }
   async function handleTrackFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -364,7 +381,10 @@ export default function Settings() {
       console.error('insert track row failed', insErr)
       return
     }
-    setTracks((ts) => [...ts, { id: row.id, name: file.name, path, durationSeconds: durationSeconds ? Math.round(durationSeconds) : null }])
+    setTracks((ts) => [
+      ...ts,
+      { id: row.id, name: file.name, path, durationSeconds: durationSeconds ? Math.round(durationSeconds) : null, isDefault: false },
+    ])
   }
 
   const devicesReady = devicePermission === 'granted'
@@ -545,6 +565,17 @@ export default function Settings() {
                     <span className="text-[13px] font-bold text-[rgba(51,71,94,0.5)]">
                       {fmtDuration(track.durationSeconds)}
                     </span>
+                    <button
+                      onClick={() => toggleDefault(track)}
+                      title={track.isDefault ? t('settings.music.unsetDefault') : t('settings.music.setDefault')}
+                      className="shrink-0 rounded-full border-none px-3 py-[6px] font-sans text-[11.5px] font-extrabold whitespace-nowrap transition-all duration-200"
+                      style={{
+                        background: track.isDefault ? 'var(--ff-accent-chip-active)' : 'rgba(255,255,255,0.9)',
+                        color: track.isDefault ? '#134034' : 'rgba(51,71,94,0.55)',
+                      }}
+                    >
+                      {track.isDefault ? t('settings.music.isDefault') : t('settings.music.setDefault')}
+                    </button>
                     <button
                       onClick={() => removeTrack(track)}
                       title={t('settings.music.delete')}

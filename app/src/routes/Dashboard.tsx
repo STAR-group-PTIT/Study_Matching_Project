@@ -4,8 +4,10 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 import { playChime } from '../lib/sound'
+import { parseYoutubeUrl, loadYoutubeApi, type YTPlayer } from '../lib/youtube'
 
 type WallpaperOption = { id: string; kind: 'gradient' | 'image'; value: string }
+type DashTrack = { id: string; name: string; path: string; durationSeconds: number | null }
 
 const BUILTIN_GRADIENTS: WallpaperOption[] = ['linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)'].map(
   (value, i) => ({ id: 'gradient-' + i, kind: 'gradient' as const, value }),
@@ -32,7 +34,29 @@ function loadStoredWallpaperId() {
   }
 }
 
-const TRACK_KEYS = ['rain', 'lofi', 'cafe', 'waves', 'whiteNoise'] as const
+// Nguồn nhạc + link YouTube: lưu localStorage giống cách chọn wallpaper ở trên — đây là
+// chế độ solo (không có "phòng" để lưu vào DB như Room), nên không cần tài khoản vẫn
+// nhớ được lựa chọn giữa các lần mở app trên cùng máy.
+type MusicSource = 'library' | 'youtube'
+const MUSIC_SOURCE_KEY = 'ff-music-source'
+const MUSIC_YOUTUBE_KEY = 'ff-music-youtube-url'
+// Mặc định ban đầu cho người chưa từng chọn gì (chưa có gì trong localStorage) — user tự
+// đổi link/nguồn sau qua popup "Nhạc nền" bất cứ lúc nào, đây chỉ là giá trị khởi tạo.
+const DEFAULT_YOUTUBE_URL = 'https://www.youtube.com/watch?v=e6KzjUOfmBk&list=RDe6KzjUOfmBk&start_radio=1'
+function loadStoredMusicSource(): MusicSource {
+  try {
+    return localStorage.getItem(MUSIC_SOURCE_KEY) === 'library' ? 'library' : 'youtube'
+  } catch {
+    return 'youtube'
+  }
+}
+function loadStoredYoutubeUrl() {
+  try {
+    return localStorage.getItem(MUSIC_YOUTUBE_KEY) ?? DEFAULT_YOUTUBE_URL
+  } catch {
+    return DEFAULT_YOUTUBE_URL
+  }
+}
 
 const FOCUS_MINUTES = 25
 const BREAK_MINUTES = 5
@@ -80,7 +104,6 @@ export default function Dashboard() {
       })),
     [t],
   )
-  const tracks = useMemo(() => TRACK_KEYS.map((key) => t(`dashboard.mockTracks.${key}`)), [t])
   const [mode, setMode] = useState<Mode>('dashboard')
   const [hidden, setHidden] = useState(false)
   const [timerType, setTimerType] = useState<TimerType>('pomodoro')
@@ -111,8 +134,141 @@ export default function Dashboard() {
   const [panel, setPanel] = useState<Panel>(null)
   const [cameraOn, setCameraOn] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const [track, setTrack] = useState(1)
+  // Nhạc thật: khách không đăng nhập không có gì để phát (chưa có track nào để nghe
+  // trước khi có tài khoản); đã đăng nhập thì RLS "tracks: select own or shared" (xem
+  // 0007_default_tracks.sql) tự trả về đúng nhạc của mình + mọi track is_default=true
+  // của người khác, không cần lọc thủ công ở client.
+  const [tracks, setTracks] = useState<DashTrack[]>([])
+  useEffect(() => {
+    if (!user) {
+      setTracks([])
+      return
+    }
+    let cancelled = false
+    supabase
+      .from('tracks')
+      .select('id, name, storage_path, duration_seconds')
+      .order('created_at')
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        setTracks(data.map((r) => ({ id: r.id, name: r.name, path: r.storage_path, durationSeconds: r.duration_seconds })))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  const [track, setTrack] = useState(0)
   const [playing, setPlaying] = useState(true)
+  const [audioSrc, setAudioSrc] = useState<string | null>(null)
+  useEffect(() => {
+    const current = tracks[track]
+    if (!current) {
+      setAudioSrc(null)
+      return
+    }
+    let cancelled = false
+    supabase.storage
+      .from('tracks')
+      .createSignedUrl(current.path, 3600)
+      .then(({ data }) => {
+        if (!cancelled) setAudioSrc(data?.signedUrl ?? null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [tracks, track])
+
+  const musicAudioRef = useRef<HTMLAudioElement>(null)
+  const [musicSource, setMusicSource] = useState<MusicSource>(loadStoredMusicSource)
+  useEffect(() => {
+    try {
+      localStorage.setItem(MUSIC_SOURCE_KEY, musicSource)
+    } catch {
+      // localStorage không khả dụng — chỉ mất tính năng nhớ lựa chọn, không lỗi.
+    }
+  }, [musicSource])
+  useEffect(() => {
+    const el = musicAudioRef.current
+    if (!el || musicSource !== 'library' || !audioSrc) return
+    if (el.src !== audioSrc) el.src = audioSrc
+    if (playing) el.play().catch(() => {})
+    else el.pause()
+  }, [musicSource, audioSrc, playing])
+  useEffect(() => {
+    if (musicSource !== 'library') musicAudioRef.current?.pause()
+  }, [musicSource])
+
+  // Nhạc YouTube — chế độ solo nên không cần đồng bộ vị trí phát qua nhiều máy như Room,
+  // chỉ cần play/pause theo đúng state `playing` đã có sẵn cho nhạc thư viện.
+  const [youtubeUrl, setYoutubeUrl] = useState(loadStoredYoutubeUrl)
+  useEffect(() => {
+    try {
+      localStorage.setItem(MUSIC_YOUTUBE_KEY, youtubeUrl)
+    } catch {
+      // localStorage không khả dụng — chỉ mất tính năng nhớ lựa chọn, không lỗi.
+    }
+  }, [youtubeUrl])
+  const [ytInput, setYtInput] = useState('')
+  const [ytError, setYtError] = useState(false)
+  const [ytReady, setYtReady] = useState(false)
+  const ytContainerRef = useRef<HTMLDivElement>(null)
+  const ytPlayerRef = useRef<YTPlayer | null>(null)
+  const ytActive = musicSource === 'youtube'
+  const ytParsed = useMemo(() => (youtubeUrl ? parseYoutubeUrl(youtubeUrl) : null), [youtubeUrl])
+
+  useEffect(() => {
+    if (!ytActive) return
+    let cancelled = false
+    loadYoutubeApi().then(() => {
+      if (!cancelled) setYtReady(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [ytActive])
+
+  useEffect(() => {
+    if (!ytActive || !ytReady || !ytParsed || !ytContainerRef.current) return
+    const player = new window.YT!.Player(ytContainerRef.current, {
+      width: '400',
+      height: '225',
+      videoId: ytParsed.videoId || undefined,
+      playerVars: { listType: ytParsed.playlistId ? 'playlist' : undefined, list: ytParsed.playlistId || undefined, playsinline: 1 },
+      events: {
+        onReady: (e: { target: YTPlayer }) => {
+          ytPlayerRef.current = e.target
+          if (playing) e.target.playVideo()
+        },
+      },
+    })
+    return () => {
+      player.destroy()
+      ytPlayerRef.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ytActive, ytReady, ytParsed?.videoId, ytParsed?.playlistId])
+
+  useEffect(() => {
+    const player = ytPlayerRef.current
+    if (!player || !ytActive) return
+    if (playing) player.playVideo()
+    else player.pauseVideo()
+  }, [ytActive, playing])
+
+  function applyYoutubeLink() {
+    const parsed = parseYoutubeUrl(ytInput)
+    if (!parsed) {
+      setYtError(true)
+      return
+    }
+    setYtError(false)
+    setYoutubeUrl(ytInput.trim())
+    setMusicSource('youtube')
+    setPlaying(true)
+    setYtInput('')
+  }
+
   const [draft, setDraft] = useState('')
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
 
@@ -556,6 +712,31 @@ export default function Dashboard() {
         transition: 'background-image 900ms ease',
       }}
     >
+      <audio ref={musicAudioRef} loop style={{ display: 'none' }} />
+
+      {/* mini player YouTube — góc dưới-trái, cùng hàng với taskbar. Khi "Ẩn UI" bật thì
+          chỉ co lại 1x1px + opacity 0 (KHÔNG unmount, KHÔNG display:none/visibility:hidden)
+          — iframe vẫn "hiện thật" theo đúng ToS nhúng của YouTube và tiếp tục phát audio
+          bình thường, chỉ là không nhìn thấy nữa. Unmount hẳn sẽ huỷ luôn YT.Player và
+          dừng nhạc, không phải điều user muốn ("chỉ ẩn hình, giữ nhạc"). */}
+      {ytActive && ytParsed && (
+        <div
+          className="absolute z-[41] overflow-hidden rounded-[18px] transition-all duration-300"
+          style={{
+            bottom: '34px',
+            left: '26px',
+            width: hidden ? '1px' : '400px',
+            height: hidden ? '1px' : '225px',
+            opacity: hidden ? 0 : 1,
+            pointerEvents: hidden ? 'none' : 'auto',
+            background: 'rgba(0,0,0,0.85)',
+            boxShadow: hidden ? 'none' : '0 10px 26px rgba(20,30,40,0.28)',
+          }}
+        >
+          <div ref={ytContainerRef} className="block h-[225px] w-[400px]" />
+        </div>
+      )}
+
       {/* lớp phủ nền — trắng mờ + blur nhẹ hợp với 6 gradient pastel, nhưng phủ lên ảnh thật thì
           làm ảnh xám/mất chi tiết; ảnh thật dùng lớp tối rất nhẹ thay thế, không blur, để giữ màu
           gốc mà card kính trắng vẫn nổi rõ. */}
@@ -1469,46 +1650,114 @@ export default function Dashboard() {
             {t('dashboard.musicPopup.close')}
           </button>
         </div>
-        <div className="flex flex-col gap-[6px]">
-          {tracks.map((name, i) => (
-            <button
-              key={TRACK_KEYS[i]}
-              onClick={() => {
-                setTrack(i)
-                setPlaying(true)
-              }}
-              className="flex items-center justify-between gap-3 rounded-[17px] border-none px-[14px] py-3 text-left font-sans transition-colors duration-200 hover:!bg-[rgba(140,200,205,0.16)]"
-              style={{ background: i === track ? 'rgba(140,200,205,0.22)' : 'rgba(255,255,255,0.55)' }}
-            >
-              <span className="text-sm font-bold text-[#2f4459]">{name}</span>
-              <span className="text-xs font-semibold text-[rgba(51,71,94,0.45)]">
-                {i === track
-                  ? playing
-                    ? t('dashboard.musicPopup.nowPlaying')
-                    : t('dashboard.musicPopup.selected')
-                  : ''}
-              </span>
-            </button>
-          ))}
-        </div>
-        <div className="mt-4 flex items-center gap-3">
+
+        <div className="mb-[10px] flex gap-[7px] rounded-[18px] p-[5px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
           <button
-            onClick={() => setPlaying((p) => !p)}
-            className="rounded-2xl border-none px-[18px] py-[10px] font-sans text-[13px] font-extrabold text-[#21384f]"
-            style={{ background: 'rgba(140,205,196,0.35)' }}
+            onClick={() => setMusicSource('library')}
+            className="flex-1 rounded-xl border-none px-[6px] py-[8px] font-sans text-[12px] font-extrabold transition-all duration-[220ms]"
+            style={{ background: musicSource === 'library' ? 'white' : 'transparent', color: musicSource === 'library' ? '#22483f' : 'rgba(51,71,94,0.55)' }}
           >
-            {playing ? t('dashboard.musicPopup.pause') : t('dashboard.musicPopup.play')}
+            {t('dashboard.musicPopup.sourceLibrary')}
           </button>
-          <div
-            className="relative h-[6px] flex-1 rounded-full"
-            style={{ background: 'rgba(51,71,94,0.12)' }}
+          <button
+            onClick={() => setMusicSource('youtube')}
+            className="flex-1 rounded-xl border-none px-[6px] py-[8px] font-sans text-[12px] font-extrabold transition-all duration-[220ms]"
+            style={{ background: musicSource === 'youtube' ? 'white' : 'transparent', color: musicSource === 'youtube' ? '#22483f' : 'rgba(51,71,94,0.55)' }}
           >
-            <div
-              className="absolute top-0 bottom-0 left-0 rounded-full"
-              style={{ width: '62%', background: ACCENT }}
-            />
-          </div>
+            {t('dashboard.musicPopup.sourceYoutube')}
+          </button>
         </div>
+
+        {musicSource === 'library' && (
+          <div className="flex flex-col gap-[6px]">
+            {tracks.length === 0 && (
+              <span className="px-[14px] py-3 text-xs font-semibold text-[rgba(51,71,94,0.5)]">
+                {t('dashboard.musicPopup.empty')}
+              </span>
+            )}
+            {tracks.map((tr, i) => (
+              <button
+                key={tr.id}
+                onClick={() => {
+                  setTrack(i)
+                  setPlaying(true)
+                }}
+                className="flex items-center justify-between gap-3 rounded-[17px] border-none px-[14px] py-3 text-left font-sans transition-colors duration-200 hover:!bg-[rgba(140,200,205,0.16)]"
+                style={{ background: i === track ? 'rgba(140,200,205,0.22)' : 'rgba(255,255,255,0.55)' }}
+              >
+                <span className="text-sm font-bold text-[#2f4459]">{tr.name}</span>
+                <span className="text-xs font-semibold text-[rgba(51,71,94,0.45)]">
+                  {i === track
+                    ? playing
+                      ? t('dashboard.musicPopup.nowPlaying')
+                      : t('dashboard.musicPopup.selected')
+                    : ''}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {musicSource === 'youtube' && (
+          <div className="flex flex-col gap-[7px]">
+            <div className="flex gap-[7px]">
+              <input
+                value={ytInput}
+                onChange={(e) => {
+                  setYtInput(e.target.value)
+                  setYtError(false)
+                }}
+                placeholder={t('dashboard.musicPopup.youtubeInputPlaceholder')}
+                className="min-w-0 flex-1 rounded-[15px] border-none px-[13px] py-[9px] font-sans text-[13px] font-semibold text-[#2c3f55] outline-none"
+                style={{ background: 'rgba(238,246,248,0.9)' }}
+              />
+              <button
+                onClick={applyYoutubeLink}
+                disabled={!ytInput.trim()}
+                className="shrink-0 rounded-[15px] border-none px-[14px] py-[9px] font-sans text-[12.5px] font-extrabold text-[#21384f] disabled:opacity-50"
+                style={{ background: 'rgba(140,205,196,0.35)' }}
+              >
+                {t('dashboard.musicPopup.youtubeUse')}
+              </button>
+            </div>
+            {ytError && <span className="text-[12px] font-semibold text-[#a13f2c]">{t('dashboard.musicPopup.youtubeInvalid')}</span>}
+            {youtubeUrl && !ytError && (
+              <span className="truncate text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">
+                {t('dashboard.musicPopup.youtubeCurrent', { url: youtubeUrl })}
+              </span>
+            )}
+            {!youtubeUrl && (
+              <span className="px-[14px] py-3 text-xs font-semibold text-[rgba(51,71,94,0.5)]">
+                {t('dashboard.musicPopup.youtubeEmpty')}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Chỉ hiện nút play/pause + progress giả cho nguồn thư viện — nguồn YouTube đã
+            có điều khiển thật (play/pause/tua) ngay trên widget góc dưới-trái rồi, thêm
+            nút ở đây là thừa và không đồng bộ được với player thật. */}
+        {musicSource === 'library' && (
+          <div className="mt-4 flex items-center gap-3">
+            <button
+              onClick={() => setPlaying((p) => !p)}
+              disabled={tracks.length === 0}
+              className="rounded-2xl border-none px-[18px] py-[10px] font-sans text-[13px] font-extrabold text-[#21384f] disabled:opacity-50"
+              style={{ background: 'rgba(140,205,196,0.35)' }}
+            >
+              {playing ? t('dashboard.musicPopup.pause') : t('dashboard.musicPopup.play')}
+            </button>
+            <div
+              className="relative h-[6px] flex-1 rounded-full"
+              style={{ background: 'rgba(51,71,94,0.12)' }}
+            >
+              <div
+                className="absolute top-0 bottom-0 left-0 rounded-full"
+                style={{ width: '62%', background: ACCENT }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* todo slide-out */}

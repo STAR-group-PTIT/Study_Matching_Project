@@ -118,7 +118,15 @@
       "nowPlaying": "đang phát",
       "selected": "đã chọn",
       "pause": "Tạm dừng nhạc",
-      "play": "Phát nhạc"
+      "play": "Phát nhạc",
+      "empty": "Chưa có nhạc nào. Vào Cài đặt để tải nhạc lên.",
+      "sourceLibrary": "Thư viện",
+      "sourceYoutube": "YouTube",
+      "youtubeInputPlaceholder": "Dán link YouTube…",
+      "youtubeUse": "Dùng link này",
+      "youtubeInvalid": "Link YouTube không hợp lệ.",
+      "youtubeCurrent": "Đang phát: {{url}}",
+      "youtubeEmpty": "Chưa có link YouTube nào. Dán 1 link ở trên."
     },
     "todoPanel": {
       "title": "Việc cần làm",
@@ -316,8 +324,11 @@
       "count": "{{count}} bài",
       "delete": "Xoá",
       "upload": "Upload nhạc (MP3, WAV)",
-      "hint": "Bấm vào tên bài để đổi tên. Nhạc chỉ phát trong phiên học của bạn.",
-      "tooLarge": "Nhạc tối đa 25 MB."
+      "hint": "Bấm vào tên bài để đổi tên. Bài đánh dấu \"Mặc định\" sẽ phát được ở mọi phòng, kể cả của người khác.",
+      "tooLarge": "Nhạc tối đa 25 MB.",
+      "setDefault": "Đặt làm mặc định",
+      "isDefault": "Mặc định",
+      "unsetDefault": "Bỏ mặc định"
     },
     "pomodoro": {
       "title": "Pomodoro mặc định",
@@ -444,7 +455,19 @@
       "broadcastToRoom": "phát cho cả phòng",
       "onlyYouHear": "chỉ mình bạn nghe",
       "hostNote": "Bạn là host nên nhạc bạn chọn sẽ phát đồng bộ cho mọi người; ai muốn yên tĩnh có thể kéo âm lượng về 0.",
-      "memberNote": "Host đang chọn nhạc cho phòng — bạn chỉ chỉnh được âm lượng của mình."
+      "memberNote": "Host đang chọn nhạc cho phòng — bạn chỉ chỉnh được âm lượng của mình.",
+      "defaultTag": "mặc định",
+      "hostTag": "của host",
+      "empty": "Phòng này chưa có nhạc. Vào Cài đặt để tải nhạc lên và đánh dấu \"Mặc định\", hoặc để host tự tải nhạc riêng.",
+      "sourceLibrary": "Thư viện",
+      "sourceYoutube": "YouTube",
+      "youtubeNowPlaying": "Nhạc YouTube",
+      "youtubeTag": "YouTube",
+      "youtubeInputPlaceholder": "Dán link YouTube…",
+      "youtubeUse": "Dùng link này",
+      "youtubeInvalid": "Link YouTube không hợp lệ.",
+      "youtubeCurrent": "Đang phát: {{url}}",
+      "youtubeEmpty": "Host chưa dán link YouTube nào."
     },
     "host": {
       "admitMode": "Chế độ vào phòng",

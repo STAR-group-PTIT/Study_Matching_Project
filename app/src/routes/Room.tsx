@@ -5,6 +5,7 @@ import { Room as LiveKitRoom, RoomEvent, Track } from 'livekit-client'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 import { playChime } from '../lib/sound'
+import { parseYoutubeUrl, loadYoutubeApi, type YTPlayer } from '../lib/youtube'
 
 type StatusKey = 'host' | 'focusing' | 'micOff' | 'camOff' | 'justJoined'
 type Member = { id: string; name: string; statusKey: StatusKey; host: boolean; me?: boolean }
@@ -28,7 +29,12 @@ type RoomRow = {
   timer_updated_at: string
   music_on: boolean
   music_track_index: number
+  music_updated_at: string
+  music_position_seconds: number
+  music_source: 'library' | 'youtube'
+  youtube_url: string | null
 }
+type RealTrack = { id: string; name: string; path: string; durationSeconds: number | null; isDefault: boolean }
 type RealMemberRow = {
   id: string
   room_id: string
@@ -61,6 +67,18 @@ function computeLeftFromRoom(r: RoomRow) {
   const elapsed = Math.floor((Date.now() - new Date(r.timer_updated_at).getTime()) / 1000)
   return Math.max(0, base - elapsed)
 }
+function computeMusicPositionFromRoom(r: RoomRow) {
+  if (!r.music_on) return r.music_position_seconds
+  const elapsed = (Date.now() - new Date(r.music_updated_at).getTime()) / 1000
+  return r.music_position_seconds + elapsed
+}
+function fmtTrackLength(sec: number | null) {
+  if (sec === null) return '—'
+  const m = Math.floor(sec / 60)
+  const s = Math.round(sec % 60)
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0')
+}
+
 
 const TRACK_KEYS = ['t1', 't2', 't3', 't4', 't5'] as const
 const TRACK_LENGTHS: Record<(typeof TRACK_KEYS)[number], string> = {
@@ -150,15 +168,6 @@ export default function Room() {
     }),
     [meMember],
   )
-  const tracks = useMemo(
-    () =>
-      TRACK_KEYS.map((key) => ({
-        name: t(`room.mockTracks.${key}.name`),
-        mood: t(`room.mockTracks.${key}.mood`),
-        length: TRACK_LENGTHS[key],
-      })),
-    [t],
-  )
   const statusLabel = (key: StatusKey) => t(`room.status.${key}`)
 
   const [realRoom, setRealRoom] = useState<RoomRow | null>(null)
@@ -207,6 +216,190 @@ export default function Room() {
   const [trackIndex, setTrackIndex] = useState(0)
   const [volume, setVolume] = useState(45)
 
+  // playlist thật = nhạc mặc định (is_default=true, của bất kỳ ai) hợp với nhạc riêng
+  // của host phòng này — đúng tinh thần "host chọn, cả phòng nghe" (xem RLS ở
+  // 0007_default_tracks.sql: shares_room_with_host() mở khoá select/đọc storage
+  // cho member thật của phòng đó).
+  const [realTracks, setRealTracks] = useState<RealTrack[]>([])
+  const hostIdForTracks = realRoom?.host_id
+  useEffect(() => {
+    if (!isRealMode || !hostIdForTracks) {
+      setRealTracks([])
+      return
+    }
+    let cancelled = false
+    supabase
+      .from('tracks')
+      .select('id, name, storage_path, duration_seconds, is_default')
+      .or(`is_default.eq.true,user_id.eq.${hostIdForTracks}`)
+      .order('created_at')
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        setRealTracks(
+          data.map((r) => ({ id: r.id, name: r.name, path: r.storage_path, durationSeconds: r.duration_seconds, isDefault: r.is_default })),
+        )
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isRealMode, hostIdForTracks])
+
+  const tracks = useMemo(() => {
+    if (isRealMode) {
+      return realTracks.map((tr) => ({
+        id: tr.id,
+        name: tr.name,
+        mood: tr.isDefault ? t('room.music.defaultTag') : t('room.music.hostTag'),
+        length: fmtTrackLength(tr.durationSeconds),
+      }))
+    }
+    return TRACK_KEYS.map((key) => ({
+      id: key,
+      name: t(`room.mockTracks.${key}.name`),
+      mood: t(`room.mockTracks.${key}.mood`),
+      length: TRACK_LENGTHS[key],
+    }))
+  }, [isRealMode, realTracks, t])
+
+  // signed URL của track đang chọn — regen mỗi khi đổi track (bucket `tracks` riêng
+  // tư, signed URL hết hạn sau 1h nhưng phiên nghe nhạc trong phòng thường ngắn hơn).
+  const [audioSrc, setAudioSrc] = useState<string | null>(null)
+  useEffect(() => {
+    if (!isRealMode) {
+      setAudioSrc(null)
+      return
+    }
+    const track = realTracks[trackIndex]
+    if (!track) {
+      setAudioSrc(null)
+      return
+    }
+    let cancelled = false
+    supabase.storage
+      .from('tracks')
+      .createSignedUrl(track.path, 3600)
+      .then(({ data }) => {
+        if (!cancelled) setAudioSrc(data?.signedUrl ?? null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isRealMode, realTracks, trackIndex])
+
+  const musicAudioRef = useRef<HTMLAudioElement>(null)
+  useEffect(() => {
+    const el = musicAudioRef.current
+    if (el) el.volume = volume / 100
+  }, [volume])
+  useEffect(() => {
+    const el = musicAudioRef.current
+    if (!el || !isRealMode || !realRoom || realRoom.music_source !== 'library' || !audioSrc) return
+    if (el.src !== audioSrc) el.src = audioSrc
+    if (musicOn) {
+      const target = Math.max(0, computeMusicPositionFromRoom(realRoom))
+      if (!Number.isFinite(el.currentTime) || Math.abs(el.currentTime - target) > 1.5) el.currentTime = target
+      el.play().catch(() => {
+        // Trình duyệt chặn autoplay khi member chưa từng tương tác với trang — sẽ tự
+        // phát lại lần tới el.play() chạy sau 1 cú click bất kỳ trong phòng.
+      })
+    } else {
+      el.pause()
+    }
+  }, [isRealMode, realRoom, audioSrc, musicOn])
+  useEffect(() => {
+    if (!isRealMode || realRoom?.music_source !== 'library') musicAudioRef.current?.pause()
+  }, [isRealMode, realRoom?.music_source])
+
+  // ============================================================
+  // Nhạc từ YouTube — host dán link, dùng YouTube IFrame Player API chính chủ (không
+  // tách audio khỏi video, đúng ToS). Player nổi ở góc trái màn hình (widget riêng,
+  // xem JSX bên dưới), điều khiển play/pause/track dùng chung cơ chế music_on +
+  // music_updated_at/music_position_seconds đã có cho nhạc thư viện.
+  // ============================================================
+  const [ytInput, setYtInput] = useState('')
+  const [ytError, setYtError] = useState(false)
+  const [ytReady, setYtReady] = useState(false)
+  const ytContainerRef = useRef<HTMLDivElement>(null)
+  const ytPlayerRef = useRef<YTPlayer | null>(null)
+  const ytActive = isRealMode && realRoom?.music_source === 'youtube'
+  const ytParsed = useMemo(() => (realRoom?.youtube_url ? parseYoutubeUrl(realRoom.youtube_url) : null), [realRoom?.youtube_url])
+
+  useEffect(() => {
+    if (!ytActive) return
+    let cancelled = false
+    loadYoutubeApi().then(() => {
+      if (!cancelled) setYtReady(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [ytActive])
+
+  useEffect(() => {
+    if (!ytActive || !ytReady || !ytParsed || !ytContainerRef.current) return
+    const player = new window.YT!.Player(ytContainerRef.current, {
+      width: '260',
+      height: '146',
+      videoId: ytParsed.videoId || undefined,
+      playerVars: { listType: ytParsed.playlistId ? 'playlist' : undefined, list: ytParsed.playlistId || undefined, playsinline: 1 },
+      events: {
+        onReady: (e: { target: YTPlayer }) => {
+          ytPlayerRef.current = e.target
+          e.target.setVolume(volume)
+        },
+      },
+    })
+    return () => {
+      player.destroy()
+      ytPlayerRef.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ytActive, ytReady, ytParsed?.videoId, ytParsed?.playlistId])
+
+  useEffect(() => {
+    const player = ytPlayerRef.current
+    if (!player || !ytActive || !realRoom) return
+    if (musicOn) {
+      const target = Math.max(0, computeMusicPositionFromRoom(realRoom))
+      if (Math.abs(player.getCurrentTime() - target) > 2) player.seekTo(target, true)
+      player.playVideo()
+    } else {
+      player.pauseVideo()
+    }
+  }, [ytActive, realRoom, musicOn])
+  useEffect(() => {
+    ytPlayerRef.current?.setVolume(volume)
+  }, [volume])
+
+  async function applyYoutubeLinkReal() {
+    if (!realRoom || !isHost) return
+    const parsed = parseYoutubeUrl(ytInput)
+    if (!parsed) {
+      setYtError(true)
+      return
+    }
+    setYtError(false)
+    await supabase
+      .from('rooms')
+      .update({
+        music_source: 'youtube',
+        youtube_url: ytInput.trim(),
+        music_on: true,
+        music_position_seconds: 0,
+        music_updated_at: new Date().toISOString(),
+      })
+      .eq('id', realRoom.id)
+    setYtInput('')
+  }
+  async function switchToLibraryReal() {
+    if (!realRoom || !isHost) return
+    await supabase.from('rooms').update({ music_source: 'library' }).eq('id', realRoom.id)
+  }
+  async function switchToYoutubeReal() {
+    if (!realRoom || !isHost) return
+    await supabase.from('rooms').update({ music_source: 'youtube' }).eq('id', realRoom.id)
+  }
+
   const [admit, setAdmit] = useState<Admit>('manual')
   const [pending, setPending] = useState<Pending[]>([
     { id: '1', userId: '1', name: 'Thanh Trúc', wait: t('room.wait.seconds', { count: 20 }) },
@@ -238,7 +431,7 @@ export default function Room() {
     supabase
       .from('rooms')
       .select(
-        'id, code, name, host_id, admit_mode, capacity, duration_minutes, break_minutes, session_count, timer_phase, timer_round, timer_running, timer_done, timer_remaining_seconds, timer_updated_at, music_on, music_track_index',
+        'id, code, name, host_id, admit_mode, capacity, duration_minutes, break_minutes, session_count, timer_phase, timer_round, timer_running, timer_done, timer_remaining_seconds, timer_updated_at, music_on, music_track_index, music_updated_at, music_position_seconds, music_source, youtube_url',
       )
       .eq('code', code.toUpperCase())
       .maybeSingle()
@@ -449,11 +642,18 @@ export default function Room() {
   }
   async function setMusicOnReal(next: boolean) {
     if (!realRoom) return
-    await supabase.from('rooms').update({ music_on: next }).eq('id', realRoom.id)
+    const pos = Math.max(0, computeMusicPositionFromRoom(realRoom))
+    await supabase
+      .from('rooms')
+      .update({ music_on: next, music_position_seconds: pos, music_updated_at: new Date().toISOString() })
+      .eq('id', realRoom.id)
   }
   async function setTrackIndexReal(next: number) {
     if (!realRoom) return
-    await supabase.from('rooms').update({ music_track_index: next, music_on: true }).eq('id', realRoom.id)
+    await supabase
+      .from('rooms')
+      .update({ music_track_index: next, music_on: true, music_position_seconds: 0, music_updated_at: new Date().toISOString() })
+      .eq('id', realRoom.id)
   }
 
   useEffect(() => {
@@ -648,7 +848,7 @@ export default function Room() {
 
   const queued = admit === 'manual' && pending.length > 0
   const effectiveTab: Tab = tab === 'host' && !isHost ? 'chat' : tab
-  const currentTrack = tracks[trackIndex] || tracks[0]
+  const currentTrack = tracks[trackIndex] || tracks[0] || { id: '', name: t('room.music.empty'), mood: '', length: '' }
   const n = Math.max(1, members.length)
   const cols = Math.ceil(Math.sqrt(n))
   const rows = Math.ceil(n / cols)
@@ -841,6 +1041,20 @@ export default function Room() {
       className="relative h-svh w-full overflow-hidden font-sans text-[#33475e] antialiased"
       style={{ background: 'var(--ff-page-gradient)' }}
     >
+      {isRealMode && <audio ref={musicAudioRef} loop style={{ display: 'none' }} />}
+
+      {/* mini player YouTube — góc dưới-trái (cùng hàng với control bar), chỉ hiện khi
+          phòng đang phát từ YouTube. Iframe phải hiện thật (không display:none) theo
+          đúng ToS nhúng của YouTube. */}
+      {ytActive && (
+        <div
+          className="absolute bottom-4 left-[26px] z-[41] w-[260px] overflow-hidden rounded-[18px] md:bottom-7"
+          style={{ background: 'rgba(0,0,0,0.85)', boxShadow: '0 10px 26px rgba(20,30,40,0.28)' }}
+        >
+          <div ref={ytContainerRef} className="block h-[146px] w-[260px]" />
+        </div>
+      )}
+
       {/* top bar */}
       <div className="absolute top-[22px] right-[26px] left-[26px] z-[42] flex flex-wrap items-center justify-between gap-[10px]">
         <div
@@ -1241,14 +1455,18 @@ export default function Room() {
                 ))}
               </span>
               <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
-                <span className="text-sm font-extrabold text-[#2c3f55]">{currentTrack.name}</span>
+                <span className="text-sm font-extrabold text-[#2c3f55]">
+                  {ytActive ? t('room.music.youtubeNowPlaying') : currentTrack.name}
+                </span>
                 <span className="text-xs font-semibold text-[rgba(51,71,94,0.5)]">
-                  {musicOn ? t('room.music.playing', { mood: currentTrack.mood }) : t('room.music.paused')}
+                  {musicOn
+                    ? t('room.music.playing', { mood: ytActive ? t('room.music.youtubeTag') : currentTrack.mood })
+                    : t('room.music.paused')}
                 </span>
               </div>
               <button
                 onClick={() => (isRealMode ? setMusicOnReal(!musicOn) : setMusicOn((v) => !v))}
-                disabled={isRealMode && !isHost}
+                disabled={(isRealMode && !isHost) || (!ytActive && tracks.length === 0)}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[15px] border-none text-[#1e3549] hover:enabled:brightness-[0.97] disabled:opacity-50"
                 style={{ background: ACCENT_SOFT }}
               >
@@ -1275,6 +1493,70 @@ export default function Room() {
               <span className="w-[34px] text-right text-[12.5px] font-extrabold text-[rgba(51,71,94,0.55)]">{volume}%</span>
             </div>
 
+            {isRealMode && (
+              <div className="flex gap-[7px] rounded-[20px] p-[5px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
+                <button
+                  onClick={switchToLibraryReal}
+                  disabled={!isHost}
+                  className="flex-1 rounded-2xl border-none px-[6px] py-[9px] font-sans text-[12.5px] font-extrabold transition-all duration-[220ms] disabled:cursor-default"
+                  style={{ background: !ytActive ? 'white' : 'transparent', color: !ytActive ? '#22483f' : 'rgba(51,71,94,0.55)' }}
+                >
+                  {t('room.music.sourceLibrary')}
+                </button>
+                <button
+                  onClick={switchToYoutubeReal}
+                  disabled={!isHost}
+                  className="flex-1 rounded-2xl border-none px-[6px] py-[9px] font-sans text-[12.5px] font-extrabold transition-all duration-[220ms] disabled:cursor-default"
+                  style={{ background: ytActive ? 'white' : 'transparent', color: ytActive ? '#22483f' : 'rgba(51,71,94,0.55)' }}
+                >
+                  {t('room.music.sourceYoutube')}
+                </button>
+              </div>
+            )}
+
+            {ytActive && (
+              <div className="flex flex-col gap-2">
+                {isHost && (
+                  <div className="flex flex-col gap-[7px]">
+                    <div className="flex gap-[7px]">
+                      <input
+                        value={ytInput}
+                        onChange={(e) => {
+                          setYtInput(e.target.value)
+                          setYtError(false)
+                        }}
+                        placeholder={t('room.music.youtubeInputPlaceholder')}
+                        className="min-w-0 flex-1 rounded-[16px] border-none px-[13px] py-[10px] font-sans text-[13px] font-semibold text-[#2c3f55] outline-none"
+                        style={{ background: 'rgba(238,246,248,0.9)' }}
+                      />
+                      <button
+                        onClick={applyYoutubeLinkReal}
+                        disabled={!ytInput.trim()}
+                        className="shrink-0 rounded-[16px] border-none px-[16px] py-[10px] font-sans text-[13px] font-extrabold text-[#1e3549] disabled:opacity-50"
+                        style={{ background: ACCENT_SOFT }}
+                      >
+                        {t('room.music.youtubeUse')}
+                      </button>
+                    </div>
+                    {ytError && (
+                      <span className="text-[12px] font-semibold text-[#a13f2c]">{t('room.music.youtubeInvalid')}</span>
+                    )}
+                  </div>
+                )}
+                {realRoom?.youtube_url && (
+                  <span className="truncate text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">
+                    {t('room.music.youtubeCurrent', { url: realRoom.youtube_url })}
+                  </span>
+                )}
+                {!realRoom?.youtube_url && (
+                  <span className="rounded-[20px] px-[13px] py-[15px] text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.5)]" style={{ background: 'rgba(238,246,248,0.8)' }}>
+                    {t('room.music.youtubeEmpty')}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {!ytActive && (
             <div className="flex flex-col gap-2">
               <div className="flex items-baseline justify-between gap-[10px]">
                 <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
@@ -1284,11 +1566,16 @@ export default function Room() {
                   {isHost ? t('room.music.broadcastToRoom') : t('room.music.onlyYouHear')}
                 </span>
               </div>
+              {isRealMode && tracks.length === 0 && (
+                <span className="rounded-[20px] px-[13px] py-[15px] text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.5)]" style={{ background: 'rgba(238,246,248,0.8)' }}>
+                  {t('room.music.empty')}
+                </span>
+              )}
               {tracks.map((track, i) => {
                 const on = i === trackIndex
                 return (
                   <button
-                    key={TRACK_KEYS[i]}
+                    key={track.id}
                     onClick={() => {
                       if (isRealMode) {
                         setTrackIndexReal(i)
@@ -1325,6 +1612,7 @@ export default function Room() {
                 )
               })}
             </div>
+            )}
 
             <span className="text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.5)]">
               {isHost ? t('room.music.hostNote') : t('room.music.memberNote')}

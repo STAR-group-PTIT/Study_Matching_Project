@@ -118,7 +118,15 @@
       "nowPlaying": "now playing",
       "selected": "selected",
       "pause": "Pause music",
-      "play": "Play music"
+      "play": "Play music",
+      "empty": "No tracks yet. Add some in Settings.",
+      "sourceLibrary": "Library",
+      "sourceYoutube": "YouTube",
+      "youtubeInputPlaceholder": "Paste a YouTube link…",
+      "youtubeUse": "Use this link",
+      "youtubeInvalid": "That YouTube link doesn't look valid.",
+      "youtubeCurrent": "Now playing: {{url}}",
+      "youtubeEmpty": "No YouTube link yet. Paste one above."
     },
     "todoPanel": {
       "title": "To-do",
@@ -316,8 +324,11 @@
       "count": "{{count}} tracks",
       "delete": "Delete",
       "upload": "Upload music (MP3, WAV)",
-      "hint": "Click a track's name to rename it. Music only plays during your own session.",
-      "tooLarge": "Music files can be up to 25 MB."
+      "hint": "Click a track's name to rename it. Tracks marked \"Default\" can play in any room, even other people's.",
+      "tooLarge": "Music files can be up to 25 MB.",
+      "setDefault": "Set as default",
+      "isDefault": "Default",
+      "unsetDefault": "Unset default"
     },
     "pomodoro": {
       "title": "Default Pomodoro",
@@ -444,7 +455,19 @@
       "broadcastToRoom": "plays for the whole room",
       "onlyYouHear": "only you hear this",
       "hostNote": "You're the host, so whatever you pick plays for everyone in sync — anyone who wants quiet can pull their own volume to 0.",
-      "memberNote": "The host is picking music for the room — you can only adjust your own volume."
+      "memberNote": "The host is picking music for the room — you can only adjust your own volume.",
+      "defaultTag": "default",
+      "hostTag": "host's pick",
+      "empty": "No music in this room yet. Add tracks in Settings and mark them \"Default\", or let the host upload their own.",
+      "sourceLibrary": "Library",
+      "sourceYoutube": "YouTube",
+      "youtubeNowPlaying": "YouTube audio",
+      "youtubeTag": "YouTube",
+      "youtubeInputPlaceholder": "Paste a YouTube link…",
+      "youtubeUse": "Use this link",
+      "youtubeInvalid": "That YouTube link doesn't look valid.",
+      "youtubeCurrent": "Now playing: {{url}}",
+      "youtubeEmpty": "The host hasn't pasted a YouTube link yet."
     },
     "host": {
       "admitMode": "Admission mode",

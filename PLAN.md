@@ -74,8 +74,11 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 ## Giai đoạn 8 — Responsive, polish, deploy
 - [x] Bottom sheet cho panel phải trên mobile — xong 2026-07-30
 - [x] QA toàn luồng: Auth → Dashboard → Matching → Room → Rời phòng → Stats/Settings — xong 2026-07-30 (phát hiện + fix thêm vài lỗi tràn màn hình mobile ngoài kế hoạch, xem CONTEXT.md)
-- [ ] Deploy frontend (Vercel/Netlify) + Supabase production
+- [ ] Deploy frontend (Vercel/Netlify) + Supabase production — **frontend đã chuẩn bị xong** (`vercel.json`, `main` đồng bộ, 2026-07-31), còn thiếu: user tự tạo project Vercel + set env vars, và quyết định Supabase production
 - [x] Kiểm tra i18n vi/en đầy đủ — xong 2026-07-30 (chi tiết CONTEXT.md)
+- [x] (thêm ngoài kế hoạch) Settings 2 tab (Hồ sơ/Cài đặt), accent color preset, camera/mic mặc định, âm thanh hết giờ — xong 2026-07-31
+- [x] (thêm ngoài kế hoạch) Hình nền built-in gộp với thư viện riêng — xong 2026-07-31
+- [x] (thêm ngoài kế hoạch) Nhạc nền thật — thư viện mp3 (mặc định + riêng từng người) và YouTube (Room đồng bộ cả phòng + Dashboard solo) — xong 2026-07-31, xem CONTEXT.md "Giai đoạn 8 (phần 7)"
 
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).
