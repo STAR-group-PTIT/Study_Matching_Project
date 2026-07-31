@@ -293,6 +293,10 @@
   },
   "settings": {
     "headerTag": "Cài đặt & hồ sơ",
+    "tabs": {
+      "profile": "Hồ sơ",
+      "app": "Cài đặt"
+    },
     "profile": {
       "defaultName": "Người dùng mới",
       "streak": "Streak {{days}} ngày · {{sessions}} phiên tuần này",
@@ -333,6 +337,27 @@
       "title": "Ngôn ngữ giao diện",
       "vi": "Tiếng Việt",
       "en": "English"
+    },
+    "accent": {
+      "title": "Màu chủ đạo",
+      "mint": "Bạc hà",
+      "blue": "Xanh dương",
+      "green": "Xanh lá",
+      "purple": "Tím"
+    },
+    "devices": {
+      "title": "Camera & micro mặc định",
+      "cameraLabel": "Camera",
+      "micLabel": "Micro",
+      "systemDefault": "Mặc định hệ thống",
+      "grantPermission": "Cấp quyền truy cập để chọn thiết bị",
+      "permissionDenied": "Trình duyệt từ chối quyền truy cập camera/mic.",
+      "hint": "Áp dụng cho camera ở Dashboard và cuộc gọi video trong phòng học."
+    },
+    "notifications": {
+      "title": "Thông báo",
+      "soundTitle": "Âm thanh khi hết giờ",
+      "soundDesc": "Phát 1 tiếng chuông ngắn khi 1 phiên Pomodoro kết thúc"
     },
     "logout": {
       "hint": "Đăng xuất sẽ giữ lại wallpaper và nhạc trên tài khoản; máy này chuyển về chế độ khách.",

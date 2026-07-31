@@ -3,15 +3,34 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
+import { playChime } from '../lib/sound'
 
-const WALLPAPERS = [
-  'linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)',
-  'linear-gradient(150deg, #e8f4f0 0%, #d5e9f4 100%)',
-  'linear-gradient(200deg, #d9ecf5 0%, #eaf5f1 60%, #dceef0 100%)',
-  'linear-gradient(135deg, #eef3f8 0%, #dbeaf0 50%, #cfe4e6 100%)',
-  'radial-gradient(120% 100% at 20% 10%, #e9f6f2 0%, #d3e6f0 70%)',
-  'linear-gradient(175deg, #f0f6f7 0%, #d8eaf0 55%, #cde5df 100%)',
-]
+type WallpaperOption = { id: string; kind: 'gradient' | 'image'; value: string }
+
+const BUILTIN_GRADIENTS: WallpaperOption[] = ['linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)'].map(
+  (value, i) => ({ id: 'gradient-' + i, kind: 'gradient' as const, value }),
+)
+
+// Ảnh nền có sẵn cho mọi tài khoản — thả file .jpg/.jpeg/.png/.webp vào app/src/assets/wallpapers/
+// là tự động xuất hiện trong popup "Đổi hình nền", không cần sửa code.
+const builtinWallpaperImages = import.meta.glob<string>('/src/assets/wallpapers/*.{jpg,jpeg,png,webp}', {
+  eager: true,
+  import: 'default',
+})
+const BUILTIN_IMAGES: WallpaperOption[] = Object.entries(builtinWallpaperImages)
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([path, url]) => ({ id: path, kind: 'image' as const, value: url }))
+
+const BUILTIN_WALLPAPERS: WallpaperOption[] = [...BUILTIN_GRADIENTS, ...BUILTIN_IMAGES]
+
+const WALLPAPER_STORAGE_KEY = 'ff-wallpaper-id'
+function loadStoredWallpaperId() {
+  try {
+    return localStorage.getItem(WALLPAPER_STORAGE_KEY) ?? BUILTIN_WALLPAPERS[0].id
+  } catch {
+    return BUILTIN_WALLPAPERS[0].id
+  }
+}
 
 const TRACK_KEYS = ['rain', 'lofi', 'cafe', 'waves', 'whiteNoise'] as const
 
@@ -75,7 +94,20 @@ export default function Dashboard() {
   const [endlessRunning, setEndlessRunning] = useState(false)
   const [endlessSeconds, setEndlessSeconds] = useState(0)
   const [now, setNow] = useState(() => new Date())
-  const [wp, setWp] = useState(0)
+  // Lưu vào localStorage — chọn hình nền xong rồi rời trang (Settings/Matching...) quay lại phải
+  // vẫn giữ đúng lựa chọn, không reset về mặc định (component Dashboard unmount/mount lại theo route).
+  const [wp, setWp] = useState(loadStoredWallpaperId)
+  const [customWallpapers, setCustomWallpapers] = useState<WallpaperOption[]>([])
+  const wallpaperOptions = useMemo(() => [...BUILTIN_WALLPAPERS, ...customWallpapers], [customWallpapers])
+  const selectedWallpaper = wallpaperOptions.find((w) => w.id === wp) ?? BUILTIN_WALLPAPERS[0]
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(WALLPAPER_STORAGE_KEY, wp)
+    } catch {
+      // localStorage không khả dụng (vd chế độ ẩn danh chặn) — chỉ mất tính năng nhớ lựa chọn, không lỗi.
+    }
+  }, [wp])
   const [panel, setPanel] = useState<Panel>(null)
   const [cameraOn, setCameraOn] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -91,6 +123,8 @@ export default function Dashboard() {
   const [autoStart, setAutoStart] = useState(true)
   const [editingField, setEditingField] = useState<EditField>(null)
   const [editFieldValue, setEditFieldValue] = useState('')
+  const [preferredCameraId, setPreferredCameraId] = useState('')
+  const [notificationSound, setNotificationSound] = useState(true)
 
   const runningRef = useRef(running)
   runningRef.current = running
@@ -106,6 +140,8 @@ export default function Dashboard() {
   roundRef.current = round
   const autoStartRef = useRef(autoStart)
   autoStartRef.current = autoStart
+  const notificationSoundRef = useRef(notificationSound)
+  notificationSoundRef.current = notificationSound
   const userRef = useRef(user)
   userRef.current = user
   const phaseStartRef = useRef(Date.now())
@@ -115,7 +151,7 @@ export default function Dashboard() {
     if (!user) return
     supabase
       .from('profiles')
-      .select('focus_minutes, break_minutes, session_count, auto_start_next')
+      .select('focus_minutes, break_minutes, session_count, auto_start_next, preferred_camera_id, notification_sound')
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
@@ -124,15 +160,50 @@ export default function Dashboard() {
         setBreakMin(data.break_minutes)
         setSessionCount(data.session_count)
         setAutoStart(data.auto_start_next)
+        setPreferredCameraId(data.preferred_camera_id ?? '')
+        setNotificationSound(data.notification_sound)
       })
+  }, [user])
+
+  // Ảnh nền riêng của tài khoản (upload ở Settings) — gộp vào cùng danh sách với hình nền
+  // built-in để chọn ngay từ Dashboard, không cần qua lại Settings.
+  useEffect(() => {
+    if (!user) {
+      setCustomWallpapers([])
+      return
+    }
+    let cancelled = false
+    supabase
+      .from('wallpapers')
+      .select('id, storage_path')
+      .eq('user_id', user.id)
+      .order('created_at')
+      .then(async ({ data }) => {
+        if (cancelled || !data || data.length === 0) {
+          if (!cancelled) setCustomWallpapers([])
+          return
+        }
+        const paths = data.map((r) => r.storage_path)
+        const { data: signed } = await supabase.storage.from('wallpapers').createSignedUrls(paths, 3600)
+        if (cancelled) return
+        setCustomWallpapers(
+          data
+            .map((r, i) => ({ id: r.id, kind: 'image' as const, value: signed?.[i]?.signedUrl ?? '' }))
+            .filter((w) => w.value),
+        )
+      })
+    return () => {
+      cancelled = true
+    }
   }, [user])
 
   // Dùng chung cho hoàn thành tự nhiên (hết giờ) lẫn bấm Skip — chỉ khác nhau ở số phút ghi
   // log (đủ vs. thực tế đã trôi qua) và có tự chạy tiếp phase kế hay không.
   function advancePhaseBody(
     prevPhase: Phase,
-    opts: { minutesOverride?: number; continueRunning: boolean },
+    opts: { minutesOverride?: number; continueRunning: boolean; natural?: boolean },
   ): Phase {
+    if (opts.natural && notificationSoundRef.current) playChime()
     const next: Phase = prevPhase === 'focus' ? 'break' : 'focus'
     const completedMinutes = opts.minutesOverride ?? (prevPhase === 'focus' ? focusMinRef.current : breakMinRef.current)
     const isFinalCompletion = next === 'focus' && roundRef.current >= sessionCountRef.current
@@ -165,7 +236,7 @@ export default function Dashboard() {
       if (!runningRef.current) return
       setLeft((prevLeft) => {
         if (prevLeft <= 1) {
-          setPhase((prevPhase) => advancePhaseBody(prevPhase, { continueRunning: autoStartRef.current }))
+          setPhase((prevPhase) => advancePhaseBody(prevPhase, { continueRunning: autoStartRef.current, natural: true }))
           return 0 // placeholder, replaced right after via phase effect below
         }
         return prevLeft - 1
@@ -218,12 +289,22 @@ export default function Dashboard() {
   }, [])
 
   // Webcam thật cho ô "Bạn" — bật/tắt là start/stop stream thật, không chỉ đổi opacity icon.
+  // Ưu tiên thiết bị đã chọn ở Settings (preferredCameraId); nếu deviceId đó không còn hợp lệ
+  // (máy đổi/rút thiết bị) thì fallback về camera mặc định thay vì tắt hẳn camera.
   useEffect(() => {
     if (!cameraOn) return
     let cancelled = false
     let stream: MediaStream | null = null
+    const constraints: MediaStreamConstraints = preferredCameraId
+      ? { video: { deviceId: { exact: preferredCameraId } } }
+      : { video: true }
     navigator.mediaDevices
-      .getUserMedia({ video: true })
+      .getUserMedia(constraints)
+      .catch((error) => {
+        if (!preferredCameraId) throw error
+        console.error('preferred camera unavailable, falling back to default', error)
+        return navigator.mediaDevices.getUserMedia({ video: true })
+      })
       .then((s) => {
         if (cancelled) {
           s.getTracks().forEach((track) => track.stop())
@@ -241,7 +322,7 @@ export default function Dashboard() {
       stream?.getTracks().forEach((track) => track.stop())
       if (videoRef.current) videoRef.current.srcObject = null
     }
-  }, [cameraOn])
+  }, [cameraOn, preferredCameraId])
 
   const total = phase === 'focus' ? focusMin * 60 : breakMin * 60
   const showProgressRing = timerType === 'pomodoro' && pomodoroStarted && !done
@@ -469,12 +550,22 @@ export default function Dashboard() {
 
   return (
     <div
-      className="relative h-svh w-full overflow-hidden font-sans text-[#33475e] antialiased"
-      style={{ background: WALLPAPERS[wp], transition: 'background 900ms ease' }}
+      className="relative h-svh w-full overflow-hidden bg-cover bg-center font-sans text-[#33475e] antialiased"
+      style={{
+        backgroundImage: selectedWallpaper.kind === 'image' ? `url(${selectedWallpaper.value})` : selectedWallpaper.value,
+        transition: 'background-image 900ms ease',
+      }}
     >
+      {/* lớp phủ nền — trắng mờ + blur nhẹ hợp với 6 gradient pastel, nhưng phủ lên ảnh thật thì
+          làm ảnh xám/mất chi tiết; ảnh thật dùng lớp tối rất nhẹ thay thế, không blur, để giữ màu
+          gốc mà card kính trắng vẫn nổi rõ. */}
       <div
         className="absolute inset-0"
-        style={{ backdropFilter: 'blur(2px)', background: 'rgba(255,255,255,0.14)' }}
+        style={
+          selectedWallpaper.kind === 'image'
+            ? { background: 'rgba(8,20,24,0.12)' }
+            : { backdropFilter: 'blur(2px)', background: 'rgba(255,255,255,0.14)' }
+        }
       />
 
       {/* top bar */}
@@ -587,6 +678,32 @@ export default function Dashboard() {
             </svg>
             <span>{hidden ? t('dashboard.topbar.showUi') : t('dashboard.topbar.hideUi')}</span>
           </button>
+          <div
+            className="flex gap-1 rounded-[20px] p-[5px]"
+            style={{
+              ...chromeStyle,
+              background: 'rgba(255,255,255,0.6)',
+              boxShadow: '0 6px 20px rgba(64,102,128,0.09)',
+              backdropFilter: 'blur(14px)',
+            }}
+          >
+            {(['vi', 'en'] as const).map((lng) => {
+              const on = i18n.resolvedLanguage === lng
+              return (
+                <button
+                  key={lng}
+                  onClick={() => void i18n.changeLanguage(lng)}
+                  className="rounded-[15px] border-none px-3 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
+                  style={{
+                    background: on ? 'rgba(255,255,255,0.95)' : 'transparent',
+                    color: on ? '#25415c' : 'rgba(51,71,94,0.55)',
+                  }}
+                >
+                  {lng.toUpperCase()}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
 
@@ -1249,27 +1366,41 @@ export default function Dashboard() {
             <path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1" />
           </svg>
         </Link>
-        <Link
-          to="/settings"
-          title={t('dashboard.taskbar.settingsTitle')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] no-underline transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:px-5"
-          style={{ background: 'rgba(255,255,255,0.35)' }}
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinecap="round"
-          >
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
-          </svg>
-          <span className="hidden md:inline">{t('dashboard.taskbar.settingsLabel')}</span>
-        </Link>
       </div>
+
+      {/* settings — standalone icon-only button, bottom-left corner */}
+      <Link
+        to="/settings"
+        title={t('dashboard.taskbar.settingsTitle')}
+        aria-label={t('dashboard.taskbar.settingsTitle')}
+        className="absolute right-3 bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] no-underline transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:right-8"
+        style={{
+          ...dashStyleBase,
+          // popup nào cũng nổi đè lên đúng góc này (todo panel full-height bên phải, wallpaper/music
+          // popup căn giữa-dưới) — ẩn hẳn gear lúc đó thay vì chỉ dựa vào z-index, để chắc chắn
+          // không bao giờ đè lên chữ/nút trong popup dù ở kích thước màn hình nào.
+          opacity: dashVisible && panel === null ? 1 : 0,
+          pointerEvents: dashVisible && panel === null ? 'auto' : 'none',
+          background: 'rgba(255,255,255,0.66)',
+          backdropFilter: 'blur(18px)',
+          boxShadow: '0 14px 34px rgba(58,98,126,0.14)',
+          transform: `translateY(${dashVisible ? '0px' : '26px'})`,
+          transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
+        }}
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+        >
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
+        </svg>
+      </Link>
 
       {/* wallpaper popup */}
       <div
@@ -1295,15 +1426,15 @@ export default function Dashboard() {
             {t('dashboard.wallpaperPopup.close')}
           </button>
         </div>
-        <div className="grid grid-cols-3 gap-[10px]">
-          {WALLPAPERS.map((css, i) => (
+        <div className="grid max-h-[280px] grid-cols-3 gap-[10px] overflow-y-auto pr-1">
+          {wallpaperOptions.map((option) => (
             <button
-              key={i}
-              onClick={() => setWp(i)}
-              className="h-[66px] rounded-[18px] transition-transform duration-200 hover:!-translate-y-0.5"
+              key={option.id}
+              onClick={() => setWp(option.id)}
+              className="h-[66px] rounded-[18px] bg-cover bg-center transition-transform duration-200 hover:!-translate-y-0.5"
               style={{
-                background: css,
-                border: i === wp ? `2px solid ${ACCENT}` : '2px solid rgba(255,255,255,0.7)',
+                backgroundImage: option.kind === 'image' ? `url(${option.value})` : option.value,
+                border: option.id === wp ? `2px solid ${ACCENT}` : '2px solid rgba(255,255,255,0.7)',
                 boxShadow: '0 4px 12px rgba(58,98,126,0.1)',
               }}
             />

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Room as LiveKitRoom, RoomEvent, Track } from 'livekit-client'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
+import { playChime } from '../lib/sound'
 
 type StatusKey = 'host' | 'focusing' | 'micOff' | 'camOff' | 'justJoined'
 type Member = { id: string; name: string; statusKey: StatusKey; host: boolean; me?: boolean }
@@ -179,6 +180,29 @@ export default function Room() {
   const [chatOpen, setChatOpen] = useState(true)
   const [tab, setTab] = useState<Tab>('chat')
 
+  const [preferredCameraId, setPreferredCameraId] = useState('')
+  const [preferredMicId, setPreferredMicId] = useState('')
+  const [notificationSound, setNotificationSound] = useState(true)
+  const preferredCameraIdRef = useRef(preferredCameraId)
+  preferredCameraIdRef.current = preferredCameraId
+  const preferredMicIdRef = useRef(preferredMicId)
+  preferredMicIdRef.current = preferredMicId
+
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('profiles')
+      .select('preferred_camera_id, preferred_mic_id, notification_sound')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (!data) return
+        setPreferredCameraId(data.preferred_camera_id ?? '')
+        setPreferredMicId(data.preferred_mic_id ?? '')
+        setNotificationSound(data.notification_sound)
+      })
+  }, [user])
+
   const [musicOn, setMusicOn] = useState(true)
   const [trackIndex, setTrackIndex] = useState(0)
   const [volume, setVolume] = useState(45)
@@ -273,6 +297,18 @@ export default function Room() {
     }
     prevRealPhaseRef.current = realRoom.timer_phase
   }, [realRoom, user, myStatus])
+
+  // Chuông báo hết phase — tách khỏi effect ghi focus_sessions ở trên vì áp dụng cho cả host
+  // lẫn member (ghi log thì chỉ member, host không có hàng trong room_members).
+  const prevRealPhaseForSoundRef = useRef<Phase | null>(null)
+  useEffect(() => {
+    if (!realRoom) return
+    const prevPhase = prevRealPhaseForSoundRef.current
+    if (prevPhase !== null && prevPhase !== realRoom.timer_phase && notificationSound && (isHost || myStatus === 'member')) {
+      playChime()
+    }
+    prevRealPhaseForSoundRef.current = realRoom.timer_phase
+  }, [realRoom, isHost, myStatus, notificationSound])
 
   useEffect(() => {
     if (!realRoom || !user) return
@@ -525,8 +561,14 @@ export default function Room() {
           lkRoom.disconnect()
           return
         }
-        await lkRoom.localParticipant.setCameraEnabled(camRef.current)
-        await lkRoom.localParticipant.setMicrophoneEnabled(micRef.current)
+        await lkRoom.localParticipant.setCameraEnabled(
+          camRef.current,
+          preferredCameraIdRef.current ? { deviceId: preferredCameraIdRef.current } : undefined,
+        )
+        await lkRoom.localParticipant.setMicrophoneEnabled(
+          micRef.current,
+          preferredMicIdRef.current ? { deviceId: preferredMicIdRef.current } : undefined,
+        )
       })
 
     return () => {
@@ -540,12 +582,16 @@ export default function Room() {
 
   useEffect(() => {
     if (!isRealMode) return
-    lkRoomRef.current?.localParticipant.setCameraEnabled(cam).catch(() => {})
-  }, [cam, isRealMode])
+    lkRoomRef.current?.localParticipant
+      .setCameraEnabled(cam, preferredCameraId ? { deviceId: preferredCameraId } : undefined)
+      .catch(() => {})
+  }, [cam, isRealMode, preferredCameraId])
   useEffect(() => {
     if (!isRealMode) return
-    lkRoomRef.current?.localParticipant.setMicrophoneEnabled(mic).catch(() => {})
-  }, [mic, isRealMode])
+    lkRoomRef.current?.localParticipant
+      .setMicrophoneEnabled(mic, preferredMicId ? { deviceId: preferredMicId } : undefined)
+      .catch(() => {})
+  }, [mic, isRealMode, preferredMicId])
 
   const runningRef = useRef(running)
   runningRef.current = running

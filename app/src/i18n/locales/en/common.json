@@ -293,6 +293,10 @@
   },
   "settings": {
     "headerTag": "Settings & profile",
+    "tabs": {
+      "profile": "Profile",
+      "app": "Settings"
+    },
     "profile": {
       "defaultName": "New user",
       "streak": "{{days}}-day streak · {{sessions}} sessions this week",
@@ -333,6 +337,27 @@
       "title": "Interface language",
       "vi": "Tiếng Việt",
       "en": "English"
+    },
+    "accent": {
+      "title": "Accent color",
+      "mint": "Mint",
+      "blue": "Blue",
+      "green": "Green",
+      "purple": "Purple"
+    },
+    "devices": {
+      "title": "Default camera & microphone",
+      "cameraLabel": "Camera",
+      "micLabel": "Microphone",
+      "systemDefault": "System default",
+      "grantPermission": "Grant access to choose a device",
+      "permissionDenied": "The browser denied camera/mic access.",
+      "hint": "Applies to the Dashboard camera preview and video calls in study rooms."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "soundTitle": "Sound when a phase ends",
+      "soundDesc": "Play a short chime when a Pomodoro session finishes"
     },
     "logout": {
       "hint": "Signing out keeps your wallpapers and music on your account; this device switches to guest mode.",
