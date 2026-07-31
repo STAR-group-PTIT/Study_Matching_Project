@@ -66,25 +66,29 @@
     "clock": {
       "focusing": "Đang tập trung",
       "onBreak": "Nghỉ ngắn",
-      "session": "Phiên {{round}} / 4"
+      "doneTitle": "Đã hoàn thành ✓",
+      "doneHint": "Bạn đã học đủ {{count}} phiên hôm nay 🎉",
+      "editHint": "Enter để lưu · Esc để huỷ",
+      "loopLabel": "Vòng lặp",
+      "workLabel": "Học",
+      "breakColumnLabel": "Nghỉ",
+      "pomodoroMode": "Chế độ Pomodoro",
+      "endlessMode": "Chế độ tự do (đếm lên)"
     },
     "controls": {
       "pause": "Tạm dừng",
       "start": "Bắt đầu",
       "resume": "Tiếp tục",
-      "reset": "Reset",
-      "takeBreak": "Nghỉ ngắn",
-      "continueStudy": "Học tiếp"
+      "cancel": "Huỷ bỏ",
+      "skip": "Bỏ qua",
+      "newRound": "Bắt đầu vòng mới"
     },
     "leftWidgets": {
-      "today": "Hôm nay",
-      "focusedMinutes": "phút tập trung",
       "inProgress": "Đang làm",
       "allDone": "Xong hết việc hôm nay 🎉",
       "remaining": "{{open}} việc còn lại · {{done}} đã xong"
     },
     "rightColumn": {
-      "cameraOn": "Camera đang bật",
       "cameraOff": "Camera đang tắt",
       "you": "Bạn",
       "turnOffCamera": "Tắt camera",
@@ -99,7 +103,9 @@
       "musicLabel": "Nhạc nền",
       "todoTitle": "Danh sách việc",
       "todoLabel": "To-do",
-      "studyTogetherTitle": "Học cùng nhau"
+      "studyTogetherTitle": "Học cùng nhau",
+      "settingsTitle": "Cài đặt",
+      "settingsLabel": "Cài đặt"
     },
     "wallpaperPopup": {
       "title": "Hình nền",
@@ -154,6 +160,12 @@
       "roomTypeLabel": "Loại phòng",
       "pickOne": "chọn 1",
       "durationLabel": "Thời lượng phiên",
+      "presetsLabel": "Gợi ý nhanh",
+      "focusMinutesLabel": "Phút học",
+      "breakMinutesLabel": "Phút nghỉ",
+      "sessionCountLabel": "Số phiên",
+      "minutesValue": "{{count}} phút",
+      "sessionsValue": "{{count}} phiên",
       "languageLabel": "Ngôn ngữ",
       "randomMatch": "Ghép ngẫu nhiên",
       "createRoom": "Tạo phòng mới",
@@ -162,10 +174,6 @@
       "joinCodePlaceholder": "VD: G32TZU",
       "joining": "Đang vào…",
       "join": "Vào phòng"
-    },
-    "duration": {
-      "25": "25 phút",
-      "50": "50 phút"
     },
     "visibility": {
       "public": "Công khai",
@@ -309,14 +317,17 @@
     },
     "pomodoro": {
       "title": "Pomodoro mặc định",
+      "presetsLabel": "Gợi ý nhanh",
       "focusMinutes": "Phút tập trung",
       "minutesValue": "{{count}} phút",
       "breakMinutes": "Phút nghỉ",
+      "sessionCount": "Số phiên",
+      "sessionsValue": "{{count}} phiên",
       "autoStartTitle": "Tự động bắt đầu phiên tiếp theo",
       "autoStartDesc": "Hết giờ nghỉ là vào phiên học luôn",
       "saved": "Đã lưu ✓",
       "save": "Lưu thay đổi",
-      "resetDefault": "Về mặc định 25/5"
+      "resetDefault": "Về mặc định 25/5 · 4 phiên"
     },
     "language": {
       "title": "Ngôn ngữ giao diện",
@@ -378,10 +389,13 @@
     "pomodoro": {
       "focusing": "Đang tập trung",
       "onBreak": "Nghỉ ngắn",
-      "sessionBoth": "Phiên {{round}} / 4 · cả hai cùng chạy",
+      "sessionBoth": "Phiên {{round}} / {{total}} · cả hai cùng chạy",
+      "doneTitle": "Đã hoàn thành ✓",
+      "doneHint": "Cả phòng đã học đủ {{count}} phiên hôm nay 🎉",
       "pause": "Tạm dừng",
       "resume": "Tiếp tục",
-      "reset": "Reset"
+      "reset": "Reset",
+      "newRound": "Bắt đầu vòng mới"
     },
     "controls": {
       "camera": "Camera",

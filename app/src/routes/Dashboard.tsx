@@ -17,11 +17,14 @@ const TRACK_KEYS = ['rain', 'lofi', 'cafe', 'waves', 'whiteNoise'] as const
 
 const FOCUS_MINUTES = 25
 const BREAK_MINUTES = 5
+const SESSION_COUNT_DEFAULT = 4
 const ACCENT = 'var(--ff-accent)'
 
 type Phase = 'focus' | 'break'
 type Mode = 'dashboard' | 'focus'
 type Panel = 'wp' | 'music' | 'todo' | null
+type TimerType = 'pomodoro' | 'endless'
+type EditField = 'loop' | 'work' | 'break' | null
 
 type Task = {
   id: string
@@ -38,14 +41,15 @@ const MOCK_TASK_DONE: Record<(typeof MOCK_TASK_KEYS)[number], boolean> = {
   t4: false,
 }
 
-function fmt(sec: number) {
-  const m = Math.floor(sec / 60)
-  const s = sec % 60
-  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0')
+function fmtHMS(totalSec: number) {
+  const h = Math.floor(totalSec / 3600)
+  const m = Math.floor((totalSec % 3600) / 60)
+  const s = totalSec % 60
+  return [h, m, s].map((v) => String(v).padStart(2, '0')).join(':')
 }
 
 export default function Dashboard() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const user = useAuthStore((s) => s.user)
   const initialTasks = useMemo<Task[]>(
     () =>
@@ -60,14 +64,21 @@ export default function Dashboard() {
   const tracks = useMemo(() => TRACK_KEYS.map((key) => t(`dashboard.mockTracks.${key}`)), [t])
   const [mode, setMode] = useState<Mode>('dashboard')
   const [hidden, setHidden] = useState(false)
+  const [timerType, setTimerType] = useState<TimerType>('pomodoro')
+  const [pomodoroStarted, setPomodoroStarted] = useState(false)
   const [running, setRunning] = useState(false)
   const [phase, setPhase] = useState<Phase>('focus')
   const [left, setLeft] = useState(FOCUS_MINUTES * 60)
   const [round, setRound] = useState(1)
-  const [focusedMinutes, setFocusedMinutes] = useState(75)
+  const [done, setDone] = useState(false)
+  const [endlessStarted, setEndlessStarted] = useState(false)
+  const [endlessRunning, setEndlessRunning] = useState(false)
+  const [endlessSeconds, setEndlessSeconds] = useState(0)
+  const [now, setNow] = useState(() => new Date())
   const [wp, setWp] = useState(0)
   const [panel, setPanel] = useState<Panel>(null)
   const [cameraOn, setCameraOn] = useState(true)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const [track, setTrack] = useState(1)
   const [playing, setPlaying] = useState(true)
   const [draft, setDraft] = useState('')
@@ -76,66 +87,97 @@ export default function Dashboard() {
   // Pomodoro defaults — 25/5 cho khách, ghi đè bằng profile thật khi đăng nhập (xem effect bên dưới).
   const [focusMin, setFocusMin] = useState(FOCUS_MINUTES)
   const [breakMin, setBreakMin] = useState(BREAK_MINUTES)
+  const [sessionCount, setSessionCount] = useState(SESSION_COUNT_DEFAULT)
   const [autoStart, setAutoStart] = useState(true)
+  const [editingField, setEditingField] = useState<EditField>(null)
+  const [editFieldValue, setEditFieldValue] = useState('')
 
   const runningRef = useRef(running)
   runningRef.current = running
+  const endlessRunningRef = useRef(endlessRunning)
+  endlessRunningRef.current = endlessRunning
   const focusMinRef = useRef(focusMin)
   focusMinRef.current = focusMin
   const breakMinRef = useRef(breakMin)
   breakMinRef.current = breakMin
+  const sessionCountRef = useRef(sessionCount)
+  sessionCountRef.current = sessionCount
+  const roundRef = useRef(round)
+  roundRef.current = round
   const autoStartRef = useRef(autoStart)
   autoStartRef.current = autoStart
   const userRef = useRef(user)
   userRef.current = user
   const phaseStartRef = useRef(Date.now())
+  const endlessStartRef = useRef(Date.now())
 
   useEffect(() => {
     if (!user) return
     supabase
       .from('profiles')
-      .select('focus_minutes, break_minutes, auto_start_next')
+      .select('focus_minutes, break_minutes, session_count, auto_start_next')
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
         if (!data) return
         setFocusMin(data.focus_minutes)
         setBreakMin(data.break_minutes)
+        setSessionCount(data.session_count)
         setAutoStart(data.auto_start_next)
       })
   }, [user])
+
+  // Dùng chung cho hoàn thành tự nhiên (hết giờ) lẫn bấm Skip — chỉ khác nhau ở số phút ghi
+  // log (đủ vs. thực tế đã trôi qua) và có tự chạy tiếp phase kế hay không.
+  function advancePhaseBody(
+    prevPhase: Phase,
+    opts: { minutesOverride?: number; continueRunning: boolean },
+  ): Phase {
+    const next: Phase = prevPhase === 'focus' ? 'break' : 'focus'
+    const completedMinutes = opts.minutesOverride ?? (prevPhase === 'focus' ? focusMinRef.current : breakMinRef.current)
+    const isFinalCompletion = next === 'focus' && roundRef.current >= sessionCountRef.current
+    if (next === 'focus' && !isFinalCompletion) setRound((r) => r + 1)
+    const uid = userRef.current?.id
+    if (uid && completedMinutes > 0) {
+      supabase
+        .from('focus_sessions')
+        .insert({
+          user_id: uid,
+          phase: prevPhase,
+          minutes: completedMinutes,
+          started_at: new Date(phaseStartRef.current).toISOString(),
+        })
+        .then(({ error }) => {
+          if (error) console.error('log focus_session failed', error)
+        })
+    }
+    if (isFinalCompletion) {
+      setDone(true)
+      setRunning(false)
+      return prevPhase
+    }
+    setRunning(opts.continueRunning)
+    return next
+  }
 
   useEffect(() => {
     const id = setInterval(() => {
       if (!runningRef.current) return
       setLeft((prevLeft) => {
         if (prevLeft <= 1) {
-          setPhase((prevPhase) => {
-            const next: Phase = prevPhase === 'focus' ? 'break' : 'focus'
-            const completedMinutes = prevPhase === 'focus' ? focusMinRef.current : breakMinRef.current
-            if (next === 'focus') setRound((r) => r + 1)
-            if (prevPhase === 'focus') setFocusedMinutes((m) => m + completedMinutes)
-            const uid = userRef.current?.id
-            if (uid) {
-              supabase
-                .from('focus_sessions')
-                .insert({
-                  user_id: uid,
-                  phase: prevPhase,
-                  minutes: completedMinutes,
-                  started_at: new Date(phaseStartRef.current).toISOString(),
-                })
-                .then(({ error }) => {
-                  if (error) console.error('log focus_session failed', error)
-                })
-            }
-            setRunning(autoStartRef.current)
-            return next
-          })
+          setPhase((prevPhase) => advancePhaseBody(prevPhase, { continueRunning: autoStartRef.current }))
           return 0 // placeholder, replaced right after via phase effect below
         }
         return prevLeft - 1
       })
+    }, 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (!endlessRunningRef.current) return
+      setEndlessSeconds((s) => s + 1)
     }, 1000)
     return () => clearInterval(id)
   }, [])
@@ -170,9 +212,54 @@ export default function Dashboard() {
     }
   }, [user, initialTasks])
 
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  // Webcam thật cho ô "Bạn" — bật/tắt là start/stop stream thật, không chỉ đổi opacity icon.
+  useEffect(() => {
+    if (!cameraOn) return
+    let cancelled = false
+    let stream: MediaStream | null = null
+    navigator.mediaDevices
+      .getUserMedia({ video: true })
+      .then((s) => {
+        if (cancelled) {
+          s.getTracks().forEach((track) => track.stop())
+          return
+        }
+        stream = s
+        if (videoRef.current) videoRef.current.srcObject = s
+      })
+      .catch((error) => {
+        console.error('camera access failed', error)
+        if (!cancelled) setCameraOn(false)
+      })
+    return () => {
+      cancelled = true
+      stream?.getTracks().forEach((track) => track.stop())
+      if (videoRef.current) videoRef.current.srcObject = null
+    }
+  }, [cameraOn])
+
   const total = phase === 'focus' ? focusMin * 60 : breakMin * 60
-  const progress = Math.min(1, Math.max(0, 1 - left / total))
+  const showProgressRing = timerType === 'pomodoro' && pomodoroStarted && !done
+  const progress = showProgressRing ? Math.min(1, Math.max(0, 1 - left / total)) : 0
   const dashOffset = 917.3 * (1 - progress)
+
+  const dateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(i18n.resolvedLanguage === 'vi' ? 'vi-VN' : 'en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      }),
+    [i18n.resolvedLanguage],
+  )
+  const clockDateText = dateFormatter.format(now)
+  const clockTimeText = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0')
 
   const isFocus = mode === 'focus'
   const chromeVisible = !hidden
@@ -184,14 +271,152 @@ export default function Dashboard() {
   function toggleRun() {
     setRunning((r) => !r)
   }
-  function resetTimer() {
-    setLeft(total)
+
+  function resetToIdle() {
     setRunning(false)
+    setDone(false)
+    setPhase('focus')
+    setRound(1)
+    setLeft(focusMin * 60)
     phaseStartRef.current = Date.now()
+    setPomodoroStarted(false)
   }
+
+  function startPomodoro() {
+    setDone(false)
+    setPhase('focus')
+    setRound(1)
+    setLeft(focusMin * 60)
+    setRunning(true)
+    phaseStartRef.current = Date.now()
+    setPomodoroStarted(true)
+  }
+
+  // Huỷ giữa chừng vẫn ghi lại phần thời gian học đã trôi qua (nếu đang ở phase focus) —
+  // đúng ghi chú của user: "thời gian học mỗi ngày dựa trên timer đã chạy", không chỉ tính
+  // các phiên hoàn thành trọn vẹn.
+  function cancelPomodoro() {
+    const uid = userRef.current?.id
+    if (uid && phase === 'focus' && !done) {
+      const elapsedMinutes = Math.round((focusMin * 60 - left) / 60)
+      if (elapsedMinutes > 0) {
+        supabase
+          .from('focus_sessions')
+          .insert({
+            user_id: uid,
+            phase: 'focus',
+            minutes: elapsedMinutes,
+            started_at: new Date(phaseStartRef.current).toISOString(),
+          })
+          .then(({ error }) => {
+            if (error) console.error('log focus_session failed', error)
+          })
+      }
+    }
+    resetToIdle()
+  }
+
+  function backToSetup() {
+    resetToIdle()
+  }
+
+  // Bỏ qua phase hiện tại: ghi log đúng số phút ĐÃ trôi qua (không phải trọn vẹn cấu hình),
+  // rồi luôn tự chạy tiếp phase kế (khác hoàn thành tự nhiên, vốn phụ thuộc "tự động bắt đầu").
   function skipPhase() {
-    setPhase((p) => (p === 'focus' ? 'break' : 'focus'))
-    setRunning(false)
+    const totalSec = (phase === 'focus' ? focusMin : breakMin) * 60
+    const elapsedMinutes = Math.round((totalSec - left) / 60)
+    setPhase((prevPhase) => advancePhaseBody(prevPhase, { minutesOverride: elapsedMinutes, continueRunning: true }))
+  }
+
+  function startEndless() {
+    setEndlessSeconds(0)
+    setEndlessRunning(true)
+    setEndlessStarted(true)
+    endlessStartRef.current = Date.now()
+  }
+
+  function toggleEndlessRun() {
+    setEndlessRunning((r) => !r)
+  }
+
+  function cancelEndless() {
+    const uid = userRef.current?.id
+    const elapsedMinutes = Math.round(endlessSeconds / 60)
+    if (uid && elapsedMinutes > 0) {
+      supabase
+        .from('focus_sessions')
+        .insert({
+          user_id: uid,
+          phase: 'focus',
+          minutes: elapsedMinutes,
+          started_at: new Date(endlessStartRef.current).toISOString(),
+        })
+        .then(({ error }) => {
+          if (error) console.error('log focus_session failed', error)
+        })
+    }
+    setEndlessRunning(false)
+    setEndlessStarted(false)
+    setEndlessSeconds(0)
+  }
+
+  function persistFocusBreak(nextFocus: number, nextBreak: number) {
+    if (!userRef.current) return
+    supabase
+      .from('profiles')
+      .update({ focus_minutes: nextFocus, break_minutes: nextBreak })
+      .eq('id', userRef.current.id)
+      .then(({ error }) => {
+        if (error) console.error('update focus/break minutes failed', error)
+      })
+  }
+
+  function persistSessionCount(next: number) {
+    if (!userRef.current) return
+    supabase
+      .from('profiles')
+      .update({ session_count: next })
+      .eq('id', userRef.current.id)
+      .then(({ error }) => {
+        if (error) console.error('update session_count failed', error)
+      })
+  }
+
+  // Chỉ dùng ở màn hình cài đặt (chưa bấm Play) — Work/Break/Loop chỉnh độc lập, không đụng
+  // tới timer đang đếm vì lúc này chưa có timer nào đang chạy.
+  function nudgeFocusMinutes(delta: number) {
+    const next = Math.min(120, Math.max(5, focusMin + delta))
+    setFocusMin(next)
+    persistFocusBreak(next, breakMin)
+  }
+
+  function nudgeBreakMinutes(delta: number) {
+    const next = Math.min(20, Math.max(1, breakMin + delta))
+    setBreakMin(next)
+    persistFocusBreak(focusMin, next)
+  }
+
+  function nudgeLoopCount(delta: number) {
+    const next = Math.min(12, Math.max(1, sessionCount + delta))
+    setSessionCount(next)
+    setRound((r) => Math.min(r, next))
+    persistSessionCount(next)
+  }
+
+  function beginEditField(field: Exclude<EditField, null>) {
+    const current = field === 'loop' ? sessionCount : field === 'work' ? focusMin : breakMin
+    setEditFieldValue(String(current))
+    setEditingField(field)
+  }
+
+  function commitEditField() {
+    const parsed = parseInt(editFieldValue, 10)
+    if (!Number.isNaN(parsed)) {
+      if (editingField === 'loop') nudgeLoopCount(parsed - sessionCount)
+      else if (editingField === 'work') nudgeFocusMinutes(parsed - focusMin)
+      else if (editingField === 'break') nudgeBreakMinutes(parsed - breakMin)
+    }
+    setEditingField(null)
   }
 
   function togglePanel(p: Exclude<Panel, null>) {
@@ -380,8 +605,8 @@ export default function Dashboard() {
           <div
             className="absolute rounded-full"
             style={{
-              width: 'min(380px, 46vh)',
-              height: 'min(380px, 46vh)',
+              width: 'min(450px, 62vh, 92vw)',
+              height: 'min(450px, 62vh, 92vw)',
               background: 'rgba(255,255,255,0.42)',
               backdropFilter: 'blur(18px)',
               boxShadow: '0 24px 70px rgba(58,98,126,0.14)',
@@ -391,8 +616,8 @@ export default function Dashboard() {
             viewBox="0 0 330 330"
             className="relative"
             style={{
-              width: 'min(330px, 40vh)',
-              height: 'min(330px, 40vh)',
+              width: 'min(400px, 56vh, 84vw)',
+              height: 'min(400px, 56vh, 84vw)',
               transform: 'rotate(-90deg)',
             }}
           >
@@ -404,71 +629,362 @@ export default function Dashboard() {
               stroke="rgba(255,255,255,0.65)"
               strokeWidth="14"
             />
-            <circle
-              cx="165"
-              cy="165"
-              r="146"
-              fill="none"
-              stroke={ACCENT}
-              strokeWidth="14"
-              strokeLinecap="round"
-              strokeDasharray="917.3"
-              style={{ strokeDashoffset: dashOffset, transition: 'stroke-dashoffset 980ms linear' }}
-            />
+            {showProgressRing && (
+              <circle
+                cx="165"
+                cy="165"
+                r="146"
+                fill="none"
+                stroke={ACCENT}
+                strokeWidth="14"
+                strokeLinecap="round"
+                strokeDasharray="917.3"
+                style={{ strokeDashoffset: dashOffset, transition: 'stroke-dashoffset 980ms linear' }}
+              />
+            )}
           </svg>
-          <div className="absolute flex flex-col items-center gap-[6px]">
-            <span className="text-[13px] font-bold tracking-[1.6px] text-[rgba(51,71,94,0.55)] uppercase">
-              {phase === 'focus' ? t('dashboard.clock.focusing') : t('dashboard.clock.onBreak')}
-            </span>
-            <span
-              className="leading-none font-extrabold text-[#2c3f55] tabular-nums"
-              style={{ fontSize: 'clamp(44px, 9.5vh, 82px)', letterSpacing: '-3px' }}
-            >
-              {fmt(left)}
-            </span>
-            <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.5)]">
-              {t('dashboard.clock.session', { round })}
-            </span>
+          <div className="absolute flex flex-col items-center gap-3 px-4 text-center">
+            {timerType === 'pomodoro' ? (
+              !pomodoroStarted ? (
+                <>
+                  <div className="flex flex-col items-center gap-[6px]">
+                    <span className="text-[13px] font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.62)] uppercase">
+                      {t('dashboard.clock.loopLabel')}
+                    </span>
+                    <div className="flex items-center gap-[14px]">
+                      <button
+                        onClick={() => nudgeLoopCount(-1)}
+                        aria-label="-"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
+                        style={{ background: 'rgba(255,255,255,0.85)' }}
+                      >
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M15 6l-6 6 6 6" />
+                        </svg>
+                      </button>
+                      {editingField === 'loop' ? (
+                        <input
+                          autoFocus
+                          type="number"
+                          value={editFieldValue}
+                          onChange={(e) => setEditFieldValue(e.target.value)}
+                          onBlur={commitEditField}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') commitEditField()
+                            if (e.key === 'Escape') setEditingField(null)
+                          }}
+                          className="rounded-lg border-none text-center text-3xl font-extrabold text-[#2c3f55] tabular-nums outline-none"
+                          style={{ width: '1.5em', background: 'rgba(255,255,255,0.7)' }}
+                        />
+                      ) : (
+                        <span
+                          onClick={() => beginEditField('loop')}
+                          title={t('dashboard.clock.editHint')}
+                          className="cursor-pointer text-3xl font-extrabold text-[#2c3f55] tabular-nums transition-opacity duration-200 hover:opacity-70"
+                        >
+                          {sessionCount}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => nudgeLoopCount(1)}
+                        aria-label="+"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
+                        style={{ background: 'rgba(255,255,255,0.85)' }}
+                      >
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 6l6 6-6 6" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-9">
+                    <div className="flex flex-col items-center gap-[6px]">
+                      <span className="text-[13px] font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.62)] uppercase">
+                        {t('dashboard.clock.workLabel')}
+                      </span>
+                      <button
+                        onClick={() => nudgeFocusMinutes(5)}
+                        aria-label="+"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
+                        style={{ background: 'rgba(255,255,255,0.85)' }}
+                      >
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 15l6-6 6 6" />
+                        </svg>
+                      </button>
+                      {editingField === 'work' ? (
+                        <input
+                          autoFocus
+                          type="number"
+                          value={editFieldValue}
+                          onChange={(e) => setEditFieldValue(e.target.value)}
+                          onBlur={commitEditField}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') commitEditField()
+                            if (e.key === 'Escape') setEditingField(null)
+                          }}
+                          className="rounded-2xl border-none text-center font-extrabold text-[#2c3f55] tabular-nums outline-none"
+                          style={{ fontSize: 'clamp(40px, 7.5vh, 52px)', width: '2em', background: 'rgba(255,255,255,0.7)' }}
+                        />
+                      ) : (
+                        <span
+                          onClick={() => beginEditField('work')}
+                          title={t('dashboard.clock.editHint')}
+                          className="cursor-pointer leading-none font-extrabold text-[#2c3f55] tabular-nums transition-opacity duration-200 hover:opacity-70"
+                          style={{ fontSize: 'clamp(40px, 7.5vh, 52px)' }}
+                        >
+                          {focusMin}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => nudgeFocusMinutes(-5)}
+                        aria-label="-"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
+                        style={{ background: 'rgba(255,255,255,0.85)' }}
+                      >
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="flex flex-col items-center gap-[6px]">
+                      <span className="text-[13px] font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.62)] uppercase">
+                        {t('dashboard.clock.breakColumnLabel')}
+                      </span>
+                      <button
+                        onClick={() => nudgeBreakMinutes(1)}
+                        aria-label="+"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
+                        style={{ background: 'rgba(255,255,255,0.85)' }}
+                      >
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 15l6-6 6 6" />
+                        </svg>
+                      </button>
+                      {editingField === 'break' ? (
+                        <input
+                          autoFocus
+                          type="number"
+                          value={editFieldValue}
+                          onChange={(e) => setEditFieldValue(e.target.value)}
+                          onBlur={commitEditField}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') commitEditField()
+                            if (e.key === 'Escape') setEditingField(null)
+                          }}
+                          className="rounded-2xl border-none text-center font-extrabold text-[#2c3f55] tabular-nums outline-none"
+                          style={{ fontSize: 'clamp(40px, 7.5vh, 52px)', width: '2em', background: 'rgba(255,255,255,0.7)' }}
+                        />
+                      ) : (
+                        <span
+                          onClick={() => beginEditField('break')}
+                          title={t('dashboard.clock.editHint')}
+                          className="cursor-pointer leading-none font-extrabold text-[#2c3f55] tabular-nums transition-opacity duration-200 hover:opacity-70"
+                          style={{ fontSize: 'clamp(40px, 7.5vh, 52px)' }}
+                        >
+                          {breakMin}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => nudgeBreakMinutes(-1)}
+                        aria-label="-"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
+                        style={{ background: 'rgba(255,255,255,0.85)' }}
+                      >
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    onClick={startPomodoro}
+                    title={t('dashboard.controls.start')}
+                    className="flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-full border-none text-[#21384f] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(58,98,126,0.18)]"
+                    style={{ background: 'rgba(255,255,255,0.85)', boxShadow: '0 10px 26px rgba(58,98,126,0.14)' }}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </button>
+                </>
+              ) : done ? (
+                <>
+                  <span className="text-[13px] font-bold tracking-[1.6px] text-[rgba(51,71,94,0.55)] uppercase">
+                    {t('dashboard.clock.doneTitle')}
+                  </span>
+                  <span className="leading-none" style={{ fontSize: 'clamp(36px, 7vh, 60px)' }}>
+                    🎉
+                  </span>
+                  <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.5)]">
+                    {t('dashboard.clock.doneHint', { count: sessionCount })}
+                  </span>
+                  <button
+                    onClick={backToSetup}
+                    className="mt-1 rounded-[22px] border-none px-[26px] py-[13px] font-sans text-[15px] font-extrabold text-[#21384f] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(58,98,126,0.18)]"
+                    style={{ background: 'rgba(255,255,255,0.82)', boxShadow: '0 10px 26px rgba(58,98,126,0.14)' }}
+                  >
+                    {t('dashboard.controls.newRound')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="text-[13px] font-bold text-[rgba(51,71,94,0.5)] tabular-nums">
+                    {round}/{sessionCount}
+                  </span>
+                  <span className="text-[13px] font-bold tracking-[1.6px] text-[rgba(51,71,94,0.55)] uppercase">
+                    {phase === 'focus' ? t('dashboard.clock.focusing') : t('dashboard.clock.onBreak')}
+                  </span>
+                  <span
+                    className="leading-none font-extrabold text-[#2c3f55] tabular-nums"
+                    style={{ fontSize: 'clamp(34px, 7.5vh, 60px)', letterSpacing: '-2px' }}
+                  >
+                    {fmtHMS(left)}
+                  </span>
+                  <div className="mt-1 flex items-center gap-4">
+                    <button
+                      onClick={cancelPomodoro}
+                      title={t('dashboard.controls.cancel')}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
+                      style={{ background: 'rgba(255,255,255,0.6)' }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="6" width="12" height="12" rx="2" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={toggleRun}
+                      title={running ? t('dashboard.controls.pause') : t('dashboard.controls.resume')}
+                      className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-full border-none text-[#21384f] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5"
+                      style={{ background: 'rgba(255,255,255,0.85)', boxShadow: '0 10px 26px rgba(58,98,126,0.14)' }}
+                    >
+                      {running ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                          <rect x="6" y="5" width="4" height="14" />
+                          <rect x="14" y="5" width="4" height="14" />
+                        </svg>
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={skipPhase}
+                      title={t('dashboard.controls.skip')}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
+                      style={{ background: 'rgba(255,255,255,0.6)' }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 5v14l8-7z" />
+                        <rect x="16" y="5" width="3" height="14" />
+                      </svg>
+                    </button>
+                  </div>
+                </>
+              )
+            ) : !endlessStarted ? (
+              <>
+                <span
+                  className="leading-none font-extrabold text-[#2c3f55] tabular-nums"
+                  style={{ fontSize: 'clamp(34px, 7.5vh, 60px)', letterSpacing: '-2px' }}
+                >
+                  {fmtHMS(0)}
+                </span>
+                <button
+                  onClick={startEndless}
+                  title={t('dashboard.controls.start')}
+                  className="flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-full border-none text-[#21384f] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(58,98,126,0.18)]"
+                  style={{ background: 'rgba(255,255,255,0.85)', boxShadow: '0 10px 26px rgba(58,98,126,0.14)' }}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </button>
+              </>
+            ) : (
+              <>
+                <span
+                  className="leading-none font-extrabold text-[#2c3f55] tabular-nums"
+                  style={{ fontSize: 'clamp(34px, 7.5vh, 60px)', letterSpacing: '-2px' }}
+                >
+                  {fmtHMS(endlessSeconds)}
+                </span>
+                <div className="mt-1 flex items-center gap-4">
+                  <button
+                    onClick={cancelEndless}
+                    title={t('dashboard.controls.cancel')}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
+                    style={{ background: 'rgba(255,255,255,0.6)' }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <rect x="6" y="6" width="12" height="12" rx="2" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={toggleEndlessRun}
+                    title={endlessRunning ? t('dashboard.controls.pause') : t('dashboard.controls.resume')}
+                    className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-full border-none text-[#21384f] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5"
+                    style={{ background: 'rgba(255,255,255,0.85)', boxShadow: '0 10px 26px rgba(58,98,126,0.14)' }}
+                  >
+                    {endlessRunning ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="5" width="4" height="14" />
+                        <rect x="14" y="5" width="4" height="14" />
+                      </svg>
+                    ) : (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
+        {/* chuyển đổi Pomodoro / Endless — chỉ hiện ở màn hình cài đặt trước khi bấm Play */}
         <div
           className="flex items-center gap-3"
           style={{
-            opacity: chromeVisible ? 1 : 0,
-            pointerEvents: chromeVisible ? 'auto' : 'none',
+            opacity:
+              chromeVisible && (timerType === 'pomodoro' ? !pomodoroStarted : !endlessStarted) ? 1 : 0,
+            pointerEvents:
+              chromeVisible && (timerType === 'pomodoro' ? !pomodoroStarted : !endlessStarted) ? 'auto' : 'none',
             transition: 'opacity 480ms ease',
           }}
         >
           <button
-            onClick={toggleRun}
-            className="rounded-[22px] border-none px-[42px] font-sans text-base font-extrabold tracking-[0.2px] text-[#21384f] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(58,98,126,0.18)]"
+            onClick={() => setTimerType('pomodoro')}
+            title={t('dashboard.clock.pomodoroMode')}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none transition-colors duration-200"
             style={{
-              paddingTop: 'clamp(11px, 2.4vh, 15px)',
-              paddingBottom: 'clamp(11px, 2.4vh, 15px)',
-              background: 'rgba(255,255,255,0.82)',
-              boxShadow: '0 10px 26px rgba(58,98,126,0.14)',
+              background: timerType === 'pomodoro' ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.5)',
+              color: timerType === 'pomodoro' ? '#21384f' : 'rgba(51,71,94,0.55)',
             }}
           >
-            {running
-              ? t('dashboard.controls.pause')
-              : left === total
-                ? t('dashboard.controls.start')
-                : t('dashboard.controls.resume')}
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+              <circle cx="12" cy="13" r="8" />
+              <path d="M12 9v4l3 2" />
+              <path d="M9 3h6" />
+            </svg>
           </button>
           <button
-            onClick={resetTimer}
-            className="rounded-[22px] border-none px-[26px] py-[15px] font-sans text-[15px] font-bold text-[#4a637d] transition-colors duration-200 hover:!bg-[rgba(255,255,255,0.75)]"
-            style={{ background: 'rgba(255,255,255,0.5)', boxShadow: '0 8px 20px rgba(58,98,126,0.09)' }}
+            onClick={() => setTimerType('endless')}
+            title={t('dashboard.clock.endlessMode')}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none transition-colors duration-200"
+            style={{
+              background: timerType === 'endless' ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.5)',
+              color: timerType === 'endless' ? '#21384f' : 'rgba(51,71,94,0.55)',
+            }}
           >
-            {t('dashboard.controls.reset')}
-          </button>
-          <button
-            onClick={skipPhase}
-            className="rounded-[22px] border-none px-[26px] py-[15px] font-sans text-[15px] font-bold text-[#4a637d] transition-colors duration-200 hover:!bg-[rgba(255,255,255,0.75)]"
-            style={{ background: 'rgba(255,255,255,0.5)', boxShadow: '0 8px 20px rgba(58,98,126,0.09)' }}
-          >
-            {phase === 'focus' ? t('dashboard.controls.takeBreak') : t('dashboard.controls.continueStudy')}
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+              <circle cx="12" cy="14" r="7.5" />
+              <path d="M12 14V10" />
+              <path d="M10 3.5h4" />
+              <path d="M12 3.5V6" />
+            </svg>
           </button>
         </div>
       </div>
@@ -490,25 +1006,11 @@ export default function Dashboard() {
             boxShadow: '0 10px 28px rgba(58,98,126,0.1)',
           }}
         >
-          <div className="mb-3 text-xs font-bold tracking-[1.2px] text-[rgba(51,71,94,0.5)] uppercase">
-            {t('dashboard.leftWidgets.today')}
+          <div className="text-[13px] leading-tight font-bold text-[rgba(51,71,94,0.6)]">
+            {clockDateText}
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-[34px] leading-none font-extrabold text-[#2c3f55]">
-              {focusedMinutes}
-            </span>
-            <span className="text-sm font-semibold text-[rgba(51,71,94,0.55)]">
-              {t('dashboard.leftWidgets.focusedMinutes')}
-            </span>
-          </div>
-          <div className="mt-4 flex gap-[6px]">
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-[7px] flex-1 rounded-full"
-                style={{ background: i < round ? ACCENT : 'rgba(51,71,94,0.13)' }}
-              />
-            ))}
+          <div className="mt-1 text-[34px] leading-none font-extrabold text-[#2c3f55] tabular-nums">
+            {clockTimeText}
           </div>
         </div>
         <div
@@ -557,26 +1059,32 @@ export default function Dashboard() {
               background: 'linear-gradient(150deg, oklch(0.86 0.045 205), oklch(0.79 0.055 235))',
             }}
           >
-            <div
-              className="flex flex-col items-center gap-2 text-[rgba(255,255,255,0.9)]"
-              style={{ opacity: cameraOn ? 0.95 : 0.5 }}
-            >
-              <svg
-                width="30"
-                height="30"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.7"
-                strokeLinecap="round"
-              >
-                <circle cx="12" cy="9" r="3.4" />
-                <path d="M5 19.5c1.3-3 4-4.4 7-4.4s5.7 1.4 7 4.4" />
-              </svg>
-              <span className="text-xs font-bold">
-                {cameraOn ? t('dashboard.rightColumn.cameraOn') : t('dashboard.rightColumn.cameraOff')}
-              </span>
-            </div>
+            {cameraOn ? (
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="absolute inset-0 h-full w-full object-cover"
+                style={{ transform: 'scaleX(-1)' }}
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-[rgba(255,255,255,0.9)]" style={{ opacity: 0.5 }}>
+                <svg
+                  width="30"
+                  height="30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                >
+                  <circle cx="12" cy="9" r="3.4" />
+                  <path d="M5 19.5c1.3-3 4-4.4 7-4.4s5.7 1.4 7 4.4" />
+                </svg>
+                <span className="text-xs font-bold">{t('dashboard.rightColumn.cameraOff')}</span>
+              </div>
+            )}
             <div
               className="absolute top-[10px] left-[10px] flex items-center gap-[6px] rounded-full px-[9px] py-1 text-[11px] font-extrabold tracking-[0.4px] text-[#2c3f55]"
               style={{ background: 'rgba(255,255,255,0.82)' }}
@@ -740,6 +1248,26 @@ export default function Dashboard() {
             <path d="M16.4 5.6a3.2 3.2 0 010 5.8" />
             <path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1" />
           </svg>
+        </Link>
+        <Link
+          to="/settings"
+          title={t('dashboard.taskbar.settingsTitle')}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] no-underline transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:px-5"
+          style={{ background: 'rgba(255,255,255,0.35)' }}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
+          </svg>
+          <span className="hidden md:inline">{t('dashboard.taskbar.settingsLabel')}</span>
         </Link>
       </div>
 

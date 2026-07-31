@@ -5,3 +5,5 @@ app/supabase/.temp
 *.local
 .env
 .env.local
+CONTEXT.md
+PLAN.md
