@@ -119,6 +119,9 @@
       "selected": "đã chọn",
       "pause": "Tạm dừng nhạc",
       "play": "Phát nhạc",
+      "prevTrack": "Bài trước",
+      "nextTrack": "Bài tiếp theo",
+      "volume": "Âm lượng",
       "empty": "Chưa có nhạc nào. Vào Cài đặt để tải nhạc lên.",
       "sourceLibrary": "Thư viện",
       "sourceYoutube": "YouTube",
@@ -126,6 +129,7 @@
       "youtubeUse": "Dùng link này",
       "youtubeInvalid": "Link YouTube không hợp lệ.",
       "youtubeCurrent": "Đang phát: {{url}}",
+      "youtubeSaved": "Đã lưu: {{url}}",
       "youtubeEmpty": "Chưa có link YouTube nào. Dán 1 link ở trên."
     },
     "todoPanel": {
@@ -301,6 +305,7 @@
   },
   "settings": {
     "headerTag": "Cài đặt & hồ sơ",
+    "close": "Đóng",
     "tabs": {
       "profile": "Hồ sơ",
       "app": "Cài đặt"
@@ -365,6 +370,15 @@
       "permissionDenied": "Trình duyệt từ chối quyền truy cập camera/mic.",
       "hint": "Áp dụng cho camera ở Dashboard và cuộc gọi video trong phòng học."
     },
+    "defaultMusic": {
+      "title": "Nhạc nền YouTube mặc định",
+      "desc": "Link này sẽ tự phát ở Dashboard mỗi khi mở app, cho đến khi bạn dán link khác trên máy đang dùng.",
+      "save": "Lưu",
+      "saved": "Đã lưu ✓",
+      "invalid": "Link YouTube không hợp lệ.",
+      "hintCustom": "Đang dùng link riêng của bạn ở trên.",
+      "hintDefault": "Chưa đặt — để trống sẽ dùng link mặc định gốc của app."
+    },
     "notifications": {
       "title": "Thông báo",
       "soundTitle": "Âm thanh khi hết giờ",
@@ -373,8 +387,7 @@
     "logout": {
       "hint": "Đăng xuất sẽ giữ lại wallpaper và nhạc trên tài khoản; máy này chuyển về chế độ khách.",
       "action": "Đăng xuất"
-    },
-    "backToStudy": "← Về màn hình học"
+    }
   },
   "room": {
     "headerTag": "Phòng học chung",

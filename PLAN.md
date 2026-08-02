@@ -79,6 +79,7 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] (thêm ngoài kế hoạch) Settings 2 tab (Hồ sơ/Cài đặt), accent color preset, camera/mic mặc định, âm thanh hết giờ — xong 2026-07-31
 - [x] (thêm ngoài kế hoạch) Hình nền built-in gộp với thư viện riêng — xong 2026-07-31
 - [x] (thêm ngoài kế hoạch) Nhạc nền thật — thư viện mp3 (mặc định + riêng từng người) và YouTube (Room đồng bộ cả phòng + Dashboard solo) — xong 2026-07-31, xem CONTEXT.md "Giai đoạn 8 (phần 7)"
+- [x] (thêm ngoài kế hoạch) Sửa bug nhạc nền Dashboard (mất nhạc khi chuyển tab Thư viện/YouTube, camera tự bật lại, YouTube mất link mặc định), thư viện nhạc built-in (`assets/music`), mini-player + âm lượng trên main UI, Settings đổi từ route sang overlay — xong 2026-08-02, xem CONTEXT.md "Giai đoạn 8 (phần 8)"
 
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).
