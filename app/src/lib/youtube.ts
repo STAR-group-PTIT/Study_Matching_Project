@@ -1,6 +1,12 @@
 // Dùng chung cho Dashboard (solo) và Room (đồng bộ cả phòng) — nhận link YouTube dạng
 // watch?v=, youtu.be/, playlist?list= (kể cả list=RD... của "Mix") và tách videoId/
 // playlistId cho YouTube IFrame Player API chính chủ (không tách audio, đúng ToS).
+
+// Mặc định gốc khi chưa ai từng đổi gì — dùng ở Dashboard (fallback cuối cùng của chuỗi
+// override máy này > mặc định riêng tài khoản ở Settings > link này) và ở Settings (đặt
+// làm placeholder + fallback khi ô "link mặc định riêng" đang để trống).
+export const DEFAULT_YOUTUBE_URL = 'https://www.youtube.com/watch?v=e6KzjUOfmBk&list=RDe6KzjUOfmBk&start_radio=1'
+
 export function parseYoutubeUrl(raw: string): { videoId: string | null; playlistId: string | null } | null {
   let url: URL
   try {

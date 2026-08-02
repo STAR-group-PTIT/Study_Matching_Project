@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
+import { parseYoutubeUrl, DEFAULT_YOUTUBE_URL } from '../lib/youtube'
 
 const GRADIENTS = [
   'linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)',
@@ -56,7 +57,7 @@ function initials(name: string) {
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
 }
 
-export default function Settings() {
+export default function Settings({ onClose }: { onClose: () => void }) {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
@@ -78,6 +79,13 @@ export default function Settings() {
   const [accentHue, setAccentHue] = useState(195)
   const [notificationSound, setNotificationSound] = useState(true)
 
+  // Link YouTube mặc định riêng của tài khoản, dùng làm nhạc nền solo ở Dashboard khi
+  // user chưa dán link nào khác trên máy đang mở (xem 3 tầng ưu tiên trong Dashboard.tsx).
+  // '' = chưa đặt, Dashboard sẽ tự fallback về DEFAULT_YOUTUBE_URL.
+  const [defaultYoutubeUrl, setDefaultYoutubeUrl] = useState('')
+  const [defaultYoutubeError, setDefaultYoutubeError] = useState(false)
+  const [defaultYoutubeSaved, setDefaultYoutubeSaved] = useState(false)
+
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([])
   const [mics, setMics] = useState<MediaDeviceInfo[]>([])
   const [devicePermission, setDevicePermission] = useState<'unknown' | 'granted' | 'denied'>('unknown')
@@ -89,7 +97,7 @@ export default function Settings() {
     supabase
       .from('profiles')
       .select(
-        'name, focus_minutes, break_minutes, session_count, auto_start_next, accent_hue, preferred_camera_id, preferred_mic_id, notification_sound',
+        'name, focus_minutes, break_minutes, session_count, auto_start_next, accent_hue, preferred_camera_id, preferred_mic_id, notification_sound, default_youtube_url',
       )
       .eq('id', user.id)
       .single()
@@ -104,6 +112,7 @@ export default function Settings() {
         setPreferredCameraId(data.preferred_camera_id ?? '')
         setPreferredMicId(data.preferred_mic_id ?? '')
         setNotificationSound(data.notification_sound)
+        setDefaultYoutubeUrl(data.default_youtube_url ?? '')
       })
   }, [user])
 
@@ -280,6 +289,29 @@ export default function Settings() {
       })
   }
 
+  function saveDefaultYoutubeUrl() {
+    const trimmed = defaultYoutubeUrl.trim()
+    if (trimmed && !parseYoutubeUrl(trimmed)) {
+      setDefaultYoutubeError(true)
+      return
+    }
+    setDefaultYoutubeError(false)
+    if (!user) return
+    supabase
+      .from('profiles')
+      .update({ default_youtube_url: trimmed || null })
+      .eq('id', user.id)
+      .then(({ error }) => {
+        if (error) {
+          console.error('update default_youtube_url failed', error)
+          return
+        }
+        setDefaultYoutubeUrl(trimmed)
+        setDefaultYoutubeSaved(true)
+        setTimeout(() => setDefaultYoutubeSaved(false), 1800)
+      })
+  }
+
   function toggleNotificationSound() {
     setNotificationSound((prev) => {
       const next = !prev
@@ -391,22 +423,45 @@ export default function Settings() {
 
   return (
     <div
-      className="relative min-h-svh w-full font-sans text-[#33475e] antialiased"
-      style={{ background: 'linear-gradient(170deg, #e4f1f4 0%, #dbeaf2 50%, #e6f4ee 100%)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(20,32,42,0.42)', backdropFilter: 'blur(2px)' }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
     >
-      <div className="mx-auto flex max-w-[880px] flex-col gap-[18px] px-8 pt-11 pb-[60px]">
-        <div className="flex items-center gap-[11px]">
-          <div
-            className="h-[22px] w-[22px] rounded-[9px]"
-            style={{ background: 'linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235))' }}
-          />
-          <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[#2f4459]">{t('app.name')}</span>
-          <span className="text-sm font-semibold text-[rgba(51,71,94,0.5)]">
-            · {t('settings.headerTag')}
-          </span>
-        </div>
+      <div
+        className="relative flex w-full max-w-[880px] flex-col overflow-hidden rounded-[32px] font-sans text-[#33475e] antialiased"
+        style={{
+          maxHeight: '88vh',
+          background: 'linear-gradient(170deg, #e4f1f4 0%, #dbeaf2 50%, #e6f4ee 100%)',
+          boxShadow: '0 30px 80px rgba(20,32,42,0.35)',
+        }}
+      >
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto flex max-w-[880px] flex-col gap-[18px] px-8 pt-11 pb-[60px]">
+            <div className="flex items-center gap-[11px]">
+              <div
+                className="h-[22px] w-[22px] rounded-[9px]"
+                style={{ background: 'linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235))' }}
+              />
+              <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[#2f4459]">{t('app.name')}</span>
+              <span className="text-sm font-semibold text-[rgba(51,71,94,0.5)]">
+                · {t('settings.headerTag')}
+              </span>
+              <button
+                onClick={onClose}
+                title={t('settings.close')}
+                aria-label={t('settings.close')}
+                className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
+                style={{ background: 'rgba(255,255,255,0.7)' }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+            </div>
 
-        {/* tabs */}
+            {/* tabs */}
         <div
           className="flex w-fit gap-1 rounded-[20px] p-[5px]"
           style={{ background: 'rgba(255,255,255,0.6)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)', backdropFilter: 'blur(14px)' }}
@@ -442,11 +497,11 @@ export default function Settings() {
               >
                 {initials(profileName || user?.email || '?')}
               </div>
-              <div className="flex flex-[1_1_200px] flex-col gap-1">
+              <div className="flex min-w-0 flex-[1_1_200px] flex-col gap-1">
                 <span className="text-[22px] font-extrabold tracking-[-0.3px] text-[#2c3f55]">
                   {profileName || t('settings.profile.defaultName')}
                 </span>
-                <span className="text-sm font-semibold text-[rgba(51,71,94,0.55)]">{user?.email}</span>
+                <span className="text-sm font-semibold break-words text-[rgba(51,71,94,0.55)]">{user?.email}</span>
                 <span className="text-[13px] font-bold text-[#2c5b53]">
                   {t('settings.profile.streak', { days: streak, sessions: sessionsThisWeek })}
                 </span>
@@ -878,6 +933,42 @@ export default function Settings() {
               </span>
             </div>
 
+            {/* default youtube background music */}
+            <div
+              className="flex flex-col gap-[10px] rounded-[32px] px-7 pt-[26px] pb-6"
+              style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
+            >
+              <span className="text-[17px] font-extrabold text-[#2c3f55]">{t('settings.defaultMusic.title')}</span>
+              <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.48)]">
+                {t('settings.defaultMusic.desc')}
+              </span>
+              <div className="flex flex-wrap gap-[7px]">
+                <input
+                  value={defaultYoutubeUrl}
+                  onChange={(e) => {
+                    setDefaultYoutubeUrl(e.target.value)
+                    setDefaultYoutubeError(false)
+                  }}
+                  placeholder={DEFAULT_YOUTUBE_URL}
+                  className="min-w-0 flex-1 rounded-[16px] border-none px-4 py-3 font-sans text-sm font-semibold text-[#2c3f55] outline-none"
+                  style={{ background: 'rgba(238,246,248,0.9)' }}
+                />
+                <button
+                  onClick={saveDefaultYoutubeUrl}
+                  className="shrink-0 rounded-[16px] border-none px-5 py-3 font-sans text-sm font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
+                  style={{ background: ACCENT_SOFT }}
+                >
+                  {defaultYoutubeSaved ? t('settings.defaultMusic.saved') : t('settings.defaultMusic.save')}
+                </button>
+              </div>
+              {defaultYoutubeError && (
+                <span className="text-[12px] font-semibold text-[#a13f2c]">{t('settings.defaultMusic.invalid')}</span>
+              )}
+              <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.45)]">
+                {defaultYoutubeUrl ? t('settings.defaultMusic.hintCustom') : t('settings.defaultMusic.hintDefault')}
+              </span>
+            </div>
+
             {/* notifications */}
             <div
               className="flex flex-wrap items-center justify-between gap-[14px] rounded-[32px] px-7 py-[22px]"
@@ -914,6 +1005,7 @@ export default function Settings() {
           <button
             onClick={async () => {
               await supabase.auth.signOut()
+              onClose()
               navigate('/auth')
             }}
             className="flex items-center gap-[9px] rounded-[22px] border-[1.5px] px-6 py-[14px] font-sans text-[14.5px] font-extrabold text-[#7a3f2c] transition-colors duration-[220ms] hover:!bg-[oklch(0.88_0.05_45)]"
@@ -926,10 +1018,8 @@ export default function Settings() {
             {t('settings.logout.action')}
           </button>
         </div>
-
-        <Link to="/" className="mt-[6px] self-center text-[13.5px] font-bold text-[oklch(0.58_0.075_220)] no-underline hover:text-[oklch(0.5_0.08_220)]">
-          {t('settings.backToStudy')}
-        </Link>
+          </div>
+        </div>
       </div>
     </div>
   )

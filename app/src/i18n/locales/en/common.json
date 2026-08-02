@@ -119,6 +119,9 @@
       "selected": "selected",
       "pause": "Pause music",
       "play": "Play music",
+      "prevTrack": "Previous track",
+      "nextTrack": "Next track",
+      "volume": "Volume",
       "empty": "No tracks yet. Add some in Settings.",
       "sourceLibrary": "Library",
       "sourceYoutube": "YouTube",
@@ -126,6 +129,7 @@
       "youtubeUse": "Use this link",
       "youtubeInvalid": "That YouTube link doesn't look valid.",
       "youtubeCurrent": "Now playing: {{url}}",
+      "youtubeSaved": "Saved: {{url}}",
       "youtubeEmpty": "No YouTube link yet. Paste one above."
     },
     "todoPanel": {
@@ -301,6 +305,7 @@
   },
   "settings": {
     "headerTag": "Settings & profile",
+    "close": "Close",
     "tabs": {
       "profile": "Profile",
       "app": "Settings"
@@ -365,6 +370,15 @@
       "permissionDenied": "The browser denied camera/mic access.",
       "hint": "Applies to the Dashboard camera preview and video calls in study rooms."
     },
+    "defaultMusic": {
+      "title": "Default YouTube background music",
+      "desc": "This link auto-plays on the Dashboard every time you open the app, until you paste a different link on the device you're using.",
+      "save": "Save",
+      "saved": "Saved ✓",
+      "invalid": "That YouTube link doesn't look valid.",
+      "hintCustom": "Using your own link above.",
+      "hintDefault": "Not set — leave empty to use the app's original default link."
+    },
     "notifications": {
       "title": "Notifications",
       "soundTitle": "Sound when a phase ends",
@@ -373,8 +387,7 @@
     "logout": {
       "hint": "Signing out keeps your wallpapers and music on your account; this device switches to guest mode.",
       "action": "Log out"
-    },
-    "backToStudy": "← Back to study screen"
+    }
   },
   "room": {
     "headerTag": "Study room",

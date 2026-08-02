@@ -7,3 +7,11 @@ app/supabase/.temp
 .env.local
 CONTEXT.md
 PLAN.md
+
+# Nhạc built-in local — không push (nhạc bản quyền thương mại tuỳ máy dev tự thả vào, xem
+# app/src/assets/music/README.md). Giữ lại README.md của thư mục (không bị ignore vì chỉ
+# chặn đúng các đuôi file âm thanh).
+app/src/assets/music/*.mp3
+app/src/assets/music/*.wav
+app/src/assets/music/*.ogg
+app/src/assets/music/*.m4a
