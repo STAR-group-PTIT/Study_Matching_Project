@@ -1598,6 +1598,12 @@ export default function Dashboard() {
             </span>
           </span>
         </button>
+        <Link
+          to="/matching"
+          className="mt-[8px] block text-center text-[12.5px] font-extrabold text-[oklch(0.58_0.075_220)] no-underline hover:text-[oklch(0.5_0.08_220)]"
+        >
+          {t('dashboard.rightColumn.browseRooms')}
+        </Link>
       </div>
 
       {/* mini player Thư viện — nổi ngay trên taskbar, giữa màn hình, để user theo dõi/điều
@@ -1829,6 +1835,14 @@ export default function Dashboard() {
             <path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1" />
           </svg>
         </button>
+        <Link
+          to="/matching"
+          title={t('dashboard.taskbar.browseRooms')}
+          className="flex shrink-0 items-center rounded-[19px] px-3 py-3 font-sans text-[12px] font-extrabold text-[#354c65] no-underline transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:hidden"
+          style={{ background: 'rgba(255,255,255,0.35)' }}
+        >
+          {t('dashboard.taskbar.browseRooms')}
+        </Link>
       </div>
 
       {/* settings — standalone icon-only button, bottom-left corner. Khách chưa đăng nhập
@@ -1912,6 +1926,11 @@ export default function Dashboard() {
                   ? t('matching.errors.' + quick.matchError)
                   : t('dashboard.quickMatch.hint')}
               </span>
+              {quick.stage === 'waiting' && !quick.matchError && quick.waitingCount !== null && (
+                <span className="text-[12px] font-bold text-[rgba(51,71,94,0.42)]">
+                  {t('matching.searching.othersWaiting', { count: quick.waitingCount })}
+                </span>
+              )}
             </div>
             <button
               onClick={() => quick.cancel()}

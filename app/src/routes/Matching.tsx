@@ -147,9 +147,6 @@ export default function Matching() {
 
   const quick = useQuickMatch()
   const languageCode = language === 'Tiếng Việt' ? 'vi' : 'en'
-  // Số người đang chờ cùng bộ lọc — đọc từ view matching_queue_stats (0010), chỉ là count
-  // aggregate, không lộ danh tính. Poll mỗi 5s trong lúc tìm để số luôn tươi.
-  const [waitingCount, setWaitingCount] = useState<number | null>(null)
 
   const [modal, setModal] = useState(false)
   const [created, setCreated] = useState(false)
@@ -176,28 +173,6 @@ export default function Matching() {
   const copyTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => () => clearTimeout(copyTimer.current), [])
-
-  // Poll matching_queue_stats mỗi 5s trong lúc tìm ngẫu nhiên để hiện "N người cũng đang chờ".
-  useEffect(() => {
-    if (stage !== 'searching' || quick.stage !== 'waiting') return
-    let cancelled = false
-    const poll = async () => {
-      const { data } = await supabase
-        .from('matching_queue_stats')
-        .select('waiting_count')
-        .eq('room_type', roomType)
-        .eq('duration_minutes', NO_DURATION_TYPES.includes(roomType) ? LOCKED_FOCUS_MINUTES : focusMinutes)
-        .eq('language', languageCode)
-        .limit(1)
-      if (!cancelled && data && data.length > 0) setWaitingCount(data[0].waiting_count)
-    }
-    void poll()
-    const id = setInterval(poll, 5000)
-    return () => {
-      cancelled = true
-      clearInterval(id)
-    }
-  }, [stage, quick.stage, roomType, focusMinutes, languageCode])
 
   useEffect(() => {
     if (!user) {
@@ -261,7 +236,6 @@ export default function Matching() {
   async function startRandomMatch() {
     if (!requireAuth()) return
     go('searching')
-    setWaitingCount(null)
     await quick.start({
       room_type: roomType,
       focus_minutes: NO_DURATION_TYPES.includes(roomType) ? LOCKED_FOCUS_MINUTES : focusMinutes,
@@ -899,9 +873,9 @@ export default function Matching() {
                       ? t('matching.errors.' + quick.matchError)
                       : hints[Math.min(hints.length - 1, Math.floor(quick.waited / 8))]}
                   </span>
-                  {quick.stage === 'waiting' && !quick.matchError && waitingCount !== null && (
+                  {quick.stage === 'waiting' && !quick.matchError && quick.waitingCount !== null && (
                     <span className="text-[12px] font-bold text-[rgba(51,71,94,0.42)]">
-                      {t('matching.searching.othersWaiting', { count: waitingCount })}
+                      {t('matching.searching.othersWaiting', { count: quick.waitingCount })}
                     </span>
                   )}
                 </div>
