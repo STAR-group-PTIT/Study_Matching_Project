@@ -81,6 +81,8 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] (thêm ngoài kế hoạch) Nhạc nền thật — thư viện mp3 (mặc định + riêng từng người) và YouTube (Room đồng bộ cả phòng + Dashboard solo) — xong 2026-07-31, xem CONTEXT.md "Giai đoạn 8 (phần 7)" (**nhạc trong Room đổi lại thành cá nhân ở phần 9, không đồng bộ cả phòng nữa**)
 - [x] (thêm ngoài kế hoạch) Sửa bug nhạc nền Dashboard (mất nhạc khi chuyển tab Thư viện/YouTube, camera tự bật lại, YouTube mất link mặc định), thư viện nhạc built-in (`assets/music`), mini-player + âm lượng trên main UI, Settings đổi từ route sang overlay — xong 2026-08-02, xem CONTEXT.md "Giai đoạn 8 (phần 8)"
 - [x] (thêm ngoài kế hoạch) Matching layout 2 cột (room list + filters sticky), lọc/phân trang room list, Room nhạc cá nhân hoá, bỏ "Số phiên" khỏi tạo/ghép phòng — xong 2026-08-03, xem CONTEXT.md "Giai đoạn 8 (phần 9)"
+- [x] (thêm ngoài kế hoạch) Bỏ free-drag slider thời lượng (chỉ 2 preset), thêm loại phòng "Tự do" (đồng hồ đếm tăng) và "Đồng hành" (Pomodoro cá nhân riêng từng người) — xong 2026-08-03, xem CONTEXT.md "Giai đoạn 8 (phần 10)"
+- [x] (thêm ngoài kế hoạch) Popup chọn loại phòng thay hàng chip (7 loại giờ gọn thành 1 nút + popup) — xong 2026-08-03, xem CONTEXT.md "Giai đoạn 8 (phần 11)"
 
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).

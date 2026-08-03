@@ -4,7 +4,15 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 
-type RoomTypeKey = 'chill' | 'hardcore' | 'silent' | 'discuss' | 'watch'
+type RoomTypeKey = 'chill' | 'hardcore' | 'silent' | 'discuss' | 'watch' | 'free' | 'together'
+
+// 2 loại phòng không dùng khái niệm "thời lượng phiên" (free: đồng hồ đếm tăng liên tục,
+// together: mỗi người tự chạy Pomodoro riêng theo cài đặt cá nhân) — ẩn bộ chọn thời lượng
+// và luôn gửi 1 giá trị cố định khi tạo/ghép phòng cho 2 loại này, để việc ghép ngẫu nhiên
+// không bị phân mảnh bởi giá trị dư từ lần chọn loại phòng trước đó.
+const NO_DURATION_TYPES: RoomTypeKey[] = ['free', 'together']
+const LOCKED_FOCUS_MINUTES = 25
+const LOCKED_BREAK_MINUTES = 5
 
 type RoomType = {
   key: RoomTypeKey
@@ -48,6 +56,22 @@ const ROOM_TYPES: RoomType[] = [
     hue: 150,
     paths: ['M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z'],
     circle: { cx: 12, cy: 12, r: 2.8 },
+  },
+  {
+    key: 'free',
+    hue: 20,
+    paths: ['M12 13V8', 'M9 3h6'],
+    circle: { cx: 12, cy: 13, r: 8 },
+  },
+  {
+    key: 'together',
+    hue: 300,
+    paths: [
+      'M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19',
+      'M16.4 5.6a3.2 3.2 0 010 5.8',
+      'M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1',
+    ],
+    circle: { cx: 9, cy: 8.5, r: 3.2 },
   },
 ]
 
@@ -114,6 +138,7 @@ export default function Matching() {
   const [stage, setStage] = useState<Stage>('browse')
   const [fade, setFade] = useState(1)
   const [roomType, setRoomType] = useState<RoomTypeKey>('chill')
+  const [roomTypePopupOpen, setRoomTypePopupOpen] = useState(false)
   const [focusMinutes, setFocusMinutes] = useState(25)
   const [breakMinutes, setBreakMinutes] = useState(5)
   const [language, setLanguage] = useState<Language>('Tiếng Việt')
@@ -238,7 +263,7 @@ export default function Matching() {
     if (!requireAuth()) return
     go('searching')
     setMatchError('')
-    const durationMinutes = focusMinutes
+    const durationMinutes = NO_DURATION_TYPES.includes(roomType) ? LOCKED_FOCUS_MINUTES : focusMinutes
     const languageCode = language === 'Tiếng Việt' ? 'vi' : 'en'
 
     const { data, error } = await supabase.functions.invoke('match-room', {
@@ -346,6 +371,7 @@ export default function Matching() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
     const genCode = () => Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 
+    const locked = NO_DURATION_TYPES.includes(roomType)
     let inserted: { id: string; code: string } | null = null
     for (let attempt = 0; attempt < 5 && !inserted; attempt++) {
       const code = genCode()
@@ -356,8 +382,8 @@ export default function Matching() {
           name: roomName.trim() || defaultRoomName,
           host_id: user.id,
           room_type: roomType,
-          duration_minutes: focusMinutes,
-          break_minutes: breakMinutes,
+          duration_minutes: locked ? LOCKED_FOCUS_MINUTES : focusMinutes,
+          break_minutes: locked ? LOCKED_BREAK_MINUTES : breakMinutes,
           language: language === 'Tiếng Việt' ? 'vi' : 'en',
           capacity,
           visibility,
@@ -620,27 +646,33 @@ export default function Matching() {
                 </div>
 
                 <div className="flex flex-col gap-[11px]">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
-                      {t('matching.filters.roomTypeLabel')}
+                  <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                    {t('matching.filters.roomTypeLabel')}
+                  </span>
+                  <button
+                    onClick={() => setRoomTypePopupOpen(true)}
+                    className="flex w-full items-center justify-between gap-3 rounded-[18px] border-[1.5px] border-[rgba(51,71,94,0.14)] px-4 py-[13px] font-sans text-[15px] font-bold text-[#2c3f55] transition-colors duration-200 hover:!bg-white"
+                    style={{ background: 'rgba(240,248,250,0.7)' }}
+                  >
+                    <span className="flex items-center gap-[9px]">
+                      <span style={{ color: `oklch(0.62 0.09 ${current.hue})` }}>
+                        <RoomTypeIcon type={current} />
+                      </span>
+                      {roomTypeLabel(current.key)}
                     </span>
-                    <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.42)]">
-                      {t('matching.filters.pickOne')}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {ROOM_TYPES.map((r) => (
-                      <button
-                        key={r.key}
-                        onClick={() => setRoomType(r.key)}
-                        className="flex items-center gap-2 rounded-[18px] border-[1.5px] px-4 py-[10px] font-sans text-sm font-bold transition-all duration-[220ms] hover:-translate-y-px"
-                        style={chipStyle(roomType === r.key)}
-                      >
-                        <RoomTypeIcon type={r} />
-                        {roomTypeLabel(r.key)}
-                      </button>
-                    ))}
-                  </div>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="rgba(51,71,94,0.45)"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
                   <div
                     className="flex items-start gap-[9px] rounded-[18px] px-[15px] py-3"
                     style={{ background: 'rgba(255,255,255,0.66)', boxShadow: 'inset 0 0 0 1.5px rgba(51,71,94,0.07)' }}
@@ -661,13 +693,10 @@ export default function Matching() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-[11px]">
-                  <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
-                    {t('matching.filters.durationLabel')}
-                  </span>
-                  <div className="flex flex-col gap-[9px]">
-                    <span className="text-[11.5px] font-bold text-[rgba(51,71,94,0.5)]">
-                      {t('matching.filters.presetsLabel')}
+                {!NO_DURATION_TYPES.includes(roomType) && (
+                  <div className="flex flex-col gap-[11px]">
+                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                      {t('matching.filters.durationLabel')}
                     </span>
                     <div className="flex gap-2">
                       <button
@@ -675,7 +704,7 @@ export default function Matching() {
                           setFocusMinutes(25)
                           setBreakMinutes(5)
                         }}
-                        className="rounded-[18px] border-[1.5px] px-5 py-[10px] font-sans text-sm font-bold transition-all duration-[220ms]"
+                        className="flex-1 rounded-[18px] border-[1.5px] py-[13px] font-sans text-sm font-bold transition-all duration-[220ms]"
                         style={chipStyle(focusMinutes === 25 && breakMinutes === 5)}
                       >
                         25 : 5
@@ -685,54 +714,14 @@ export default function Matching() {
                           setFocusMinutes(50)
                           setBreakMinutes(10)
                         }}
-                        className="rounded-[18px] border-[1.5px] px-5 py-[10px] font-sans text-sm font-bold transition-all duration-[220ms]"
+                        className="flex-1 rounded-[18px] border-[1.5px] py-[13px] font-sans text-sm font-bold transition-all duration-[220ms]"
                         style={chipStyle(focusMinutes === 50 && breakMinutes === 10)}
                       >
                         50 : 10
                       </button>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-5">
-                    <div className="flex flex-[1_1_160px] flex-col gap-[6px]">
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-[11.5px] font-bold text-[rgba(51,71,94,0.5)]">
-                          {t('matching.filters.focusMinutesLabel')}
-                        </span>
-                        <span className="text-[13px] font-extrabold text-[#2c5b53]">
-                          {t('matching.filters.minutesValue', { count: focusMinutes })}
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min={5}
-                        max={60}
-                        step={5}
-                        value={focusMinutes}
-                        onChange={(e) => setFocusMinutes(Number(e.target.value))}
-                        className="ff-range-lg"
-                      />
-                    </div>
-                    <div className="flex flex-[1_1_160px] flex-col gap-[6px]">
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-[11.5px] font-bold text-[rgba(51,71,94,0.5)]">
-                          {t('matching.filters.breakMinutesLabel')}
-                        </span>
-                        <span className="text-[13px] font-extrabold text-[#2c5b53]">
-                          {t('matching.filters.minutesValue', { count: breakMinutes })}
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min={1}
-                        max={20}
-                        step={1}
-                        value={breakMinutes}
-                        onChange={(e) => setBreakMinutes(Number(e.target.value))}
-                        className="ff-range-lg"
-                      />
-                    </div>
-                  </div>
-                </div>
+                )}
 
                 <div className="flex flex-col gap-[11px]">
                   <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
@@ -845,7 +834,11 @@ export default function Matching() {
                 }}
               >
                 <div className="flex flex-wrap justify-center gap-[7px]">
-                  {[roomTypeLabel(current.key), t('matching.filters.minutesValue', { count: focusMinutes }), language].map((text) => (
+                  {[
+                    roomTypeLabel(current.key),
+                    ...(NO_DURATION_TYPES.includes(roomType) ? [] : [t('matching.filters.minutesValue', { count: focusMinutes })]),
+                    language,
+                  ].map((text) => (
                     <span
                       key={text}
                       className="rounded-full px-[14px] py-[7px] text-[12.5px] font-bold text-[#35566b]"
@@ -1083,6 +1076,61 @@ export default function Matching() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* popup chọn loại phòng — liệt kê đủ tất cả, thay cho hàng chip cũ (dễ tràn khi số
+          loại phòng tăng dần, xem CONTEXT.md Giai đoạn 8 phần 11) */}
+      {roomTypePopupOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-6"
+          style={{ background: 'rgba(38,66,86,0.28)', backdropFilter: 'blur(6px)' }}
+        >
+          <div className="absolute inset-0" onClick={() => setRoomTypePopupOpen(false)} />
+          <div
+            className="relative flex w-full max-w-[440px] flex-col gap-4 rounded-[30px] bg-white px-7 pt-7 pb-6"
+            style={{ boxShadow: '0 30px 70px rgba(38,66,86,0.28)', animation: 'ffPop 320ms cubic-bezier(0.22,1,0.36,1)' }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="m-0 text-xl font-extrabold tracking-[-0.3px] text-[#2c3f55]">
+                {t('matching.filters.roomTypeLabel')}
+              </h3>
+              <button
+                onClick={() => setRoomTypePopupOpen(false)}
+                title={t('matching.create.close')}
+                aria-label={t('matching.create.close')}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-[rgba(240,248,250,0.9)]"
+                style={{ background: 'rgba(240,248,250,0.7)' }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto">
+              {ROOM_TYPES.map((r) => (
+                <button
+                  key={r.key}
+                  onClick={() => {
+                    setRoomType(r.key)
+                    setRoomTypePopupOpen(false)
+                  }}
+                  className="flex items-start gap-3 rounded-[20px] border-[1.5px] px-4 py-3 text-left transition-all duration-[220ms] hover:-translate-y-px"
+                  style={chipStyle(roomType === r.key)}
+                >
+                  <span className="mt-0.5 flex shrink-0" style={{ color: `oklch(0.52 0.1 ${r.hue})` }}>
+                    <RoomTypeIcon type={r} />
+                  </span>
+                  <span className="flex flex-col gap-[3px]">
+                    <span className="text-sm font-extrabold text-[#2c3f55]">{roomTypeLabel(r.key)}</span>
+                    <span className="text-[12.5px] leading-[1.45] font-semibold text-[rgba(51,71,94,0.65)]">
+                      {roomTypeRule(r.key)}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
