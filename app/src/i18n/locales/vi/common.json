@@ -175,9 +175,7 @@
       "presetsLabel": "Gợi ý nhanh",
       "focusMinutesLabel": "Phút học",
       "breakMinutesLabel": "Phút nghỉ",
-      "sessionCountLabel": "Số phiên",
       "minutesValue": "{{count}} phút",
-      "sessionsValue": "{{count}} phiên",
       "languageLabel": "Ngôn ngữ",
       "randomMatch": "Ghép ngẫu nhiên",
       "createRoom": "Tạo phòng mới",
@@ -185,7 +183,11 @@
       "joinByCodeLabel": "Hoặc nhập mã phòng có sẵn",
       "joinCodePlaceholder": "VD: G32TZU",
       "joining": "Đang vào…",
-      "join": "Vào phòng"
+      "join": "Vào phòng",
+      "filterRoomsLabel": "Lọc danh sách phòng bên trái",
+      "applyFilter": "Lọc phòng theo tiêu chí",
+      "clearFilter": "Bỏ lọc",
+      "filterActiveSummary": "Đang lọc: {{roomType}} · ~{{minutes}} phút · {{language}}"
     },
     "visibility": {
       "public": "Công khai",
@@ -223,7 +225,11 @@
       "loadListFailed": "Không tải được danh sách phòng, thử lại sau.",
       "host": "Host {{name}} · {{minutes}} phút",
       "full": "Đầy",
-      "joinAction": "Tham gia"
+      "joinAction": "Tham gia",
+      "filteredNote": "đã lọc theo tiêu chí",
+      "noFilterMatch": "Không có phòng nào khớp với bộ lọc.",
+      "prevPage": "Trang trước",
+      "nextPage": "Trang sau"
     },
     "backToStudy": "← Về màn hình học",
     "create": {
@@ -465,13 +471,11 @@
       "playing": "đang phát · {{mood}}",
       "paused": "đã tạm dừng",
       "playlist": "Danh sách phát",
-      "broadcastToRoom": "phát cho cả phòng",
       "onlyYouHear": "chỉ mình bạn nghe",
-      "hostNote": "Bạn là host nên nhạc bạn chọn sẽ phát đồng bộ cho mọi người; ai muốn yên tĩnh có thể kéo âm lượng về 0.",
-      "memberNote": "Host đang chọn nhạc cho phòng — bạn chỉ chỉnh được âm lượng của mình.",
+      "personalNote": "Nhạc là riêng của bạn — chọn bài, đổi nguồn hay bật/tắt không ảnh hưởng gì tới người khác trong phòng.",
       "defaultTag": "mặc định",
-      "hostTag": "của host",
-      "empty": "Phòng này chưa có nhạc. Vào Cài đặt để tải nhạc lên và đánh dấu \"Mặc định\", hoặc để host tự tải nhạc riêng.",
+      "mineTag": "của bạn",
+      "empty": "Bạn chưa có nhạc riêng nào. Vào Cài đặt để tải nhạc lên và đánh dấu \"Mặc định\", hoặc chuyển sang tab YouTube.",
       "sourceLibrary": "Thư viện",
       "sourceYoutube": "YouTube",
       "youtubeNowPlaying": "Nhạc YouTube",
@@ -480,7 +484,7 @@
       "youtubeUse": "Dùng link này",
       "youtubeInvalid": "Link YouTube không hợp lệ.",
       "youtubeCurrent": "Đang phát: {{url}}",
-      "youtubeEmpty": "Host chưa dán link YouTube nào."
+      "youtubeEmpty": "Bạn chưa dán link YouTube nào."
     },
     "host": {
       "admitMode": "Chế độ vào phòng",
