@@ -3,11 +3,13 @@
 Theo dõi tiến độ, quyết định kỹ thuật, và những gì đã/chưa làm. Đọc kèm [PLAN.md](PLAN.md) và [README.md](README.md).
 
 ## Trạng thái hiện tại
-**Giai đoạn 8 (phần 11) — Đổi hàng chip loại phòng thành 1 nút "Chế độ: X" + popup liệt kê đủ để chọn — xong 2026-08-03, KHÔNG có gì phải chờ user.** Đây là thay đổi mới nhất — đọc mục "Giai đoạn 8 (phần 11)" bên dưới trước khi sửa phần chọn loại phòng ở Matching.tsx.
+**Giai đoạn 9 — "Match experience": ghép trận & video trải nghiệm — code xong, migration 0010 ĐÃ chạy + verify REST pass, đã merge `origin/main` (gồm GĐ8 phần 9-11) 2026-08-03. Chờ user test E2E thật qua browser (cụ thể: nút Ghép ngay, MatchFound, DeviceCheck với cam/mic thật, rating 2 nhánh).** Làm trên branch `giai-doan-9-match-experience`. Xem mục "Giai đoạn 9" bên dưới.
 
-**Giai đoạn 8 (phần 10) — Bỏ free-drag slider thời lượng (chỉ còn 2 preset 25:5/50:10) + 2 loại phòng mới "Tự do" (đồng hồ đếm tăng liên tục) và "Đồng hành" (Pomodoro cá nhân riêng từng người) — xong 2026-08-03, migration 0010 đã tự push, KHÔNG có gì phải chờ user.** Xem mục "Giai đoạn 8 (phần 10)" bên dưới.
+**Giai đoạn 8 (phần 11) — Đổi hàng chip loại phòng thành 1 nút "Chế độ: X" + popup liệt kê đủ để chọn — xong 2026-08-03.** Xem mục "Giai đoạn 8 (phần 11)" bên dưới.
 
-**Giai đoạn 8 (phần 9) — Matching đổi thành layout 2 cột (room list + filters sticky) + lọc/phân trang room list + Room: nhạc chuyển hẳn về cá nhân, bỏ "Số phiên" khỏi tạo/ghép phòng — xong 2026-08-03, KHÔNG có gì phải chờ user chạy migration.** Xem mục "Giai đoạn 8 (phần 9)" bên dưới.
+**Giai đoạn 8 (phần 10) — Bỏ free-drag slider thời lượng (chỉ còn 2 preset 25:5/50:10) + 2 loại phòng mới "Tự do" và "Đồng hành" — xong 2026-08-03, migration 0010 (room_type) đã tự push.** Xem mục "Giai đoạn 8 (phần 10)" bên dưới.
+
+**Giai đoạn 8 (phần 9) — Matching layout 2 cột + lọc/phân trang room list, Room: nhạc cá nhân hoá + bỏ số phiên khi tạo phòng — xong 2026-08-03.** Xem mục "Giai đoạn 8 (phần 9)" bên dưới.
 
 **Giai đoạn 8 (phần 8) — Sửa hàng loạt bug nhạc nền Dashboard + thư viện nhạc built-in + Settings thành overlay xong 2026-08-02, migration 0009 đã push (phần 10, 2026-08-03).** Xem mục "Giai đoạn 8 (phần 8)" bên dưới.
 
@@ -387,3 +389,36 @@ Study_Matching/
       styles/
     ...
 ```
+
+## Giai đoạn 9 — "Match experience": ghép trận & video trải nghiệm (2026-08-03)
+
+Nối tiếp GĐ4/5: làm trải nghiệm ghép cặp vui hơn theo yêu cầu user — card profile người vừa match (kiểu Tinder đơn giản hoá), rating cảm ơn bạn cùng học, nút "Ghép ngay" 1-chạm từ Dashboard, màn kiểm tra cam/mic trước khi vào phòng, màn chờ sống động. Làm trên branch `giai-doan-9-match-experience`.
+
+- **Quyết định đã hỏi & chốt với user:**
+  1. Mức "playful": style Tinder nhưng đơn giản hoá — khi match xong hiện **card profile người cùng học** kèm stats thật: phút học tuần này, level (4 bậc), lượt thích nhận được (từ hệ rating mới).
+  2. **Pre-join device check**: hiện màn kiểm tra camera/mic mỗi lần vào phòng thật, bấm "Vào phòng" xong mới kết nối LiveKit.
+  3. **"Ghép ngay" 1-chạm từ Dashboard**: dùng config ghép đã lưu (localStorage, lưu từ Matching/Create room) hoặc fallback theo Pomodoro defaults của profiles; `/matching` vẫn giữ nguyên cho ai muốn lọc kỹ.
+  4. **Rating hiện ở 2 thời điểm**: khi cả phòng xong đủ số phiên (`timer_done`) và khi "Rời phòng" nếu mình đã có ≥1 phiên focus thật trong phòng đó (bấm Rời → hỏi đánh giá → rời). 1 lượt/người/phòng (unique constraint).
+  5. User yêu cầu **có plan test riêng** — đã duyệt: static gates → migration REST → guest regression → E2E 2 tài khoản → mobile 375px → user tự test cam/mic thật → cập nhật CONTEXT.md.
+- **Migration mới — [0010_match_profiles_and_ratings.sql](app/supabase/migrations/0010_match_profiles_and_ratings.sql) — ĐÃ CHẠY 2026-08-03** (chi tiết cách chạy ở mục "Chạy migration 0010 + verify REST" bên dưới):
+  - Bảng `session_ratings`: giver_id/rated_user_id/room_id + unique(giver_id, rated_user_id, room_id) + check `giver_id <> rated_user_id` (không tự thích mình) + index theo rated. RLS: chỉ insert được cho user đang là member của đúng phòng (bản thân + người được thích đều phải `status='member'` trong `room_members`), select được hàng mình cho hoặc mình nhận.
+  - RPC `public_profile_stats(p_user_id)` (security definer, chỉ `authenticated`): trả name/avatar_url/accent_hue + weekly_minutes (từ `date_trunc('week', now())`)/total_minutes/total_sessions/likes_received — cho card MatchFound không cần expose bảng profiles.
+  - View `matching_queue_stats`: đếm người đang chờ ghép theo (room_type, duration_minutes, language) qua `matching_queue` (`matched_room_code is null`), grant cả anon+authenticated — nuôi màn chờ "N người cũng đang chờ".
+- **Code mới:**
+  - [app/src/lib/quickMatch.ts](app/src/lib/quickMatch.ts): hook `useQuickMatch()` dùng chung Dashboard+Matching — gọi edge `match-room`, theo dõi hàng chờ qua Realtime (`matching_queue` UPDATE filter user_id), khi khớp tải partner qua `room_members_view` rồi RPC `public_profile_stats`. `saveMatchConfig/loadSavedMatchConfig` (key `ff-quickmatch-config`) cho nút Ghép ngay.
+  - [app/src/components/MatchFound.tsx](app/src/components/MatchFound.tsx): overlay trung tâm sau khi khớp — avatar (accent_hue), tên, stats tuần/level/lượt thích, 2 nút "Vào phòng cùng nhau" / "Thoát".
+  - [app/src/components/DeviceCheck.tsx](app/src/components/DeviceCheck.tsx): preview camera thật (gương) + thanh mức mic thật (Web Audio AnalyserNode), toggle cam/mic, bị từ chối quyền thì vẫn cho vào phòng.
+  - [app/src/components/SessionRating.tsx](app/src/components/SessionRating.tsx): tim ❤️ cho từng người cùng học trong buổi, insert `session_ratings`, prefill đã thích sẵn.
+  - [Dashboard.tsx](app/src/routes/Dashboard.tsx): nút "Học cùng nhau" (desktop right-column + mobile taskbar) giờ gọi quick match trực tiếp; overlay chờ (riêng cho Dashboard, không cần vào /matching); MatchFound overlay.
+  - [Matching.tsx](app/src/routes/Matching.tsx): bỏ logic queue cũ viết tay, dùng hook chung; màn chờ hiện "N người cũng đang chờ" (poll `matching_queue_stats` 5s/lần khi đang chờ).
+  - [Room.tsx](app/src/routes/Room.tsx): (a) LiveKit gate thêm `!deviceChecked` — chưa qua màn check thì chưa connect; (b) `leaveRoom` truy vấn `focus_sessions` (user+room, phase focus) — có ≥1 phiên thì mở SessionRating rồi mới rời (`doLeaveRoom` = xoá `room_members` + navigate `/`); (c) effect theo dõi `timer_done` 0→1 (chỉ member, không phải luồng đang rời) mở SessionRating.
+  - **Refactor để test được (kèm CI/CD, xem dưới):** tách `phaseTotalSeconds`/`computeLeftFromRoom` + type `RoomRow` sang [app/src/lib/timer.ts](app/src/lib/timer.ts), `levelFromTotalMinutes` sang [app/src/lib/levels.ts](app/src/lib/levels.ts) (quickMatch.ts re-export giữ nguyên import cũ) — vì [supabase.ts](app/src/lib/supabase.ts) throw lúc import nếu thiếu env nên không import trực tiếp được trong test. (`computeMusicPositionFromRoom` + 6 field `music_*` trong `RoomRow` từng được tách sang đây lúc đầu, nhưng đã bị xoá khi merge main — main bỏ nhạc đồng bộ phòng từ GĐ8-p9 nên không còn client nào dùng.)
+- **CI/CD (viết theo yêu cầu user "viết luồng CI/CD trước đi", giữa lúc GĐ9 chưa verify):**
+  - [.github/workflows/ci.yml](.github/workflows/ci.yml): PR → `main` + push `main`, path filter `app/**`; 1 job: `npm ci` (cache qua `app/package-lock.json`) → `npm run lint` → `npm test` → `npm run build`.
+  - [.github/dependabot.yml](.github/dependabot.yml): npm weekly, directory `/app` — thay cho gate `npm audit` (repo đang có 2 advisory react-router 7.18.2 ghi chú là không áp dụng, audit sẽ fail vĩnh viễn).
+  - **Vitest** (`vitest@^4.1.10` devDep, script `test`): 19 test ở [app/src/lib/__tests__/](app/src/lib/__tests__/) — `parseYoutubeUrl` (10 case), `levelFromTotalMinutes` (4), timer math (5, dùng `vi.useFakeTimers`). Preview deploy PR để Vercel integration lo (user đã chọn, chưa connect repo).
+  - **Đã verify local y hệt CI:** `npm ci` từ lock → lint (chỉ còn 2 warning exhaustive-deps cũ Dashboard.tsx:637) → 19/19 test pass → build xanh.
+- **Chạy migration 0010 + verify REST (2026-08-03, đã xong):** Supabase CLI trên máy hết access token cũ → user cấp token mới (`sbp_5e302...`, chưa lưu cố định, chỉ inline khi gọi CLI) và đồng ý cho dùng. Link lại project `hycyrfwynqmvawobixhx` thành công (token cũ thiếu quyền, user cấp quyền qua dashboard). **Bug phát hiện:** `db push` báo "Remote database is up to date" nhưng `session_ratings`/`matching_queue_stats` không tồn tại — hoá ra `schema_migrations` có dòng 0010 nhưng SQL chưa từng chạy thật (đánh dấu migration mà không apply). Fix: xoá dòng giả, chạy thẳng nội dung SQL qua Management API (`POST /v1/projects/{ref}/database/query` với `Authorization: Bearer`), insert lại dòng 0010; sau ~10s PostgREST reload mọi object hiện diện.
+  - **Kết quả verify qua REST (tài khoản test `focusflow.gd9.a/b/c/d.<ts>@mailinator.com` / `testpass123!`):** A ghép → queued (có token); B ghép → matched, phòng `LGQ2GB` (`3b5d7ab4-161e-4869-bdf2-b1e2c634ef50`); `room_members_view` 2 member `status='member'`; A thích B → 201; thích lần 2 → 409 (`session_ratings_one_per_room`); tự thích mình → 403; user C ngoài phòng thích B → 403; `public_profile_stats` trả đúng shape (name/accent_hue, zeros); `likes_received` của B = 1; user D đứng hàng chờ (chill/25/en) → `matching_queue_stats.waiting_count` = 1 đúng tổ hợp; anon gọi RPC → `P0001 not authenticated`. TẤT CẢ PASS — đúng như kế hoạch verify REST đã duyệt.
+- **Merge `origin/main` xong (2026-08-03, đã commit):** main lúc đó đã có GĐ8 phần 9-11 (layout 2 cột Matching, room types Tự do/Đồng hành + popup chọn loại phòng, nhạc cá nhân hoá Room, bỏ `sessionCount` khỏi Matching). Resolve conflict ở `Matching.tsx` (giữ hook quick match + overlay MatchFound + poll `matching_queue_stats`, theo bố cục 2 cột mới của main; `go('filters')` → `go('browse')` vì `Stage` giờ chỉ còn `browse | searching`; `session_count` cố định 4 khi lưu config ghép; thêm `resetAfterMatch` gọi `dismissMatch`), `Room.tsx` (giữ import từ lib/timer, `RoomRow` mở rộng thêm `room_type`/`created_at`), `CONTEXT.md`. Sau merge: `tsc --noEmit` sạch, `oxlint` (2 warning cũ có sẵn Dashboard.tsx:637), 19/19 test, `npm run build` xanh.
+- **Việc còn lại (cần user tự làm, sandbox không có browser tool):** test E2E thật qua trình duyệt — nút "Ghép ngay" ở Dashboard, màn MatchFound sau khi khớp, DeviceCheck với cam/mic thật (sandbox chặn `getUserMedia`), rating 2 nhánh (Rời phòng có phiên focus + `timer_done`), guest regression + mobile 375px.

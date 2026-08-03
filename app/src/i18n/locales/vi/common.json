@@ -96,6 +96,9 @@
       "studyTogether": "Học cùng nhau",
       "findStudyBuddy": "Tìm bạn học online"
     },
+    "quickMatch": {
+      "hint": "Đang tìm bạn học cho bạn…"
+    },
     "taskbar": {
       "wallpaperTitle": "Đổi hình nền",
       "wallpaperLabel": "Hình nền",
@@ -194,6 +197,7 @@
     "searching": {
       "seconds": "giây",
       "title": "Đang tìm người phù hợp…",
+      "othersWaiting": "{{count}} người cũng đang chờ",
       "cancel": "Huỷ tìm",
       "editFilters": "Sửa bộ lọc",
       "hints": {
@@ -393,6 +397,24 @@
       "action": "Đăng xuất"
     }
   },
+  "matchFound": {
+    "title": "Tìm thấy bạn học! 🎉",
+    "subtitle": "Ghép với {{name}}",
+    "close": "Thoát",
+    "enter": "Vào phòng cùng nhau",
+    "unknownName": "Bạn học ẩn danh",
+    "stats": {
+      "weekly": "{{count}} phút tuần này",
+      "level": "Cấp {{level}}",
+      "likes": "{{count}} lượt thích"
+    },
+    "levels": {
+      "l0": "Mới bắt đầu",
+      "l1": "Tân binh",
+      "l2": "Học viên",
+      "l3": "Cao thủ"
+    }
+  },
   "room": {
     "headerTag": "Phòng học chung",
     "demo": { "two": "2 người", "five": "5 người" },
@@ -506,6 +528,22 @@
       "kick": "Kick"
     },
     "camOffFeed": "camera đang tắt",
-    "webcamOf": "webcam · {{name}}"
+    "webcamOf": "webcam · {{name}}",
+    "deviceCheck": {
+      "title": "Kiểm tra camera & mic",
+      "subtitle": "Xem thử hình ảnh và âm thanh trước khi vào phòng",
+      "cameraOff": "Camera đang tắt",
+      "enter": "Vào phòng",
+      "denied": "Trình duyệt từ chối quyền truy cập camera/mic — bạn vẫn có thể vào phòng."
+    },
+    "rating": {
+      "title": "Buổi học kết thúc",
+      "subtitle": "Ấn tim để cảm ơn bạn học cùng buổi hôm nay",
+      "noOne": "Buổi này không có ai cùng học với bạn.",
+      "like": "Cảm ơn",
+      "liked": "Đã cảm ơn",
+      "close": "Đóng",
+      "leave": "Rời phòng"
+    }
   }
 }

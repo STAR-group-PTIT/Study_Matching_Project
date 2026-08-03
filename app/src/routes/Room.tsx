@@ -6,33 +6,15 @@ import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 import { playChime } from '../lib/sound'
 import { parseYoutubeUrl, loadYoutubeApi, type YTPlayer } from '../lib/youtube'
+import { phaseTotalSeconds, computeLeftFromRoom, type RoomRow } from '../lib/timer'
+import DeviceCheck from '../components/DeviceCheck'
+import SessionRating from '../components/SessionRating'
 
 type StatusKey = 'host' | 'focusing' | 'micOff' | 'camOff' | 'justJoined'
 type Member = { id: string; name: string; statusKey: StatusKey; host: boolean; me?: boolean }
 type Pending = { id: string; userId: string; name: string; wait: string }
 type ChatMsg = { who: string; me: boolean; text: string }
-// 'free' = đồng hồ đếm tăng liên tục từ lúc tạo phòng, không chia phiên; 'together' = mỗi
-// người tự chạy Pomodoro riêng theo cài đặt cá nhân (xem effect/JSX liên quan bên dưới).
-type RoomTypeKey = 'chill' | 'hardcore' | 'silent' | 'discuss' | 'watch' | 'free' | 'together'
-type RoomRow = {
-  id: string
-  code: string
-  name: string
-  host_id: string
-  admit_mode: 'auto' | 'manual'
-  capacity: number
-  room_type: RoomTypeKey
-  created_at: string
-  duration_minutes: number
-  break_minutes: number
-  session_count: number
-  timer_phase: 'focus' | 'break'
-  timer_round: number
-  timer_running: boolean
-  timer_done: boolean
-  timer_remaining_seconds: number | null
-  timer_updated_at: string
-}
+
 type RealTrack = { id: string; name: string; path: string; durationSeconds: number | null; isDefault: boolean }
 type RealMemberRow = {
   id: string
@@ -57,15 +39,6 @@ function relativeWait(iso: string, t: (key: string, options?: Record<string, unk
   return t('room.wait.minutes', { min: Math.floor(sec / 60), sec: String(sec % 60).padStart(2, '0') })
 }
 
-function phaseTotalSeconds(r: RoomRow, phase: 'focus' | 'break') {
-  return (phase === 'focus' ? r.duration_minutes : r.break_minutes) * 60
-}
-function computeLeftFromRoom(r: RoomRow) {
-  const base = r.timer_remaining_seconds ?? phaseTotalSeconds(r, r.timer_phase)
-  if (!r.timer_running) return Math.max(0, base)
-  const elapsed = Math.floor((Date.now() - new Date(r.timer_updated_at).getTime()) / 1000)
-  return Math.max(0, base - elapsed)
-}
 function fmtTrackLength(sec: number | null) {
   if (sec === null) return '—'
   const m = Math.floor(sec / 60)
@@ -189,6 +162,15 @@ export default function Room() {
   const [mic, setMic] = useState(false)
   const [chatOpen, setChatOpen] = useState(true)
   const [tab, setTab] = useState<Tab>('chat')
+
+  // GĐ9: màn "Kiểm tra trước khi vào phòng" hiện mỗi lần vào phòng thật — xong mới
+  // connect LiveKit (effect kết nối bên dưới gate bằng deviceChecked).
+  const [deviceChecked, setDeviceChecked] = useState(false)
+
+  // GĐ9: card đánh giá sau buổi học — hiện khi phòng xong đủ phiên (timer_done) hoặc
+  // khi bấm "Rời phòng" nếu đã có ít nhất 1 phiên focus trong phòng (pendingLeave).
+  const [showRating, setShowRating] = useState(false)
+  const [pendingLeave, setPendingLeave] = useState(false)
 
   const [preferredCameraId, setPreferredCameraId] = useState('')
   const [preferredMicId, setPreferredMicId] = useState('')
@@ -600,12 +582,45 @@ export default function Room() {
     setAdmit(next)
     if (realRoom) await supabase.from('rooms').update({ admit_mode: next }).eq('id', realRoom.id)
   }
+  // GĐ9: bấm "Rời phòng" — nếu mình đã học thật ≥1 phiên focus trong phòng này thì
+  // hỏi đánh giá bạn cùng học trước, rồi mới rời; chưa học gì thì rời thẳng.
+  const pendingLeaveRef = useRef(false)
   async function leaveRoom() {
+    if (isRealMode && user && realRoom) {
+      const { data } = await supabase
+        .from('focus_sessions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('room_id', realRoom.id)
+        .eq('phase', 'focus')
+        .limit(1)
+      if (data && data.length > 0) {
+        pendingLeaveRef.current = true
+        setPendingLeave(true)
+        setShowRating(true)
+        return
+      }
+    }
+    doLeaveRoom()
+  }
+  async function doLeaveRoom() {
     if (isRealMode && user && realRoom) {
       await supabase.from('room_members').delete().eq('room_id', realRoom.id).eq('user_id', user.id)
     }
     navigate('/')
   }
+  // Khi phòng xong đủ phiên (timer_done bật) thì hiện card đánh giá — dù user đang ở
+  // màn "Đã hoàn thành" nào. Chỉ hỏi 1 lần (flip 0→1).
+  const prevTimerDoneRef = useRef(false)
+  useEffect(() => {
+    if (!realRoom) return
+    const prev = prevTimerDoneRef.current
+    prevTimerDoneRef.current = realRoom.timer_done
+    if (!prev && realRoom.timer_done && !pendingLeaveRef.current && myStatus === 'member') {
+      setPendingLeave(false)
+      setShowRating(true)
+    }
+  }, [realRoom, myStatus])
 
   async function toggleRunningReal() {
     if (!realRoom) return
@@ -730,10 +745,11 @@ export default function Room() {
   const micRef = useRef(mic)
   micRef.current = mic
 
-  // Connect to LiveKit only once actually admitted ('member', not 'pending') — mirrors
-  // the same gate the livekit-token Edge Function enforces server-side.
+  // Connect to LiveKit only once actually admitted ('member', not 'pending') AND after the
+  // device-check screen is done — mirrors the same gate the livekit-token Edge Function
+  // enforces server-side.
   useEffect(() => {
-    if (!isRealMode || !code || myStatus !== 'member') return
+    if (!isRealMode || !code || myStatus !== 'member' || !deviceChecked) return
     let cancelled = false
     const lkRoom = new LiveKitRoom({ adaptiveStream: true, dynacast: true })
     lkRoomRef.current = lkRoom
@@ -793,7 +809,7 @@ export default function Room() {
       setVideoTracks({})
       setAudioTracks({})
     }
-  }, [isRealMode, code, myStatus])
+  }, [isRealMode, code, myStatus, deviceChecked])
 
   useEffect(() => {
     if (!isRealMode) return
@@ -1088,6 +1104,19 @@ export default function Room() {
           </button>
         </div>
       </div>
+    )
+  }
+
+  // GĐ9: màn kiểm tra cam/mic — hiện mỗi lần vào phòng thật, xong mới connect LiveKit.
+  if (isRealMode && myStatus === 'member' && !deviceChecked) {
+    return (
+      <DeviceCheck
+        cameraOn={cam}
+        micOn={mic}
+        onToggleCam={() => setCam((c) => !c)}
+        onToggleMic={() => setMic((v) => !v)}
+        onDone={() => setDeviceChecked(true)}
+      />
     )
   }
 
@@ -1812,6 +1841,20 @@ export default function Room() {
           </div>
         )}
       </div>
+
+      {/* GĐ9: card đánh giá sau buổi học (timer_done hoặc rời phòng sau khi đã học) */}
+      {showRating && isRealMode && realRoom && user && (
+        <SessionRating
+          roomId={realRoom.id}
+          members={members.filter((m) => !m.me && m.id !== user.id)}
+          pendingLeave={pendingLeave}
+          onLeave={() => {
+            setShowRating(false)
+            void doLeaveRoom()
+          }}
+          onClose={() => setShowRating(false)}
+        />
+      )}
     </div>
   )
 }

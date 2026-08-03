@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
+import { useQuickMatch, saveMatchConfig } from '../lib/quickMatch'
+import MatchFound from '../components/MatchFound'
 
 type RoomTypeKey = 'chill' | 'hardcore' | 'silent' | 'discuss' | 'watch' | 'free' | 'together'
 
@@ -142,8 +144,12 @@ export default function Matching() {
   const [focusMinutes, setFocusMinutes] = useState(25)
   const [breakMinutes, setBreakMinutes] = useState(5)
   const [language, setLanguage] = useState<Language>('Tiếng Việt')
-  const [waited, setWaited] = useState(0)
-  const [matchError, setMatchError] = useState('')
+
+  const quick = useQuickMatch()
+  const languageCode = language === 'Tiếng Việt' ? 'vi' : 'en'
+  // Số người đang chờ cùng bộ lọc — đọc từ view matching_queue_stats (0010), chỉ là count
+  // aggregate, không lộ danh tính. Poll mỗi 5s trong lúc tìm để số luôn tươi.
+  const [waitingCount, setWaitingCount] = useState<number | null>(null)
 
   const [modal, setModal] = useState(false)
   const [created, setCreated] = useState(false)
@@ -168,19 +174,30 @@ export default function Matching() {
   const [roomPage, setRoomPage] = useState(1)
 
   const copyTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const stageRef = useRef(stage)
-  stageRef.current = stage
-  const queueChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      if (stageRef.current === 'searching') setWaited((w) => w + 1)
-    }, 1000)
-    return () => clearInterval(id)
-  }, [])
 
   useEffect(() => () => clearTimeout(copyTimer.current), [])
-  useEffect(() => () => void queueChannelRef.current?.unsubscribe(), [])
+
+  // Poll matching_queue_stats mỗi 5s trong lúc tìm ngẫu nhiên để hiện "N người cũng đang chờ".
+  useEffect(() => {
+    if (stage !== 'searching' || quick.stage !== 'waiting') return
+    let cancelled = false
+    const poll = async () => {
+      const { data } = await supabase
+        .from('matching_queue_stats')
+        .select('waiting_count')
+        .eq('room_type', roomType)
+        .eq('duration_minutes', NO_DURATION_TYPES.includes(roomType) ? LOCKED_FOCUS_MINUTES : focusMinutes)
+        .eq('language', languageCode)
+        .limit(1)
+      if (!cancelled && data && data.length > 0) setWaitingCount(data[0].waiting_count)
+    }
+    void poll()
+    const id = setInterval(poll, 5000)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [stage, quick.stage, roomType, focusMinutes, languageCode])
 
   useEffect(() => {
     if (!user) {
@@ -228,60 +245,30 @@ export default function Matching() {
     setTimeout(() => {
       setStage(next)
       setFade(1)
-      setWaited(0)
     }, 200)
   }
 
   function cancelSearch() {
-    if (user) supabase.from('matching_queue').delete().eq('user_id', user.id).then(() => {})
-    queueChannelRef.current?.unsubscribe()
-    queueChannelRef.current = null
-    setMatchError('')
+    quick.cancel()
     go('browse')
   }
 
-  function subscribeQueue(userId: string) {
-    const channel = supabase
-      .channel('matching-queue-' + userId)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'matching_queue', filter: `user_id=eq.${userId}` },
-        (payload) => {
-          const code = (payload.new as { matched_room_code: string | null }).matched_room_code
-          if (!code) return
-          channel.unsubscribe()
-          queueChannelRef.current = null
-          supabase.from('matching_queue').delete().eq('user_id', userId).then(() => {})
-          navigate('/room/' + code)
-        },
-      )
-      .subscribe()
-    queueChannelRef.current = channel
+  function resetAfterMatch() {
+    quick.dismissMatch()
+    go('browse')
   }
 
   async function startRandomMatch() {
     if (!requireAuth()) return
     go('searching')
-    setMatchError('')
-    const durationMinutes = NO_DURATION_TYPES.includes(roomType) ? LOCKED_FOCUS_MINUTES : focusMinutes
-    const languageCode = language === 'Tiếng Việt' ? 'vi' : 'en'
-
-    const { data, error } = await supabase.functions.invoke('match-room', {
-      body: { room_type: roomType, duration_minutes: durationMinutes, language: languageCode },
+    setWaitingCount(null)
+    await quick.start({
+      room_type: roomType,
+      focus_minutes: NO_DURATION_TYPES.includes(roomType) ? LOCKED_FOCUS_MINUTES : focusMinutes,
+      break_minutes: NO_DURATION_TYPES.includes(roomType) ? LOCKED_BREAK_MINUTES : breakMinutes,
+      session_count: 4,
+      language: languageCode,
     })
-
-    if (error) {
-      setMatchError(t('matching.errors.matchServiceDown'))
-      return
-    }
-    const result = data?.result as { status: string; room_id: string; room_code: string } | null
-    if (result?.status === 'matched' && result.room_code) {
-      navigate('/room/' + result.room_code)
-    } else if (result?.status === 'queued' && user) {
-      subscribeQueue(user.id)
-    } else {
-      setMatchError(t('matching.errors.matchGeneric'))
-    }
   }
 
   async function submitJoinCode() {
@@ -411,6 +398,15 @@ export default function Matching() {
     setRoomId(inserted.code)
     setCreated(true)
     setCreating(false)
+
+    // Lưu config ghép lần này để nút "Ghép ngay" ở Dashboard dùng lại được.
+    saveMatchConfig({
+      room_type: roomType,
+      focus_minutes: locked ? LOCKED_FOCUS_MINUTES : focusMinutes,
+      break_minutes: locked ? LOCKED_BREAK_MINUTES : breakMinutes,
+      session_count: 4,
+      language: language === 'Tiếng Việt' ? 'vi' : 'en',
+    })
   }
 
   function copyId() {
@@ -886,7 +882,7 @@ export default function Matching() {
                     style={{ animation: 'ffDrift 3.4s ease-in-out infinite' }}
                   >
                     <span className="text-[30px] leading-none font-extrabold text-[#2c3f55] tabular-nums">
-                      {waited}
+                      {quick.waited}
                     </span>
                     <span className="text-[12.5px] font-bold text-[rgba(51,71,94,0.5)]">
                       {t('matching.searching.seconds')}
@@ -899,8 +895,15 @@ export default function Matching() {
                     {t('matching.searching.title')}
                   </span>
                   <span className="text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
-                    {matchError || hints[Math.min(hints.length - 1, Math.floor(waited / 8))]}
+                    {quick.matchError
+                      ? t('matching.errors.' + quick.matchError)
+                      : hints[Math.min(hints.length - 1, Math.floor(quick.waited / 8))]}
                   </span>
+                  {quick.stage === 'waiting' && !quick.matchError && waitingCount !== null && (
+                    <span className="text-[12px] font-bold text-[rgba(51,71,94,0.42)]">
+                      {t('matching.searching.othersWaiting', { count: waitingCount })}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap items-center justify-center gap-[10px]">
@@ -1133,6 +1136,16 @@ export default function Matching() {
             </div>
           </div>
         </div>
+      )}
+
+      {quick.stage === 'matched' && (
+        <MatchFound
+          partner={quick.partner}
+          roomCode={quick.roomCode ?? ''}
+          roomLabel={roomTypeLabel(roomType)}
+          onClose={resetAfterMatch}
+          onEnter={() => quick.roomCode && navigate('/room/' + quick.roomCode)}
+        />
       )}
     </div>
   )
