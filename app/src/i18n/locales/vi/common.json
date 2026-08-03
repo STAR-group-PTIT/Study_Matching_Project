@@ -94,7 +94,8 @@
       "turnOffCamera": "Tắt camera",
       "turnOnCamera": "Bật camera",
       "studyTogether": "Học cùng nhau",
-      "findStudyBuddy": "Tìm bạn học online"
+      "findStudyBuddy": "Tìm bạn học online",
+      "browseRooms": "Duyệt phòng thủ công"
     },
     "quickMatch": {
       "hint": "Đang tìm bạn học cho bạn…"
@@ -107,6 +108,7 @@
       "todoTitle": "Danh sách việc",
       "todoLabel": "To-do",
       "studyTogetherTitle": "Học cùng nhau",
+      "browseRooms": "Duyệt phòng",
       "settingsTitle": "Cài đặt",
       "settingsLabel": "Cài đặt"
     },

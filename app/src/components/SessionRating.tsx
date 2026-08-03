@@ -60,7 +60,7 @@ export default function SessionRating({
     >
       <div className="absolute inset-0" onClick={pendingLeave ? onLeave : onClose} />
       <div
-        className="relative flex w-full max-w-[380px] flex-col gap-[16px] rounded-[30px] bg-white px-7 pt-7 pb-6"
+        className="relative flex max-h-[85svh] w-full max-w-[380px] flex-col gap-[16px] overflow-y-auto rounded-[30px] bg-white px-7 pt-7 pb-6"
         style={{ boxShadow: '0 30px 70px rgba(38,66,86,0.3)', animation: 'ffPop 380ms cubic-bezier(0.22,1,0.36,1)' }}
       >
         <div className="flex flex-col gap-[5px]">

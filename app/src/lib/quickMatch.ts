@@ -72,6 +72,10 @@ export function useQuickMatch() {
   const [matchError, setMatchError] = useState('')
   const [roomCode, setRoomCode] = useState<string | null>(null)
   const [partner, setPartner] = useState<PublicProfileStats | null>(null)
+  // Số người đang chờ cùng bộ lọc — poll matching_queue_stats (0010) mỗi 5s trong
+  // lúc tìm. Để trong hook để Dashboard lẫn Matching đều hiện "N người cũng đang chờ".
+  const [waitingCount, setWaitingCount] = useState<number | null>(null)
+  const cfgRef = useRef<MatchConfig | null>(null)
 
   const stageRef = useRef(stage)
   stageRef.current = stage
@@ -83,6 +87,29 @@ export function useQuickMatch() {
     }, 1000)
     return () => clearInterval(id)
   }, [])
+
+  useEffect(() => {
+    if (stage !== 'waiting') return
+    let cancelled = false
+    const poll = async () => {
+      const cfg = cfgRef.current
+      if (!cfg) return
+      const { data } = await supabase
+        .from('matching_queue_stats')
+        .select('waiting_count')
+        .eq('room_type', cfg.room_type)
+        .eq('duration_minutes', cfg.focus_minutes)
+        .eq('language', cfg.language)
+        .limit(1)
+      if (!cancelled) setWaitingCount(data && data.length > 0 ? data[0].waiting_count : null)
+    }
+    void poll()
+    const id = setInterval(poll, 5000)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [stage])
 
   useEffect(() => () => void channelRef.current?.unsubscribe(), [])
 
@@ -129,10 +156,12 @@ export function useQuickMatch() {
     const user = useAuthStore.getState().user
     if (!user) return false
     saveMatchConfig(cfg)
+    cfgRef.current = cfg
     setMatchError('')
     setRoomCode(null)
     setPartner(null)
     setWaited(0)
+    setWaitingCount(null)
     setStage('waiting')
 
     const { data, error } = await supabase.functions.invoke('match-room', {
@@ -164,6 +193,7 @@ export function useQuickMatch() {
     channelRef.current = null
     setMatchError('')
     setWaited(0)
+    setWaitingCount(null)
     setStage('idle')
   }
 
@@ -172,6 +202,7 @@ export function useQuickMatch() {
     setWaited(0)
     setRoomCode(null)
     setPartner(null)
+    setWaitingCount(null)
     setStage('idle')
   }
 
@@ -180,5 +211,5 @@ export function useQuickMatch() {
     setPartner(null)
   }
 
-  return { stage, waited, matchError, roomCode, partner, start, cancel, reset, dismissMatch }
+  return { stage, waited, matchError, roomCode, partner, waitingCount, start, cancel, reset, dismissMatch }
 }

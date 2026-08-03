@@ -35,7 +35,7 @@ export default function MatchFound({
     >
       <div className="absolute inset-0" onClick={onClose} />
       <div
-        className="relative flex w-full max-w-[400px] flex-col items-center gap-[18px] rounded-[30px] bg-white px-7 pt-8 pb-6 text-center"
+        className="relative flex max-h-[90svh] w-full max-w-[400px] flex-col items-center gap-[18px] overflow-y-auto rounded-[30px] bg-white px-7 pt-8 pb-6 text-center"
         style={{ boxShadow: '0 30px 70px rgba(38,66,86,0.3)', animation: 'ffPop 380ms cubic-bezier(0.22,1,0.36,1)' }}
       >
         {/* ring + avatar */}

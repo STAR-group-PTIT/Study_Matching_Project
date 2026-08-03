@@ -93,10 +93,10 @@ export default function DeviceCheck({
 
   return (
     <div
-      className="relative flex h-svh w-full items-center justify-center overflow-hidden px-6 font-sans text-[#33475e] antialiased"
+      className="relative flex h-svh w-full justify-center overflow-y-auto px-6 py-6 font-sans text-[#33475e] antialiased"
       style={{ background: 'var(--ff-page-gradient)' }}
     >
-      <div className="flex w-full max-w-[420px] flex-col items-center gap-5 rounded-[30px] px-8 pt-8 pb-7 text-center">
+      <div className="my-auto flex w-full max-w-[420px] flex-col items-center gap-5 rounded-[30px] px-8 pt-8 pb-7 text-center">
         <div className="flex flex-col gap-[6px]">
           <h2 className="m-0 text-[22px] font-extrabold tracking-[-0.4px] text-[#2c3f55]">
             {t('room.deviceCheck.title')}

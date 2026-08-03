@@ -94,7 +94,8 @@
       "turnOffCamera": "Turn off camera",
       "turnOnCamera": "Turn on camera",
       "studyTogether": "Study together",
-      "findStudyBuddy": "Find a study buddy online"
+      "findStudyBuddy": "Find a study buddy online",
+      "browseRooms": "Browse rooms manually"
     },
     "quickMatch": {
       "hint": "Looking for a study buddy for you…"
@@ -107,6 +108,7 @@
       "todoTitle": "To-do list",
       "todoLabel": "To-do",
       "studyTogetherTitle": "Study together",
+      "browseRooms": "Browse rooms",
       "settingsTitle": "Settings",
       "settingsLabel": "Settings"
     },
