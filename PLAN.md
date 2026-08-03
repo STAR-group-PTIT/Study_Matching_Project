@@ -58,7 +58,7 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 ## Giai đoạn 5 — Đồng bộ realtime trong phòng ✅ Verify xong bằng test thật 2 tài khoản 2026-07-30
 - [x] Pomodoro đồng bộ (host = nguồn thời gian, broadcast)
 - [x] Chat realtime
-- [x] Trạng thái nhạc đồng bộ (host điều khiển phát, member chỉnh volume riêng)
+- [x] Trạng thái nhạc đồng bộ theo phòng (host điều khiển phát, member chỉnh volume riêng) — **đổi lại thành nhạc hoàn toàn cá nhân ở Giai đoạn 8 (phần 9)**, xem CONTEXT.md
 - [x] Presence (ai đang online trong phòng)
 
 ## Giai đoạn 6 — Video call (LiveKit) ✅ Code xong 2026-07-30, chờ user tạo project LiveKit + deploy
@@ -78,8 +78,11 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Kiểm tra i18n vi/en đầy đủ — xong 2026-07-30 (chi tiết CONTEXT.md)
 - [x] (thêm ngoài kế hoạch) Settings 2 tab (Hồ sơ/Cài đặt), accent color preset, camera/mic mặc định, âm thanh hết giờ — xong 2026-07-31
 - [x] (thêm ngoài kế hoạch) Hình nền built-in gộp với thư viện riêng — xong 2026-07-31
-- [x] (thêm ngoài kế hoạch) Nhạc nền thật — thư viện mp3 (mặc định + riêng từng người) và YouTube (Room đồng bộ cả phòng + Dashboard solo) — xong 2026-07-31, xem CONTEXT.md "Giai đoạn 8 (phần 7)"
+- [x] (thêm ngoài kế hoạch) Nhạc nền thật — thư viện mp3 (mặc định + riêng từng người) và YouTube (Room đồng bộ cả phòng + Dashboard solo) — xong 2026-07-31, xem CONTEXT.md "Giai đoạn 8 (phần 7)" (**nhạc trong Room đổi lại thành cá nhân ở phần 9, không đồng bộ cả phòng nữa**)
 - [x] (thêm ngoài kế hoạch) Sửa bug nhạc nền Dashboard (mất nhạc khi chuyển tab Thư viện/YouTube, camera tự bật lại, YouTube mất link mặc định), thư viện nhạc built-in (`assets/music`), mini-player + âm lượng trên main UI, Settings đổi từ route sang overlay — xong 2026-08-02, xem CONTEXT.md "Giai đoạn 8 (phần 8)"
+- [x] (thêm ngoài kế hoạch) Matching layout 2 cột (room list + filters sticky), lọc/phân trang room list, Room nhạc cá nhân hoá, bỏ "Số phiên" khỏi tạo/ghép phòng — xong 2026-08-03, xem CONTEXT.md "Giai đoạn 8 (phần 9)"
+- [x] (thêm ngoài kế hoạch) Bỏ free-drag slider thời lượng (chỉ 2 preset), thêm loại phòng "Tự do" (đồng hồ đếm tăng) và "Đồng hành" (Pomodoro cá nhân riêng từng người) — xong 2026-08-03, xem CONTEXT.md "Giai đoạn 8 (phần 10)"
+- [x] (thêm ngoài kế hoạch) Popup chọn loại phòng thay hàng chip (7 loại giờ gọn thành 1 nút + popup) — xong 2026-08-03, xem CONTEXT.md "Giai đoạn 8 (phần 11)"
 
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).

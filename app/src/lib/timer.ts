@@ -1,3 +1,5 @@
+export type RoomTypeKey = 'chill' | 'hardcore' | 'silent' | 'discuss' | 'watch' | 'free' | 'together'
+
 export type RoomRow = {
   id: string
   code: string
@@ -5,6 +7,8 @@ export type RoomRow = {
   host_id: string
   admit_mode: 'auto' | 'manual'
   capacity: number
+  room_type: RoomTypeKey
+  created_at: string
   duration_minutes: number
   break_minutes: number
   session_count: number
@@ -14,12 +18,6 @@ export type RoomRow = {
   timer_done: boolean
   timer_remaining_seconds: number | null
   timer_updated_at: string
-  music_on: boolean
-  music_track_index: number
-  music_updated_at: string
-  music_position_seconds: number
-  music_source: 'library' | 'youtube'
-  youtube_url: string | null
 }
 
 export function phaseTotalSeconds(r: RoomRow, phase: 'focus' | 'break') {
@@ -31,10 +29,4 @@ export function computeLeftFromRoom(r: RoomRow) {
   if (!r.timer_running) return Math.max(0, base)
   const elapsed = Math.floor((Date.now() - new Date(r.timer_updated_at).getTime()) / 1000)
   return Math.max(0, base - elapsed)
-}
-
-export function computeMusicPositionFromRoom(r: RoomRow) {
-  if (!r.music_on) return r.music_position_seconds
-  const elapsed = (Date.now() - new Date(r.music_updated_at).getTime()) / 1000
-  return r.music_position_seconds + elapsed
 }

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { computeLeftFromRoom, computeMusicPositionFromRoom, phaseTotalSeconds, type RoomRow } from '../timer'
+import { computeLeftFromRoom, phaseTotalSeconds, type RoomRow } from '../timer'
 
 function makeRow(overrides: Partial<RoomRow> = {}): RoomRow {
   const now = new Date('2026-08-03T10:00:00Z')
@@ -10,6 +10,8 @@ function makeRow(overrides: Partial<RoomRow> = {}): RoomRow {
     host_id: 'h1',
     admit_mode: 'auto',
     capacity: 4,
+    room_type: 'chill',
+    created_at: now.toISOString(),
     duration_minutes: 25,
     break_minutes: 5,
     session_count: 4,
@@ -19,12 +21,6 @@ function makeRow(overrides: Partial<RoomRow> = {}): RoomRow {
     timer_done: false,
     timer_remaining_seconds: null,
     timer_updated_at: now.toISOString(),
-    music_on: false,
-    music_track_index: 0,
-    music_updated_at: now.toISOString(),
-    music_position_seconds: 0,
-    music_source: 'library',
-    youtube_url: null,
     ...overrides,
   }
 }
@@ -65,17 +61,5 @@ describe('computeLeftFromRoom', () => {
   it('không bao giờ âm', () => {
     const r = makeRow({ timer_running: true, timer_remaining_seconds: 10 })
     expect(computeLeftFromRoom(r)).toBe(0)
-  })
-})
-
-describe('computeMusicPositionFromRoom', () => {
-  it('music tắt: trả position đã lưu nguyên vẹn', () => {
-    const r = makeRow({ music_on: false, music_position_seconds: 42 })
-    expect(computeMusicPositionFromRoom(r)).toBe(42)
-  })
-
-  it('music bật: position + elapsed (float)', () => {
-    const r = makeRow({ music_on: true, music_position_seconds: 10 })
-    expect(computeMusicPositionFromRoom(r)).toBe(40)
   })
 })

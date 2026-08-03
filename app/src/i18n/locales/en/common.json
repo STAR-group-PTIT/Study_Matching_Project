@@ -167,20 +167,16 @@
       "hardcore": { "name": "Hardcore", "rule": "Camera required, no music or mic." },
       "silent": { "name": "Silent", "rule": "No music, no camera, no mic — just a shared timer." },
       "discuss": { "name": "Discuss", "rule": "Camera and mic on to talk, no music." },
-      "watch": { "name": "Watch", "rule": "Camera required to keep each other accountable, no music or mic." }
+      "watch": { "name": "Watch", "rule": "Camera required to keep each other accountable, no music or mic." },
+      "free": { "name": "Free-run", "rule": "No focus/break phases — a stopwatch counts up continuously from when the room was created, running non-stop until you leave." },
+      "together": { "name": "Co-working", "rule": "Everyone runs their own personal Pomodoro on their own settings — you just share video/chat for company." }
     },
     "filters": {
       "title": "Find a study buddy",
       "subtitle": "Pick a room type and a few preferences — we'll match you with someone on the same rhythm.",
       "roomTypeLabel": "Room type",
-      "pickOne": "pick 1",
       "durationLabel": "Session length",
-      "presetsLabel": "Quick presets",
-      "focusMinutesLabel": "Focus minutes",
-      "breakMinutesLabel": "Break minutes",
-      "sessionCountLabel": "Number of sessions",
       "minutesValue": "{{count}} min",
-      "sessionsValue": "{{count}} sessions",
       "languageLabel": "Language",
       "randomMatch": "Random match",
       "createRoom": "Create a room",
@@ -188,7 +184,11 @@
       "joinByCodeLabel": "Or enter an existing room code",
       "joinCodePlaceholder": "e.g. G32TZU",
       "joining": "Joining…",
-      "join": "Join"
+      "join": "Join",
+      "filterRoomsLabel": "Filter the room list on the left",
+      "applyFilter": "Filter rooms by these criteria",
+      "clearFilter": "Clear filter",
+      "filterActiveSummary": "Filtering: {{roomType}} · ~{{minutes}} min · {{language}}"
     },
     "visibility": {
       "public": "Public",
@@ -227,7 +227,11 @@
       "loadListFailed": "Couldn't load the room list — try again later.",
       "host": "Host {{name}} · {{minutes}} min",
       "full": "Full",
-      "joinAction": "Join"
+      "joinAction": "Join",
+      "filteredNote": "filtered by criteria",
+      "noFilterMatch": "No rooms match this filter.",
+      "prevPage": "Previous page",
+      "nextPage": "Next page"
     },
     "backToStudy": "← Back to study screen",
     "create": {
@@ -461,8 +465,12 @@
       "focusing": "Focusing",
       "onBreak": "On a break",
       "sessionBoth": "Session {{round}} / {{total}} · running for both",
+      "sessionPersonal": "Session {{round}} / {{total}} · your own Pomodoro",
       "doneTitle": "All done ✓",
       "doneHint": "The room completed {{count}} sessions today 🎉",
+      "doneHintPersonal": "You've completed {{count}} sessions today 🎉",
+      "freeRunning": "Free-run",
+      "freeHint": "Counting up since the room opened, no pausing",
       "pause": "Pause",
       "resume": "Resume",
       "reset": "Reset",
@@ -487,13 +495,11 @@
       "playing": "playing · {{mood}}",
       "paused": "paused",
       "playlist": "Playlist",
-      "broadcastToRoom": "plays for the whole room",
       "onlyYouHear": "only you hear this",
-      "hostNote": "You're the host, so whatever you pick plays for everyone in sync — anyone who wants quiet can pull their own volume to 0.",
-      "memberNote": "The host is picking music for the room — you can only adjust your own volume.",
+      "personalNote": "Music is personal — picking a track, switching source, or muting doesn't affect anyone else in the room.",
       "defaultTag": "default",
-      "hostTag": "host's pick",
-      "empty": "No music in this room yet. Add tracks in Settings and mark them \"Default\", or let the host upload their own.",
+      "mineTag": "yours",
+      "empty": "You don't have any tracks yet. Add some in Settings and mark them \"Default\", or switch to the YouTube tab.",
       "sourceLibrary": "Library",
       "sourceYoutube": "YouTube",
       "youtubeNowPlaying": "YouTube audio",
@@ -502,7 +508,7 @@
       "youtubeUse": "Use this link",
       "youtubeInvalid": "That YouTube link doesn't look valid.",
       "youtubeCurrent": "Now playing: {{url}}",
-      "youtubeEmpty": "The host hasn't pasted a YouTube link yet."
+      "youtubeEmpty": "You haven't pasted a YouTube link yet."
     },
     "host": {
       "admitMode": "Admission mode",

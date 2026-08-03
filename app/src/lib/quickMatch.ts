@@ -175,5 +175,10 @@ export function useQuickMatch() {
     setStage('idle')
   }
 
-  return { stage, waited, matchError, roomCode, partner, start, cancel, reset }
+  function dismissMatch() {
+    setStage('idle')
+    setPartner(null)
+  }
+
+  return { stage, waited, matchError, roomCode, partner, start, cancel, reset, dismissMatch }
 }
