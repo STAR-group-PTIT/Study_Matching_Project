@@ -3,6 +3,8 @@
 Theo dõi tiến độ, quyết định kỹ thuật, và những gì đã/chưa làm. Đọc kèm [PLAN.md](PLAN.md) và [README.md](README.md).
 
 ## Trạng thái hiện tại
+**Giai đoạn 9 (phần 1) — "Match experience": ghép trận & video trải nghiệm code xong + CI/CD xong 2026-08-03, chờ user chạy migration 0010.** Làm trên branch `giai-doan-9-match-experience`. **Chưa test E2E thật** (browser tool không có trong phiên này + CLI Supabase hết access token nên chưa push migration). Xem mục "Giai đoạn 9" bên dưới.
+
 **Giai đoạn 8 (phần 8) — Sửa hàng loạt bug nhạc nền Dashboard + thư viện nhạc built-in + Settings thành overlay xong 2026-08-02, chờ user chạy migration 0009.** Đây là thay đổi mới nhất — đọc mục "Giai đoạn 8 (phần 8)" bên dưới trước khi làm tiếp bất cứ gì liên quan nhạc nền Dashboard hoặc Settings.
 
 **Giai đoạn 8 (phần 7) — Nhạc nền thật xong 2026-07-31, KHÔNG có gì phải chờ user chạy migration (đã tự `supabase db push` migration 0007+0008 luôn trong phiên này).** Xem mục "Giai đoạn 8 (phần 7)" bên dưới.
@@ -306,6 +308,37 @@ Nối tiếp phần 7 — user báo lại một loạt bug thật khi dùng nh�
   - **Bug mobile tự phát hiện & sửa lúc QA 375px:** email dài trong card hồ sơ (không có khoảng trắng nên trình duyệt không tự ngắt dòng được) tràn ra ngoài, bị `overflow-hidden` của overlay cắt mất — thêm `min-w-0` (cho phép flex item co lại) + `break-words` (cho phép ngắt dòng trong 1 từ dài) vào span email.
 - **Đã verify bằng tài khoản test thật (không chỉ code review):** đăng ký `focusflow.test.settingsoverlay...@mailinator.com` ngay trong phiên (Confirm email đã tắt từ trước) — chọn 1 track Thư viện cho phát → mở overlay Cài đặt → xác nhận qua `<audio>` element thật: nhạc **phát liên tục không ngắt** suốt lúc overlay mở lẫn sau khi đóng, `location.pathname` vẫn `/` không điều hướng đi đâu. Đóng bằng nút X và bằng click nền tối đều đúng. Quét lại 0 phần tử tràn viewport ở mobile 375px sau khi sửa bug email. `tsc -b`/`oxlint` sạch xuyên suốt cả phần này (chỉ còn 2 warning cũ có sẵn từ trước, không liên quan).
 - **Việc cần user làm:** chạy [0009_default_youtube_url.sql](app/supabase/migrations/0009_default_youtube_url.sql) trong Supabase SQL Editor (idempotent, an toàn chạy lại) — CLI đang login/link sẵn từ các phiên trước nhưng phiên này **chưa được hỏi có muốn tự `db push` không**, nên vẫn để nguyên đây chờ user tự chạy hoặc yêu cầu tự chạy hộ. Ngoài ra: tự thả thêm nhạc vào `app/src/assets/music/` trên các máy dev khác nếu muốn thấy thư viện built-in (thư mục không đồng bộ qua git, xem README trong đó).
+
+## Giai đoạn 9 — "Match experience": ghép trận & video trải nghiệm (2026-08-03)
+
+Nối tiếp GĐ4/5: làm trải nghiệm ghép cặp vui hơn theo yêu cầu user — card profile người vừa match (kiểu Tinder đơn giản hoá), rating cảm ơn bạn cùng học, nút "Ghép ngay" 1-chạm từ Dashboard, màn kiểm tra cam/mic trước khi vào phòng, màn chờ sống động. Làm trên branch `giai-doan-9-match-experience`.
+
+- **Quyết định đã hỏi & chốt với user:**
+  1. Mức "playful": style Tinder nhưng đơn giản hoá — khi match xong hiện **card profile người cùng học** kèm stats thật: phút học tuần này, level (4 bậc), lượt thích nhận được (từ hệ rating mới).
+  2. **Pre-join device check**: hiện màn kiểm tra camera/mic mỗi lần vào phòng thật, bấm "Vào phòng" xong mới kết nối LiveKit.
+  3. **"Ghép ngay" 1-chạm từ Dashboard**: dùng config ghép đã lưu (localStorage, lưu từ Matching/Create room) hoặc fallback theo Pomodoro defaults của profiles; `/matching` vẫn giữ nguyên cho ai muốn lọc kỹ.
+  4. **Rating hiện ở 2 thời điểm**: khi cả phòng xong đủ số phiên (`timer_done`) và khi "Rời phòng" nếu mình đã có ≥1 phiên focus thật trong phòng đó (bấm Rời → hỏi đánh giá → rời). 1 lượt/người/phòng (unique constraint).
+  5. User yêu cầu **có plan test riêng** — đã duyệt: static gates → migration REST → guest regression → E2E 2 tài khoản → mobile 375px → user tự test cam/mic thật → cập nhật CONTEXT.md.
+- **Migration mới — [0010_match_profiles_and_ratings.sql](app/supabase/migrations/0010_match_profiles_and_ratings.sql) — user cần tự chạy, chưa chạy (CLI hết access token, xem mục "Sự cố" cuối):**
+  - Bảng `session_ratings`: giver_id/rated_user_id/room_id + unique(giver_id, rated_user_id, room_id) + check `giver_id <> rated_user_id` (không tự thích mình) + index theo rated. RLS: chỉ insert được cho user đang là member của đúng phòng (bản thân + người được thích đều phải `status='member'` trong `room_members`), select được hàng mình cho hoặc mình nhận.
+  - RPC `public_profile_stats(p_user_id)` (security definer, chỉ `authenticated`): trả name/avatar_url/accent_hue + weekly_minutes (từ `date_trunc('week', now())`)/total_minutes/total_sessions/likes_received — cho card MatchFound không cần expose bảng profiles.
+  - View `matching_queue_stats`: đếm người đang chờ ghép theo (room_type, duration_minutes, language) qua `matching_queue` (`matched_room_code is null`), grant cả anon+authenticated — nuôi màn chờ "N người cũng đang chờ".
+- **Code mới:**
+  - [app/src/lib/quickMatch.ts](app/src/lib/quickMatch.ts): hook `useQuickMatch()` dùng chung Dashboard+Matching — gọi edge `match-room`, theo dõi hàng chờ qua Realtime (`matching_queue` UPDATE filter user_id), khi khớp tải partner qua `room_members_view` rồi RPC `public_profile_stats`. `saveMatchConfig/loadSavedMatchConfig` (key `ff-quickmatch-config`) cho nút Ghép ngay.
+  - [app/src/components/MatchFound.tsx](app/src/components/MatchFound.tsx): overlay trung tâm sau khi khớp — avatar (accent_hue), tên, stats tuần/level/lượt thích, 2 nút "Vào phòng cùng nhau" / "Thoát".
+  - [app/src/components/DeviceCheck.tsx](app/src/components/DeviceCheck.tsx): preview camera thật (gương) + thanh mức mic thật (Web Audio AnalyserNode), toggle cam/mic, bị từ chối quyền thì vẫn cho vào phòng.
+  - [app/src/components/SessionRating.tsx](app/src/components/SessionRating.tsx): tim ❤️ cho từng người cùng học trong buổi, insert `session_ratings`, prefill đã thích sẵn.
+  - [Dashboard.tsx](app/src/routes/Dashboard.tsx): nút "Học cùng nhau" (desktop right-column + mobile taskbar) giờ gọi quick match trực tiếp; overlay chờ (riêng cho Dashboard, không cần vào /matching); MatchFound overlay.
+  - [Matching.tsx](app/src/routes/Matching.tsx): bỏ logic queue cũ viết tay, dùng hook chung; màn chờ hiện "N người cũng đang chờ" (poll `matching_queue_stats` 5s/lần khi đang chờ).
+  - [Room.tsx](app/src/routes/Room.tsx): (a) LiveKit gate thêm `!deviceChecked` — chưa qua màn check thì chưa connect; (b) `leaveRoom` truy vấn `focus_sessions` (user+room, phase focus) — có ≥1 phiên thì mở SessionRating rồi mới rời (`doLeaveRoom` = xoá `room_members` + navigate `/`); (c) effect theo dõi `timer_done` 0→1 (chỉ member, không phải luồng đang rời) mở SessionRating.
+  - **Refactor để test được (kèm CI/CD, xem dưới):** tách `phaseTotalSeconds`/`computeLeftFromRoom`/`computeMusicPositionFromRoom` + type `RoomRow` sang [app/src/lib/timer.ts](app/src/lib/timer.ts), `levelFromTotalMinutes` sang [app/src/lib/levels.ts](app/src/lib/levels.ts) (quickMatch.ts re-export giữ nguyên import cũ) — vì [supabase.ts](app/src/lib/supabase.ts) throw lúc import nếu thiếu env nên không import trực tiếp được trong test.
+- **CI/CD (viết theo yêu cầu user "viết luồng CI/CD trước đi", giữa lúc GĐ9 chưa verify):**
+  - [.github/workflows/ci.yml](.github/workflows/ci.yml): PR → `main` + push `main`, path filter `app/**`; 1 job: `npm ci` (cache qua `app/package-lock.json`) → `npm run lint` → `npm test` → `npm run build`.
+  - [.github/dependabot.yml](.github/dependabot.yml): npm weekly, directory `/app` — thay cho gate `npm audit` (repo đang có 2 advisory react-router 7.18.2 ghi chú là không áp dụng, audit sẽ fail vĩnh viễn).
+  - **Vitest** (`vitest@^4.1.10` devDep, script `test`): 21 test ở [app/src/lib/__tests__/](app/src/lib/__tests__/) — `parseYoutubeUrl` (10 case), `levelFromTotalMinutes` (4), timer math (7, dùng `vi.useFakeTimers`). Preview deploy PR để Vercel integration lo (user đã chọn, chưa connect repo).
+  - **Đã verify local y hệt CI:** `npm ci` từ lock → lint (chỉ còn 2 warning exhaustive-deps cũ Dashboard.tsx:637) → 21/21 test pass → build xanh.
+- **Sự cố ghi nhận (chặn verify thật):** Supabase CLI trên máy **hết access token** (`supabase login` chưa lại, project ref đã link nhưng `db push` báo "Access token not provided") — nên migration 0010 **chưa chạy**, khác thường lệ GĐ7/GĐ8-p7 tự push. User cần: `supabase login` lại rồi `supabase db push` (hoặc dán SQL vào SQL Editor) + tự test E2E theo plan đã duyệt (browser tool không có trong phiên này).
+- **Việc còn lại:** chạy migration 0010 → verify REST (RLS chặn người ngoài phòng, unique 1 lượt, anon bị chặn RPC) → E2E 2 tài khoản (Ghép ngay, MatchFound, DeviceCheck fallback do sandbox chặn cam, rating 2 nhánh) → guest regression + mobile 375px → cập nhật CONTEXT.md mục này.
 
 ## Việc cần quyết định sau (chưa chốt)
 - Chọn provider Google OAuth cụ thể (credentials) — cần user cung cấp khi tới Giai đoạn 3.

@@ -96,6 +96,9 @@
       "studyTogether": "Study together",
       "findStudyBuddy": "Find a study buddy online"
     },
+    "quickMatch": {
+      "hint": "Looking for a study buddy for you…"
+    },
     "taskbar": {
       "wallpaperTitle": "Change wallpaper",
       "wallpaperLabel": "Wallpaper",
@@ -194,6 +197,7 @@
     "searching": {
       "seconds": "sec",
       "title": "Looking for a match…",
+      "othersWaiting": "{{count}} people waiting too",
       "cancel": "Cancel search",
       "editFilters": "Edit filters",
       "hints": {
@@ -389,6 +393,24 @@
       "action": "Log out"
     }
   },
+  "matchFound": {
+    "title": "Match found! 🎉",
+    "subtitle": "Matched with {{name}}",
+    "close": "Leave",
+    "enter": "Join room together",
+    "unknownName": "Anonymous study buddy",
+    "stats": {
+      "weekly": "{{count}} min this week",
+      "level": "Level {{level}}",
+      "likes": "{{count}} likes"
+    },
+    "levels": {
+      "l0": "Just started",
+      "l1": "Rookie",
+      "l2": "Learner",
+      "l3": "Master"
+    }
+  },
   "room": {
     "headerTag": "Study room",
     "demo": { "two": "2 people", "five": "5 people" },
@@ -500,6 +522,22 @@
       "kick": "Kick"
     },
     "camOffFeed": "camera is off",
-    "webcamOf": "webcam · {{name}}"
+    "webcamOf": "webcam · {{name}}",
+    "deviceCheck": {
+      "title": "Check camera & mic",
+      "subtitle": "Preview your video and audio before joining",
+      "cameraOff": "Camera is off",
+      "enter": "Join room",
+      "denied": "Browser denied camera/mic access — you can still join the room."
+    },
+    "rating": {
+      "title": "Session over",
+      "subtitle": "Tap the heart to thank your study buddy",
+      "noOne": "Nobody studied with you in this session.",
+      "like": "Thanks",
+      "liked": "Thanked",
+      "close": "Close",
+      "leave": "Leave room"
+    }
   }
 }

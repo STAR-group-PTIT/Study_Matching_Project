@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 import { playChime } from '../lib/sound'
 import { parseYoutubeUrl, loadYoutubeApi, DEFAULT_YOUTUBE_URL, type YTPlayer } from '../lib/youtube'
+import { loadSavedMatchConfig, useQuickMatch } from '../lib/quickMatch'
+import MatchFound from '../components/MatchFound'
 import Settings from './Settings'
 
 type WallpaperOption = { id: string; kind: 'gradient' | 'image'; value: string }
@@ -152,6 +154,26 @@ export default function Dashboard() {
   // Dashboard unmount mỗi lần vào Cài đặt (trước đó làm mất camera đang bật + nhạc đang
   // phát, vì cả 2 đều sống trong state của chính component này).
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Ghép ngẫu nhiên nhanh từ Dashboard — hook dùng chung với Matching (GĐ9):
+  // config từ localStorage (nhớ lần chọn cuối) hoặc defaults từ profiles.
+  const quick = useQuickMatch()
+  function quickStart() {
+    if (!user) {
+      navigate('/auth')
+      return
+    }
+    setPanel(null)
+    const saved = loadSavedMatchConfig()
+    void quick.start(
+      saved ?? {
+        room_type: 'chill',
+        focus_minutes: focusMin,
+        break_minutes: breakMin,
+        session_count: sessionCount,
+        language: i18n.resolvedLanguage === 'en' ? 'en' : 'vi',
+      },
+    )
+  }
   const initialTasks = useMemo<Task[]>(
     () =>
       MOCK_TASK_KEYS.map((key, i) => ({
@@ -1539,9 +1561,9 @@ export default function Dashboard() {
           </button>
         </div>
 
-        <Link
-          to="/matching"
-          className="flex items-center gap-3 rounded-[24px] px-[18px] py-[15px] text-inherit no-underline transition-[transform,background] duration-[220ms] hover:!bg-white hover:!-translate-y-0.5"
+        <button
+          onClick={quickStart}
+          className="flex w-full items-center gap-3 rounded-[24px] px-[18px] py-[15px] text-left text-inherit transition-[transform,background] duration-[220ms] hover:!bg-white hover:!-translate-y-0.5"
           style={{
             background: 'rgba(255,255,255,0.72)',
             backdropFilter: 'blur(16px)',
@@ -1575,7 +1597,7 @@ export default function Dashboard() {
               {t('dashboard.rightColumn.findStudyBuddy')}
             </span>
           </span>
-        </Link>
+        </button>
       </div>
 
       {/* mini player Thư viện — nổi ngay trên taskbar, giữa màn hình, để user theo dõi/điều
@@ -1785,10 +1807,11 @@ export default function Dashboard() {
             {openCount}
           </span>
         </button>
-        <Link
-          to="/matching"
+        <button
+          onClick={quickStart}
           title={t('dashboard.taskbar.studyTogetherTitle')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] no-underline transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:hidden"
+          aria-label={t('dashboard.taskbar.studyTogetherTitle')}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:hidden"
           style={{ background: 'rgba(255,255,255,0.35)' }}
         >
           <svg
@@ -1805,7 +1828,7 @@ export default function Dashboard() {
             <path d="M16.4 5.6a3.2 3.2 0 010 5.8" />
             <path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1" />
           </svg>
-        </Link>
+        </button>
       </div>
 
       {/* settings — standalone icon-only button, bottom-left corner. Khách chưa đăng nhập
@@ -1853,6 +1876,64 @@ export default function Dashboard() {
       </button>
 
       {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} />}
+
+      {/* quick match chờ người — overlay nhỏ gọn trên Dashboard, không rời trang (GĐ9) */}
+      {quick.stage === 'waiting' && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center p-6"
+          style={{ background: 'rgba(38,66,86,0.32)', backdropFilter: 'blur(7px)' }}
+        >
+          <div className="absolute inset-0" onClick={() => quick.cancel()} />
+          <div
+            className="relative flex w-full max-w-[340px] flex-col items-center gap-[18px] rounded-[30px] bg-white px-7 pt-8 pb-6 text-center"
+            style={{ boxShadow: '0 30px 70px rgba(38,66,86,0.3)', animation: 'ffPop 380ms cubic-bezier(0.22,1,0.36,1)' }}
+          >
+            <div className="relative flex h-[120px] w-[120px] items-center justify-center">
+              <div
+                className="absolute h-[120px] w-[120px] rounded-full"
+                style={{ border: '2px solid rgba(126,201,198,0.55)', animation: 'ffRipple 3.4s cubic-bezier(0.24,0.6,0.3,1) infinite' }}
+              />
+              <div
+                className="absolute h-[120px] w-[120px] rounded-full"
+                style={{ border: '2px solid rgba(150,190,220,0.5)', animation: 'ffRipple 3.4s cubic-bezier(0.24,0.6,0.3,1) infinite', animationDelay: '1.13s' }}
+              />
+              <div
+                className="absolute h-[76px] w-[76px] rounded-full"
+                style={{ background: 'rgba(255,255,255,0.72)', boxShadow: '0 10px 26px rgba(58,98,126,0.13)', animation: 'ffBreathe 3.4s ease-in-out infinite' }}
+              />
+              <span className="relative text-2xl font-extrabold text-[#2c3f55] tabular-nums">{quick.waited}</span>
+            </div>
+            <div className="flex flex-col gap-[6px]">
+              <span className="text-[17px] font-extrabold tracking-[-0.2px] text-[#2c3f55]">
+                {t('matching.searching.title')}
+              </span>
+              <span className="text-[13px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.55)]">
+                {quick.matchError
+                  ? t('matching.errors.' + quick.matchError)
+                  : t('dashboard.quickMatch.hint')}
+              </span>
+            </div>
+            <button
+              onClick={() => quick.cancel()}
+              className="rounded-[20px] border-none px-[26px] py-[12px] font-sans text-[14px] font-extrabold text-[#43596f] hover:!bg-[rgba(240,248,250,0.95)]"
+              style={{ background: 'rgba(240,248,250,0.9)' }}
+            >
+              {t('matching.searching.cancel')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* match thành công — card hồ sơ người cùng học (GĐ9) */}
+      {quick.stage === 'matched' && quick.roomCode && (
+        <MatchFound
+          partner={quick.partner}
+          roomCode={quick.roomCode}
+          roomLabel={t('matching.roomTypes.' + (loadSavedMatchConfig()?.room_type ?? 'chill') + '.name')}
+          onEnter={() => navigate('/room/' + quick.roomCode)}
+          onClose={() => quick.reset()}
+        />
+      )}
 
       {/* wallpaper popup */}
       <div
