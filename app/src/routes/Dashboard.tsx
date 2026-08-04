@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 import { playChime } from '../lib/sound'
 import { parseYoutubeUrl, loadYoutubeApi, DEFAULT_YOUTUBE_URL, type YTPlayer } from '../lib/youtube'
-import { loadSavedMatchConfig, useQuickMatch } from '../lib/quickMatch'
+import { loadSavedMatchConfig, othersWaiting, useQuickMatch } from '../lib/quickMatch'
 import MatchFound from '../components/MatchFound'
 import Settings from './Settings'
 
@@ -1928,7 +1928,7 @@ export default function Dashboard() {
               </span>
               {quick.stage === 'waiting' && !quick.matchError && quick.waitingCount !== null && (
                 <span className="text-[12px] font-bold text-[rgba(51,71,94,0.42)]">
-                  {t('matching.searching.othersWaiting', { count: quick.waitingCount })}
+                  {t('matching.searching.othersWaiting', { count: othersWaiting(quick.waitingCount) })}
                 </span>
               )}
             </div>

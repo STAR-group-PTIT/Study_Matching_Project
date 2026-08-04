@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
-import { useQuickMatch, saveMatchConfig } from '../lib/quickMatch'
+import { othersWaiting, useQuickMatch, saveMatchConfig } from '../lib/quickMatch'
 import MatchFound from '../components/MatchFound'
 
 type RoomTypeKey = 'chill' | 'hardcore' | 'silent' | 'discuss' | 'watch' | 'free' | 'together'
@@ -875,7 +875,7 @@ export default function Matching() {
                   </span>
                   {quick.stage === 'waiting' && !quick.matchError && quick.waitingCount !== null && (
                     <span className="text-[12px] font-bold text-[rgba(51,71,94,0.42)]">
-                      {t('matching.searching.othersWaiting', { count: quick.waitingCount })}
+                      {t('matching.searching.othersWaiting', { count: othersWaiting(quick.waitingCount) })}
                     </span>
                   )}
                 </div>

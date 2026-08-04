@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import { useAuthStore } from '../store/auth'
 import { levelFromTotalMinutes } from './levels'
+import { othersWaiting } from './queueStats'
 
 // ============================================================
 // Cấu hình ghép ngẫu nhiên — dùng chung cho cả nút "Ghép ngay"
@@ -62,6 +63,7 @@ export type PublicProfileStats = {
 export type QuickMatchStage = 'idle' | 'waiting' | 'matched'
 
 export { levelFromTotalMinutes }
+export { othersWaiting }
 
 // Hook ghép ngẫu nhiên dùng chung: gọi edge function match-room, theo dõi hàng chờ qua
 // Realtime, và tải stats của người cùng học khi khớp thành công — đúng logic đã proven
