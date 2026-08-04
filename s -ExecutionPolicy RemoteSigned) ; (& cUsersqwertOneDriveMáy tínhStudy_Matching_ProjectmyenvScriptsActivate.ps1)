@@ -1,0 +1,5 @@
+[33m70d7794[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Merge branch 'main' of https://github.com/STAR-group-PTIT/Study_Matching_Project
+[33mb0759fb[m SETUP.md and Project.md have been added to the staging area. You can now proceed to commit these changes with a descriptive commit message.
+[33mdee7f48[m Merge pull request #13 from STAR-group-PTIT/fix-queue-stats-ttl
+[33m55fcccd[m[33m ([m[1;31morigin/fix-queue-stats-ttl[m[33m)[m Giai đoạn 9 (phần 3): fix số 'N người đang chờ' sai — matching_queue_stats thêm TTL 15 phút (migration 0012, đã db push) + hàm thuần othersWaiting() trừ chính mình dùng ở Dashboard+Matching, 4 test vitest mới (23/23 pass)
+[33m3637408[m Merge pull request #12 from STAR-group-PTIT/dependabot/npm_and_yarn/app/types/react-dom-19.2.4
