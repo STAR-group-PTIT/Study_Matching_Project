@@ -9,6 +9,7 @@ import { BUILTIN_TRACKS, type LibraryTrack } from '../lib/musicLibrary'
 import { loadSavedMatchConfig, othersWaiting, useQuickMatch } from '../lib/quickMatch'
 import MatchFound from '../components/MatchFound'
 import Settings from './Settings'
+import Stats from './Stats'
 
 type WallpaperOption = { id: string; kind: 'gradient' | 'image'; value: string }
 
@@ -117,6 +118,7 @@ export default function Dashboard() {
   // Dashboard unmount mỗi lần vào Cài đặt (trước đó làm mất camera đang bật + nhạc đang
   // phát, vì cả 2 đều sống trong state của chính component này).
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [statsOpen, setStatsOpen] = useState(false)
   // Ghép ngẫu nhiên nhanh từ Dashboard — hook dùng chung với Matching (GĐ9):
   // config từ localStorage (nhớ lần chọn cuối) hoặc defaults từ profiles.
   const quick = useQuickMatch()
@@ -494,6 +496,7 @@ export default function Dashboard() {
           phase: prevPhase,
           minutes: completedMinutes,
           started_at: new Date(phaseStartRef.current).toISOString(),
+          completed: !!opts.natural,
         })
         .then(({ error }) => {
           if (error) console.error('log focus_session failed', error)
@@ -665,6 +668,7 @@ export default function Dashboard() {
             phase: 'focus',
             minutes: elapsedMinutes,
             started_at: new Date(phaseStartRef.current).toISOString(),
+            completed: false,
           })
           .then(({ error }) => {
             if (error) console.error('log focus_session failed', error)
@@ -708,6 +712,7 @@ export default function Dashboard() {
           phase: 'focus',
           minutes: elapsedMinutes,
           started_at: new Date(endlessStartRef.current).toISOString(),
+          completed: false,
         })
         .then(({ error }) => {
           if (error) console.error('log focus_session failed', error)
@@ -1567,6 +1572,20 @@ export default function Dashboard() {
         >
           {t('dashboard.rightColumn.browseRooms')}
         </Link>
+        <button
+          type="button"
+          onClick={() => {
+            if (!user) {
+              navigate('/auth')
+              return
+            }
+            setPanel(null)
+            setStatsOpen(true)
+          }}
+          className="mt-[2px] block w-full border-none bg-transparent text-center text-[12.5px] font-extrabold text-[oklch(0.58_0.075_220)] transition-colors duration-200 hover:text-[oklch(0.5_0.08_220)]"
+        >
+          {t('dashboard.rightColumn.stats')}
+        </button>
       </div>
 
       {/* mini player Thư viện — nổi ngay trên taskbar, giữa màn hình, để user theo dõi/điều
@@ -1806,6 +1825,22 @@ export default function Dashboard() {
         >
           {t('dashboard.taskbar.browseRooms')}
         </Link>
+        <button
+          type="button"
+          onClick={() => {
+            if (!user) {
+              navigate('/auth')
+              return
+            }
+            setPanel(null)
+            setStatsOpen(true)
+          }}
+          title={t('dashboard.taskbar.stats')}
+          className="flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-[12px] font-extrabold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:hidden"
+          style={{ background: 'rgba(255,255,255,0.35)' }}
+        >
+          {t('dashboard.taskbar.stats')}
+        </button>
       </div>
 
       {/* settings — standalone icon-only button, bottom-left corner. Khách chưa đăng nhập
@@ -1853,6 +1888,7 @@ export default function Dashboard() {
       </button>
 
       {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} />}
+      {statsOpen && <Stats onClose={() => setStatsOpen(false)} />}
 
       {/* quick match chờ người — overlay nhỏ gọn trên Dashboard, không rời trang (GĐ9) */}
       {quick.stage === 'waiting' && (

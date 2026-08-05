@@ -95,7 +95,8 @@
       "turnOnCamera": "Bật camera",
       "studyTogether": "Học cùng nhau",
       "findStudyBuddy": "Tìm bạn học online",
-      "browseRooms": "Duyệt phòng thủ công"
+      "browseRooms": "Duyệt phòng thủ công",
+      "stats": "Thống kê"
     },
     "quickMatch": {
       "hint": "Đang tìm bạn học cho bạn…"
@@ -109,6 +110,7 @@
       "todoLabel": "To-do",
       "studyTogetherTitle": "Học cùng nhau",
       "browseRooms": "Duyệt phòng",
+      "stats": "Thống kê",
       "settingsTitle": "Cài đặt",
       "settingsLabel": "Cài đặt"
     },
@@ -258,6 +260,7 @@
   },
   "stats": {
     "headerTag": "Thống kê cá nhân",
+    "close": "Đóng",
     "ranges": {
       "week": "Tuần này",
       "month": "Tháng này",
@@ -294,10 +297,6 @@
       "highest": " · cao nhất {{day}}"
     },
     "heatmap": {
-      "title": "Mật độ học 12 tuần",
-      "activeDays": "{{count}}/84 ngày có học",
-      "noStudy": "Không học",
-      "minutes": "{{count}} phút",
       "less": "ít",
       "more": "nhiều"
     },
@@ -309,7 +308,17 @@
       "today": "Hôm nay {{time}}",
       "yesterday": "Hôm qua {{time}}"
     },
-    "backToStudy": "← Về màn hình học"
+    "contributions": {
+      "title": "Biểu đồ tiến độ học tập",
+      "trailingLabel": "365 ngày qua",
+      "summaryTrailing": "{{count}} ngày có học trong 365 ngày qua",
+      "summaryYear": "{{count}} ngày có học trong năm {{year}}",
+      "tooltipStudied": "{{date}} · {{minutes}} phút · Pomodoro 25:5: {{p25}} · 50:10: {{p50}}",
+      "tooltipEmpty": "{{date}} · Không học",
+      "activeDaysLabel": "Ngày có học",
+      "pomo25Label": "Pomodoro 25:5 hoàn thành",
+      "pomo50Label": "Pomodoro 50:10 hoàn thành"
+    }
   },
   "settings": {
     "headerTag": "Cài đặt & hồ sơ",

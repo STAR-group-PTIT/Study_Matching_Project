@@ -93,6 +93,8 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Room: thẻ mã phòng, bỏ hiển thị số phiên ở Pomodoro chung, host rời phòng phải chọn đóng phòng hoặc chuyển quyền chủ — xong 2026-08-05, xem CONTEXT.md "Giai đoạn 9 (phần 6)" — **user cần chạy migration `0014_transfer_room_host.sql`**
 - [x] Fix bug nhạc Thư viện tự tắt khi chỉ xem (chưa chốt) tab YouTube, thêm điều khiển thật (trước/sau/tua) vào tab Nhạc > Thư viện — xong 2026-08-05, xem CONTEXT.md "Giai đoạn 9 (phần 7)"
 - [x] Fix bug phải bấm 2 lần nhạc Thư viện mới chạy khi mới vào phòng (autoplay bị trình duyệt chặn nhưng state không đồng bộ lại) — xong 2026-08-05, xem CONTEXT.md "Giai đoạn 9 (phần 8)"
+- [x] Tab "Tiến độ" kiểu GitHub contribution graph (thời gian học + Pomodoro 25:5/50:10 đã hoàn thành theo ngày/năm) + thêm entry point "Thống kê" ở Dashboard — xong 2026-08-05, xem CONTEXT.md "Giai đoạn 9 (phần 9)"
+- [x] Polish theo góp ý user: gộp "Tiến độ" vào "Tổng quan" thành 1 view, màu lưới đổi sang oklch bão hoà cao hơn, biến toàn bộ Stats từ route `/stats` thành popup mở từ Dashboard (đúng pattern Settings) — xong 2026-08-05, xem CONTEXT.md "Giai đoạn 9 (phần 10)"
 
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).
