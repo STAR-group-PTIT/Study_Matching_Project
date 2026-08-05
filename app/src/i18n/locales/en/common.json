@@ -95,7 +95,8 @@
       "turnOnCamera": "Turn on camera",
       "studyTogether": "Study together",
       "findStudyBuddy": "Find a study buddy online",
-      "browseRooms": "Browse rooms manually"
+      "browseRooms": "Browse rooms manually",
+      "stats": "Stats"
     },
     "quickMatch": {
       "hint": "Looking for a study buddy for you…"
@@ -109,6 +110,7 @@
       "todoLabel": "To-do",
       "studyTogetherTitle": "Study together",
       "browseRooms": "Browse rooms",
+      "stats": "Stats",
       "settingsTitle": "Settings",
       "settingsLabel": "Settings"
     },
@@ -258,6 +260,7 @@
   },
   "stats": {
     "headerTag": "Your stats",
+    "close": "Close",
     "ranges": {
       "week": "This week",
       "month": "This month",
@@ -294,10 +297,6 @@
       "highest": " · highest on {{day}}"
     },
     "heatmap": {
-      "title": "12-week study density",
-      "activeDays": "{{count}}/84 active days",
-      "noStudy": "No study",
-      "minutes": "{{count}} min",
       "less": "less",
       "more": "more"
     },
@@ -309,7 +308,17 @@
       "today": "Today {{time}}",
       "yesterday": "Yesterday {{time}}"
     },
-    "backToStudy": "← Back to study screen"
+    "contributions": {
+      "title": "Study progress graph",
+      "trailingLabel": "Last 365 days",
+      "summaryTrailing": "{{count}} active days in the last 365 days",
+      "summaryYear": "{{count}} active days in {{year}}",
+      "tooltipStudied": "{{date}} · {{minutes}} min · Pomodoro 25:5: {{p25}} · 50:10: {{p50}}",
+      "tooltipEmpty": "{{date}} · No study",
+      "activeDaysLabel": "Active days",
+      "pomo25Label": "25:5 Pomodoros completed",
+      "pomo50Label": "50:10 Pomodoros completed"
+    }
   },
   "settings": {
     "headerTag": "Settings & profile",

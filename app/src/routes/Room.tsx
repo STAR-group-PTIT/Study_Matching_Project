@@ -570,7 +570,7 @@ export default function Room() {
       const startedAt = new Date(Date.now() - completedMinutes * 60000).toISOString()
       supabase
         .from('focus_sessions')
-        .insert({ user_id: user.id, room_id: realRoom.id, phase: prevPhase, minutes: completedMinutes, started_at: startedAt })
+        .insert({ user_id: user.id, room_id: realRoom.id, phase: prevPhase, minutes: completedMinutes, started_at: startedAt, completed: true })
         .then(({ error }) => {
           if (error) console.error('log focus_session failed', error)
         })

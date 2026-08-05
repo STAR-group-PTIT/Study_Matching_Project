@@ -6,7 +6,6 @@ import Auth from './routes/Auth'
 import Dashboard from './routes/Dashboard'
 import Matching from './routes/Matching'
 import Room from './routes/Room'
-import Stats from './routes/Stats'
 import { supabase } from './lib/supabase'
 import { useAuthStore } from './store/auth'
 
@@ -42,7 +41,6 @@ export default function App() {
       <Route path="/room/:id" element={<Room />} />
       <Route element={<RequireAuth />}>
         <Route path="/matching" element={<Matching />} />
-        <Route path="/stats" element={<Stats />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
