@@ -1,4 +1,4 @@
-export type RoomTypeKey = 'chill' | 'hardcore' | 'silent' | 'discuss' | 'watch' | 'free' | 'together'
+import type { RoomTypeKey } from './roomTypeRules'
 
 export type RoomRow = {
   id: string

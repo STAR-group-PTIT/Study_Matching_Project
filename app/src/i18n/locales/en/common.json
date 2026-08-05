@@ -169,9 +169,7 @@
       "hardcore": { "name": "Hardcore", "rule": "Camera required, no music or mic." },
       "silent": { "name": "Silent", "rule": "No music, no camera, no mic — just a shared timer." },
       "discuss": { "name": "Discuss", "rule": "Camera and mic on to talk, no music." },
-      "watch": { "name": "Watch", "rule": "Camera required to keep each other accountable, no music or mic." },
-      "free": { "name": "Free-run", "rule": "No focus/break phases — a stopwatch counts up continuously from when the room was created, running non-stop until you leave." },
-      "together": { "name": "Co-working", "rule": "Everyone runs their own personal Pomodoro on their own settings — you just share video/chat for company." }
+      "watch": { "name": "Watch", "rule": "Camera required to keep each other accountable, no music or mic." }
     },
     "filters": {
       "title": "Find a study buddy",
@@ -467,12 +465,8 @@
       "focusing": "Focusing",
       "onBreak": "On a break",
       "sessionBoth": "Session {{round}} / {{total}} · running for both",
-      "sessionPersonal": "Session {{round}} / {{total}} · your own Pomodoro",
       "doneTitle": "All done ✓",
       "doneHint": "The room completed {{count}} sessions today 🎉",
-      "doneHintPersonal": "You've completed {{count}} sessions today 🎉",
-      "freeRunning": "Free-run",
-      "freeHint": "Counting up since the room opened, no pausing",
       "pause": "Pause",
       "resume": "Resume",
       "reset": "Reset",
@@ -486,7 +480,8 @@
       "chat": "Chat",
       "music": "Music",
       "manage": "Manage",
-      "leave": "Leave room"
+      "leave": "Leave room",
+      "locked": "Locked by this room type — can't toggle"
     },
     "panel": {
       "collapse": "Collapse",
@@ -510,7 +505,7 @@
       "youtubeUse": "Use this link",
       "youtubeInvalid": "That YouTube link doesn't look valid.",
       "youtubeCurrent": "Now playing: {{url}}",
-      "youtubeEmpty": "You haven't pasted a YouTube link yet."
+      "lockedNote": "This room type keeps music off to stay focused."
     },
     "host": {
       "admitMode": "Admission mode",
@@ -536,7 +531,9 @@
       "subtitle": "Preview your video and audio before joining",
       "cameraOff": "Camera is off",
       "enter": "Join room",
-      "denied": "Browser denied camera/mic access — you can still join the room."
+      "denied": "Browser denied camera/mic access — you can still join the room.",
+      "locked": "Locked by this room type — can't toggle",
+      "lockedNote": "This room type sets camera/mic for you — you can't toggle them here."
     },
     "rating": {
       "title": "Session over",

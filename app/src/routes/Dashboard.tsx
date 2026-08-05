@@ -4,16 +4,13 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 import { playChime } from '../lib/sound'
-import { parseYoutubeUrl, loadYoutubeApi, DEFAULT_YOUTUBE_URL, type YTPlayer } from '../lib/youtube'
+import { parseYoutubeUrl, loadYoutubeApi, DEFAULT_YOUTUBE_URL, MUSIC_YOUTUBE_KEY, loadStoredYoutubeUrlOverride, type YTPlayer } from '../lib/youtube'
+import { BUILTIN_TRACKS, type LibraryTrack } from '../lib/musicLibrary'
 import { loadSavedMatchConfig, othersWaiting, useQuickMatch } from '../lib/quickMatch'
 import MatchFound from '../components/MatchFound'
 import Settings from './Settings'
 
 type WallpaperOption = { id: string; kind: 'gradient' | 'image'; value: string }
-type DashTrack = { id: string; name: string; durationSeconds: number | null } & (
-  | { kind: 'builtin'; url: string }
-  | { kind: 'db'; path: string }
-)
 
 const BUILTIN_GRADIENTS: WallpaperOption[] = ['linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)'].map(
   (value, i) => ({ id: 'gradient-' + i, kind: 'gradient' as const, value }),
@@ -30,28 +27,6 @@ const BUILTIN_IMAGES: WallpaperOption[] = Object.entries(builtinWallpaperImages)
   .map(([path, url]) => ({ id: path, kind: 'image' as const, value: url }))
 
 const BUILTIN_WALLPAPERS: WallpaperOption[] = [...BUILTIN_GRADIENTS, ...BUILTIN_IMAGES]
-
-// Nhạc có sẵn cho mọi tài khoản (kể cả khách) — thả file .mp3/.wav/.ogg/.m4a vào
-// app/src/assets/music/ là tự động xuất hiện trong popup "Nhạc nền" > tab Thư viện,
-// không cần sửa code. Tên hiển thị = tên file, bỏ đuôi mở rộng và số thứ tự đặt trước
-// (vd "01-lofi-rain.mp3" -> "lofi-rain") — đặt số thứ tự để kiểm soát thứ tự hiển thị.
-const builtinMusicFiles = import.meta.glob<string>('/src/assets/music/*.{mp3,wav,ogg,m4a}', {
-  eager: true,
-  import: 'default',
-})
-const BUILTIN_TRACKS: DashTrack[] = Object.entries(builtinMusicFiles)
-  .sort(([a], [b]) => a.localeCompare(b))
-  .map(([path, url]) => ({
-    id: path,
-    kind: 'builtin' as const,
-    url,
-    name: path
-      .split('/')
-      .pop()!
-      .replace(/\.[^.]+$/, '')
-      .replace(/^\d+[-_.\s]*/, ''),
-    durationSeconds: null,
-  }))
 
 const WALLPAPER_STORAGE_KEY = 'ff-wallpaper-id'
 function loadStoredWallpaperId() {
@@ -87,24 +62,12 @@ function loadStoredCameraOn() {
   }
 }
 
-// Link YouTube: lưu localStorage giống cách chọn wallpaper ở trên — đây là chế độ solo
-// (không có "phòng" để lưu vào DB như Room), nên không cần tài khoản vẫn nhớ được link
-// giữa các lần mở app trên cùng máy. Nguồn nhạc (musicSource) NGƯỢC LẠI cố tình không
-// lưu localStorage — mỗi lần mở app luôn mặc định vào thẳng YouTube (auto-play link đã
-// lưu, hoặc DEFAULT_YOUTUBE_URL nếu chưa từng đổi); chọn Thư viện chỉ có tác dụng tạm
-// trong phiên đang mở, không "dính" sang lần mở app kế tiếp — theo đúng yêu cầu user.
+// Nguồn nhạc (musicSource) cố tình không lưu localStorage — mỗi lần mở app luôn mặc định
+// vào thẳng YouTube (auto-play link đã lưu, hoặc DEFAULT_YOUTUBE_URL nếu chưa từng đổi);
+// chọn Thư viện chỉ có tác dụng tạm trong phiên đang mở, không "dính" sang lần mở app kế
+// tiếp — theo đúng yêu cầu user. Link YouTube override (MUSIC_YOUTUBE_KEY) thì lưu, xem
+// lib/youtube.ts.
 type MusicSource = 'library' | 'youtube'
-const MUSIC_YOUTUBE_KEY = 'ff-music-youtube-url'
-// Trả về null nếu chưa từng lưu gì — phân biệt với "đã lưu nhưng rỗng" để logic 3 tầng
-// (override máy này > mặc định riêng của tài khoản, đặt ở Settings > DEFAULT_YOUTUBE_URL)
-// bên dưới không bị ghi đè nhầm bởi giá trị fallback.
-function loadStoredYoutubeUrlOverride(): string | null {
-  try {
-    return localStorage.getItem(MUSIC_YOUTUBE_KEY)
-  } catch {
-    return null
-  }
-}
 
 const FOCUS_MINUTES = 25
 const BREAK_MINUTES = 5
@@ -224,7 +187,7 @@ export default function Dashboard() {
   // Thư viện = nhạc built-in (mọi tài khoản, kể cả khách) ∪ nhạc thật từ Supabase khi đã
   // đăng nhập (RLS "tracks: select own or shared" — xem 0007_default_tracks.sql — tự trả
   // về đúng nhạc của mình + mọi track is_default=true của người khác, không cần lọc tay).
-  const [tracks, setTracks] = useState<DashTrack[]>(BUILTIN_TRACKS)
+  const [tracks, setTracks] = useState<LibraryTrack[]>(BUILTIN_TRACKS)
   useEffect(() => {
     if (!user) {
       setTracks(BUILTIN_TRACKS)
@@ -237,7 +200,7 @@ export default function Dashboard() {
       .order('created_at')
       .then(({ data }) => {
         if (cancelled) return
-        const dbTracks: DashTrack[] = (data ?? []).map((r) => ({
+        const dbTracks: LibraryTrack[] = (data ?? []).map((r) => ({
           id: r.id,
           kind: 'db' as const,
           name: r.name,

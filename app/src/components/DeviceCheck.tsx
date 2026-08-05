@@ -9,12 +9,16 @@ import { useTranslation } from 'react-i18next'
 export default function DeviceCheck({
   cameraOn,
   micOn,
+  camLocked,
+  micLocked,
   onToggleCam,
   onToggleMic,
   onDone,
 }: {
   cameraOn: boolean
   micOn: boolean
+  camLocked?: boolean
+  micLocked?: boolean
   onToggleCam: () => void
   onToggleMic: () => void
   onDone: () => void
@@ -157,11 +161,14 @@ export default function DeviceCheck({
           </span>
         )}
 
-        {/* toggle cam/mic — cùng state với control bar trong phòng */}
+        {/* toggle cam/mic — cùng state với control bar trong phòng. Khoá (disabled) khi loại
+            phòng bắt buộc bật/tắt, không cho user tự đổi ngược lại luật. */}
         <div className="flex gap-[10px]">
           <button
             onClick={onToggleCam}
-            className="flex items-center gap-[8px] rounded-[19px] border-none px-5 py-[11px] font-sans text-[13.5px] font-extrabold transition-colors duration-[220ms]"
+            disabled={camLocked}
+            title={camLocked ? t('room.deviceCheck.locked') : undefined}
+            className="flex items-center gap-[8px] rounded-[19px] border-none px-5 py-[11px] font-sans text-[13.5px] font-extrabold transition-colors duration-[220ms] disabled:cursor-not-allowed disabled:opacity-70"
             style={
               cameraOn
                 ? { background: 'rgba(140,205,196,0.4)', color: '#2c5b53' }
@@ -177,7 +184,9 @@ export default function DeviceCheck({
           </button>
           <button
             onClick={onToggleMic}
-            className="flex items-center gap-[8px] rounded-[19px] border-none px-5 py-[11px] font-sans text-[13.5px] font-extrabold transition-colors duration-[220ms]"
+            disabled={micLocked}
+            title={micLocked ? t('room.deviceCheck.locked') : undefined}
+            className="flex items-center gap-[8px] rounded-[19px] border-none px-5 py-[11px] font-sans text-[13.5px] font-extrabold transition-colors duration-[220ms] disabled:cursor-not-allowed disabled:opacity-70"
             style={
               micOn
                 ? { background: 'rgba(140,205,196,0.4)', color: '#2c5b53' }
@@ -193,6 +202,9 @@ export default function DeviceCheck({
             {micOn ? t('room.controls.mic') : t('room.controls.micOff')}
           </button>
         </div>
+        {(camLocked || micLocked) && (
+          <span className="text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">{t('room.deviceCheck.lockedNote')}</span>
+        )}
 
         <button
           onClick={onDone}
