@@ -84,5 +84,15 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] (thêm ngoài kế hoạch) Bỏ free-drag slider thời lượng (chỉ 2 preset), thêm loại phòng "Tự do" (đồng hồ đếm tăng) và "Đồng hành" (Pomodoro cá nhân riêng từng người) — xong 2026-08-03 (**2 loại này bị bỏ lại ở Giai đoạn 9 phần 4, quay về đúng 5 loại gốc**, xem CONTEXT.md "Giai đoạn 8 (phần 10)")
 - [x] (thêm ngoài kế hoạch) Popup chọn loại phòng thay hàng chip (7 loại giờ gọn thành 1 nút + popup) — xong 2026-08-03, xem CONTEXT.md "Giai đoạn 8 (phần 11)"
 
+## Giai đoạn 9 — "Match experience" & polish sau đó (ngoài kế hoạch gốc, bắt đầu 2026-08-03)
+- [x] Match experience: card profile sau khi ghép (MatchFound), rating cảm ơn bạn cùng học, nút "Ghép ngay" 1-chạm, màn kiểm tra cam/mic (DeviceCheck), CI/CD + test tự động — xong 2026-08-03, xem CONTEXT.md "Giai đoạn 9"
+- [x] Fix ghost queue (TTL 15 phút), dọn dữ liệu test, responsive 3 overlay mới, trả lại lối vào Matching thủ công — xong 2026-08-03, xem CONTEXT.md "Giai đoạn 9 (phần 2)"
+- [x] Fix số "N người đang chờ" sai (đếm cả row hết hạn + đếm cả chính mình) — xong 2026-08-04, xem CONTEXT.md "Giai đoạn 9 (phần 3)"
+- [x] Bỏ loại phòng "Tự do"/"Đồng hành" (theo góp ý giảng viên, quay về đúng 5 loại gốc), enforce thật luật cam/mic/nhạc theo từng loại phòng (trước chỉ là text mô tả) — xong 2026-08-04, xem CONTEXT.md "Giai đoạn 9 (phần 4)"
+- [x] Nhạc trong Room lên ngang bằng Dashboard (thư viện built-in dùng chung `musicLibrary.ts`, YouTube 3 tầng ưu tiên) — xong 2026-08-04, xem CONTEXT.md "Giai đoạn 9 (phần 5)"
+- [x] Room: thẻ mã phòng, bỏ hiển thị số phiên ở Pomodoro chung, host rời phòng phải chọn đóng phòng hoặc chuyển quyền chủ — xong 2026-08-05, xem CONTEXT.md "Giai đoạn 9 (phần 6)" — **user cần chạy migration `0014_transfer_room_host.sql`**
+- [x] Fix bug nhạc Thư viện tự tắt khi chỉ xem (chưa chốt) tab YouTube, thêm điều khiển thật (trước/sau/tua) vào tab Nhạc > Thư viện — xong 2026-08-05, xem CONTEXT.md "Giai đoạn 9 (phần 7)"
+- [x] Fix bug phải bấm 2 lần nhạc Thư viện mới chạy khi mới vào phòng (autoplay bị trình duyệt chặn nhưng state không đồng bộ lại) — xong 2026-08-05, xem CONTEXT.md "Giai đoạn 9 (phần 8)"
+
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).

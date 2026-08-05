@@ -417,6 +417,10 @@
   },
   "room": {
     "headerTag": "Phòng học chung",
+    "roomCode": {
+      "label": "Mã phòng",
+      "copy": "Sao chép mã phòng"
+    },
     "demo": { "two": "2 người", "five": "5 người" },
     "sync": {
       "withCount": "Đồng bộ với {{count}} người",
@@ -464,7 +468,7 @@
     "pomodoro": {
       "focusing": "Đang tập trung",
       "onBreak": "Nghỉ ngắn",
-      "sessionBoth": "Phiên {{round}} / {{total}} · cả hai cùng chạy",
+      "syncedNote": "cả phòng cùng chạy",
       "doneTitle": "Đã hoàn thành ✓",
       "doneHint": "Cả phòng đã học đủ {{count}} phiên hôm nay 🎉",
       "pause": "Tạm dừng",
@@ -491,6 +495,11 @@
     "music": {
       "playing": "đang phát · {{mood}}",
       "paused": "đã tạm dừng",
+      "play": "Phát nhạc",
+      "pause": "Tạm dừng nhạc",
+      "prevTrack": "Bài trước",
+      "nextTrack": "Bài tiếp theo",
+      "volume": "Âm lượng",
       "playlist": "Danh sách phát",
       "onlyYouHear": "chỉ mình bạn nghe",
       "personalNote": "Nhạc là riêng của bạn — chọn bài, đổi nguồn hay bật/tắt không ảnh hưởng gì tới người khác trong phòng.",
@@ -505,6 +514,7 @@
       "youtubeUse": "Dùng link này",
       "youtubeInvalid": "Link YouTube không hợp lệ.",
       "youtubeCurrent": "Đang phát: {{url}}",
+      "youtubeSaved": "Đã lưu: {{url}}",
       "lockedNote": "Loại phòng này tắt nhạc để giữ tập trung."
     },
     "host": {
@@ -543,6 +553,20 @@
       "liked": "Đã cảm ơn",
       "close": "Đóng",
       "leave": "Rời phòng"
+    },
+    "hostLeave": {
+      "title": "Bạn là chủ phòng",
+      "desc": "Trước khi rời, chọn cách xử lý phòng này:",
+      "closeTitle": "Đóng phòng",
+      "closeDesc": "Tất cả mọi người sẽ bị đưa ra khỏi phòng, phòng biến mất.",
+      "transferTitle": "Chuyển quyền chủ phòng",
+      "transferDesc": "Chọn 1 người trong phòng để thay bạn làm chủ — phòng vẫn tiếp tục.",
+      "transferNoOne": "Chưa có ai khác trong phòng để chuyển quyền.",
+      "transferFailed": "Chuyển quyền không thành công (có thể người đó vừa rời phòng). Thử lại hoặc chọn đóng phòng.",
+      "pickTitle": "Chọn người thay thế",
+      "pickDesc": "Người được chọn sẽ thành chủ phòng ngay khi bạn rời.",
+      "back": "Quay lại",
+      "cancel": "Huỷ"
     }
   }
 }
