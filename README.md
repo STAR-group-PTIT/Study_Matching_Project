@@ -1,5 +1,14 @@
 # Handoff: FocusFlow — nền tảng học tập Pomodoro + phòng học chung
 
+# Group: STARS - KADA PROGRAM PTITHCM
+
+## Team members: 
++ Nguyễn Thanh Tâm - BA
++ Phạm Thanh Nhựt Trọng - Tester
++ Nguyễn Võ Phi Long - Leader
++ Nguyễn Ngọc Hoàng - FE
++ Nguyễn Thanh Cường - BE
+
 ## Overview
 FocusFlow là web app học tập theo phương pháp Pomodoro, kết hợp học nhóm qua video. Người dùng đặt đồng hồ tập trung, quản lý to-do, ghép cặp/tạo phòng học online với người khác, xem thống kê tiến độ và tuỳ chỉnh hồ sơ (wallpaper, nhạc nền, thời lượng Pomodoro).
 
