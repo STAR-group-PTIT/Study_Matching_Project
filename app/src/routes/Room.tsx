@@ -11,6 +11,7 @@ import { phaseTotalSeconds, computeLeftFromRoom, type RoomRow } from '../lib/tim
 import { ROOM_TYPE_RULES } from '../lib/roomTypeRules'
 import DeviceCheck from '../components/DeviceCheck'
 import SessionRating from '../components/SessionRating'
+import HostLeaveModal from '../components/HostLeaveModal'
 
 type StatusKey = 'host' | 'focusing' | 'micOff' | 'camOff' | 'justJoined'
 type Member = { id: string; name: string; statusKey: StatusKey; host: boolean; me?: boolean }
@@ -46,6 +47,15 @@ function fmtTrackLength(sec: number | null) {
   const m = Math.floor(sec / 60)
   const s = Math.round(sec % 60)
   return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0')
+}
+
+// vị trí/độ dài hiện tại của bài đang phát (thanh tua trong tab Nhạc > Thư viện) — khác
+// fmtTrackLength ở trên (dùng cho độ dài tĩnh trong danh sách playlist), không pad số phút.
+function fmtTrackTime(totalSec: number) {
+  const sec = Number.isFinite(totalSec) && totalSec > 0 ? totalSec : 0
+  const m = Math.floor(sec / 60)
+  const s = Math.floor(sec % 60)
+  return m + ':' + String(s).padStart(2, '0')
 }
 
 
@@ -162,6 +172,20 @@ export default function Room() {
   const [chatOpen, setChatOpen] = useState(true)
   const [tab, setTab] = useState<Tab>('chat')
 
+  // Mã phòng — trước đây không hiện ở đâu trong Room dù đã dùng để nối LiveKit/query
+  // (chỉ có lúc tạo/join phòng ở Matching.tsx), user báo không có chỗ xem lại mã để mời
+  // thêm bạn. Hiện dạng thẻ nhỏ ở top bar kèm nút sao chép.
+  const [codeCopied, setCodeCopied] = useState(false)
+  const codeCopyTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(codeCopyTimer.current), [])
+  function copyRoomCode() {
+    if (!code) return
+    if (navigator.clipboard) navigator.clipboard.writeText(code.toUpperCase()).catch(() => {})
+    setCodeCopied(true)
+    clearTimeout(codeCopyTimer.current)
+    codeCopyTimer.current = setTimeout(() => setCodeCopied(false), 1800)
+  }
+
   // GĐ9: màn "Kiểm tra trước khi vào phòng" hiện mỗi lần vào phòng thật — xong mới
   // connect LiveKit (effect kết nối bên dưới gate bằng deviceChecked).
   const [deviceChecked, setDeviceChecked] = useState(false)
@@ -205,6 +229,12 @@ export default function Room() {
   // định vào thẳng YouTube (link đã lưu trên máy này, hoặc mặc định riêng đặt ở Settings,
   // hoặc DEFAULT_YOUTUBE_URL gốc của app), Thư viện là lựa chọn tạm trong phiên đang mở.
   const [musicSource, setMusicSource] = useState<'library' | 'youtube'>('youtube')
+  // Tab đang XEM trong panel Nhạc — tách khỏi musicSource (nguồn đang thực sự phát), đúng
+  // pattern đã sửa ở Dashboard (Giai đoạn 8 phần 8 "Bug 1"): trước đây bấm tab chỉ để xem
+  // (chưa chốt) lại đổi thẳng musicSource, khiến nhạc đang phát bị ngắt ngay khi chỉ liếc
+  // qua tab kia. Giờ musicSource chỉ đổi khi user "chốt" (chọn 1 bài, hoặc bấm "Dùng link
+  // này"/"Phát" ở YouTube).
+  const [activeTab, setActiveTab] = useState<'library' | 'youtube'>('youtube')
   // Cùng 1 key localStorage với Dashboard (lib/youtube.ts) — link YouTube là lựa chọn cá
   // nhân theo máy, không theo màn hình đang mở, nên đổi ở đâu cũng thấy ở chỗ kia.
   const [youtubeUrlOverride, setYoutubeUrlOverride] = useState(loadStoredYoutubeUrlOverride)
@@ -328,18 +358,51 @@ export default function Room() {
   }, [isRealMode, libraryTracks, trackIndex])
 
   const musicAudioRef = useRef<HTMLAudioElement>(null)
+  // Vị trí/độ dài bài đang phát thật — dùng cho thanh tua trong tab Nhạc > Thư viện.
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0)
+  const [audioDuration, setAudioDuration] = useState(0)
   useEffect(() => {
     const el = musicAudioRef.current
     if (el) el.volume = volume / 100
   }, [volume])
   useEffect(() => {
     const el = musicAudioRef.current
+    if (!el) return
+    const onTime = () => setAudioCurrentTime(el.currentTime)
+    const onMeta = () => setAudioDuration(Number.isFinite(el.duration) ? el.duration : 0)
+    el.addEventListener('timeupdate', onTime)
+    el.addEventListener('loadedmetadata', onMeta)
+    el.addEventListener('durationchange', onMeta)
+    return () => {
+      el.removeEventListener('timeupdate', onTime)
+      el.removeEventListener('loadedmetadata', onMeta)
+      el.removeEventListener('durationchange', onMeta)
+    }
+  }, [])
+  function playRelativeTrack(delta: number) {
+    if (tracks.length === 0 || musicLocked) return
+    setTrackIndex((i) => (i + delta + tracks.length) % tracks.length)
+    setMusicOn(true)
+    setMusicSource('library')
+  }
+  function seekTrackTo(seconds: number) {
+    const el = musicAudioRef.current
+    if (el) el.currentTime = seconds
+    setAudioCurrentTime(seconds)
+  }
+  useEffect(() => {
+    const el = musicAudioRef.current
     if (!el || !isRealMode || musicSource !== 'library' || !audioSrc) return
     if (el.src !== audioSrc) el.src = audioSrc
     if (musicOn) {
       el.play().catch(() => {
-        // Trình duyệt chặn autoplay khi chưa từng tương tác với trang — sẽ tự phát lại
-        // lần tới el.play() chạy sau 1 cú click bất kỳ.
+        // Trình duyệt chặn autoplay khi chưa từng tương tác với trang (xảy ra ngay lúc mới
+        // vào phòng vì `musicOn` mặc định `true` — nhạc thử tự phát trước khi user bấm gì).
+        // Trước đây bỏ qua lỗi này, khiến UI vẫn hiện "đang phát" dù thực ra đang im lặng —
+        // bấm nút Tạm dừng (tưởng đang phát) chỉ khiến nó pause cái đã pause sẵn, phải bấm
+        // thêm lần 2 (lần bấm có tương tác thật) mới thực sự nghe được. Đồng bộ lại state
+        // về đúng thực tế (chưa phát) để lần bấm ĐẦU TIÊN đã là tương tác thật, phát ngay.
+        setMusicOn(false)
       })
     } else {
       el.pause()
@@ -417,11 +480,13 @@ export default function Room() {
     setMusicOn(true)
     setYtInput('')
   }
+  // Chỉ đổi tab đang XEM — không đụng musicSource (nguồn đang phát), xem ghi chú ở khai
+  // báo activeTab phía trên.
   function switchToLibrary() {
-    setMusicSource('library')
+    setActiveTab('library')
   }
   function switchToYoutube() {
-    setMusicSource('youtube')
+    setActiveTab('youtube')
   }
 
   const [admit, setAdmit] = useState<Admit>('manual')
@@ -591,6 +656,39 @@ export default function Room() {
     setAdmit(next)
     if (realRoom) await supabase.from('rooms').update({ admit_mode: next }).eq('id', realRoom.id)
   }
+  // Host rời phòng phải chọn đóng phòng hẳn hoặc chuyển quyền cho người khác trước —
+  // trước đây host rời chỉ âm thầm xoá hàng room_members của chính mình, để lại
+  // `rooms.host_id` trỏ tới người đã đi mất, phòng "mồ côi" không ai điều khiển được nữa.
+  // `exitActionRef` nhớ hành động đã chọn (mặc định 'leave' cho member thường) để
+  // `doLeaveRoom` thực hiện đúng việc SAU KHI (nếu có) đã hỏi đánh giá xong.
+  type ExitAction = { kind: 'leave' } | { kind: 'close' } | { kind: 'transfer'; newHostId: string }
+  const exitActionRef = useRef<ExitAction>({ kind: 'leave' })
+  const [hostLeaveModalOpen, setHostLeaveModalOpen] = useState(false)
+  const [transferError, setTransferError] = useState(false)
+  const otherMembers = members.filter((m) => !m.me)
+
+  function handleLeaveClick() {
+    if (isRealMode && isHost && otherMembers.length > 0) {
+      setTransferError(false)
+      setHostLeaveModalOpen(true)
+      return
+    }
+    // Host một mình trong phòng (không còn ai để chuyển quyền) — rời cũng đóng luôn
+    // phòng, tránh để lại 1 hàng `rooms` mồ côi không ai vào được nữa.
+    exitActionRef.current = isRealMode && isHost ? { kind: 'close' } : { kind: 'leave' }
+    void leaveRoom()
+  }
+  function chooseCloseRoom() {
+    exitActionRef.current = { kind: 'close' }
+    setHostLeaveModalOpen(false)
+    void leaveRoom()
+  }
+  function chooseTransfer(newHostId: string) {
+    exitActionRef.current = { kind: 'transfer', newHostId }
+    setHostLeaveModalOpen(false)
+    void leaveRoom()
+  }
+
   // GĐ9: bấm "Rời phòng" — nếu mình đã học thật ≥1 phiên focus trong phòng này thì
   // hỏi đánh giá bạn cùng học trước, rồi mới rời; chưa học gì thì rời thẳng.
   const pendingLeaveRef = useRef(false)
@@ -614,7 +712,32 @@ export default function Room() {
   }
   async function doLeaveRoom() {
     if (isRealMode && user && realRoom) {
-      await supabase.from('room_members').delete().eq('room_id', realRoom.id).eq('user_id', user.id)
+      const action = exitActionRef.current
+      if (action.kind === 'close') {
+        // Không xoá hẳn hàng `rooms` — `session_ratings`/`matching_queue` tham chiếu nó
+        // `on delete cascade`, xoá cứng sẽ mất luôn rating vừa cho ở màn hình trước đó.
+        // Đóng bằng cách đánh dấu `closed_at` + kick hết `room_members` (RLS/view trong
+        // migration 0014 tự ẩn khỏi room_public_list và chặn join mới).
+        await supabase.from('rooms').update({ closed_at: new Date().toISOString() }).eq('id', realRoom.id)
+        await supabase.from('room_members').delete().eq('room_id', realRoom.id)
+      } else if (action.kind === 'transfer') {
+        const { error } = await supabase.rpc('transfer_room_host', {
+          target_room_id: realRoom.id,
+          new_host_id: action.newHostId,
+        })
+        if (error) {
+          // Đừng để host rời trong khi phòng vẫn "mồ côi" — đúng thứ lỗi tính năng này
+          // được làm ra để tránh. Mở lại modal để họ thử lại hoặc chọn đóng phòng thay.
+          console.error('transfer_room_host failed', error)
+          exitActionRef.current = { kind: 'leave' }
+          setTransferError(true)
+          setHostLeaveModalOpen(true)
+          return
+        }
+      } else {
+        await supabase.from('room_members').delete().eq('room_id', realRoom.id).eq('user_id', user.id)
+      }
+      exitActionRef.current = { kind: 'leave' }
     }
     navigate('/')
   }
@@ -899,6 +1022,9 @@ export default function Room() {
       : t('room.sync.withName', { name: members.find((u) => !u.me)?.name || t('room.sync.fallbackRoom') })
 
   function openTab(next: Tab) {
+    // Mỗi lần mở lại tab "Nhạc", hiện đúng tab (Thư viện/YouTube) theo nguồn đang thực sự
+    // phát — không giữ tab đã xem dở lần trước, tránh nhầm "đang xem" với "đang phát".
+    if (next === 'music') setActiveTab(musicSource)
     setChatOpen((open) => !(open && tab === next))
     setTab(next)
   }
@@ -1122,6 +1248,36 @@ export default function Room() {
             · {t('room.headerTag')}
           </span>
         </div>
+        {/* thẻ mã phòng — trước đây mã phòng không hiện ở đâu trong Room, chỉ thấy lúc
+            tạo/join ở Matching, user phải tự nhớ để mời thêm bạn. */}
+        {code && (
+          <div
+            className="flex items-center gap-2 rounded-[22px] py-[9px] pr-[9px] pl-[16px]"
+            style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)' }}
+          >
+            <span className="text-[11px] font-extrabold tracking-[0.6px] text-[rgba(51,71,94,0.5)] uppercase">
+              {t('room.roomCode.label')}
+            </span>
+            <span className="text-[14.5px] font-extrabold tracking-[2px] text-[#2c3f55]">{code.toUpperCase()}</span>
+            <button
+              onClick={copyRoomCode}
+              title={t('room.roomCode.copy')}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
+              style={{ background: 'rgba(255,255,255,0.6)' }}
+            >
+              {codeCopied ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12.5l4.5 4.5L19 7.5" />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="8.5" y="8.5" width="11" height="11" rx="2.5" />
+                  <path d="M5.5 15.5h-1a2 2 0 01-2-2v-8a2 2 0 012-2h8a2 2 0 012 2v1" />
+                </svg>
+              )}
+            </button>
+          </div>
+        )}
         <div className="flex items-center gap-[10px]">
           {!isRealMode && (
             <div
@@ -1266,7 +1422,7 @@ export default function Room() {
               <span className="text-[13.5px] font-bold text-[#2c3f55]">
                 {done
                   ? t('room.pomodoro.doneHint', { count: sessionCount })
-                  : t('room.pomodoro.sessionBoth', { round, total: sessionCount })}
+                  : t('room.pomodoro.syncedNote')}
               </span>
             </div>
             <div className="flex gap-[7px]">
@@ -1398,7 +1554,7 @@ export default function Room() {
         )}
         <div className="mx-1 h-[26px] w-px shrink-0" style={{ background: 'rgba(51,71,94,0.13)' }} />
         <button
-          onClick={leaveRoom}
+          onClick={handleLeaveClick}
           title={t('room.controls.leave')}
           className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-extrabold text-[#7a3f2c] transition-all duration-[220ms] hover:brightness-95 md:px-[22px]"
           style={{ background: 'oklch(0.86 0.055 45)' }}
@@ -1560,43 +1716,26 @@ export default function Room() {
               </span>
             )}
 
-            <div className="flex items-center gap-[11px]">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(51,71,94,0.45)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 9.5h3.5L13 5.5v13L8.5 14.5H5z" />
-                <path d={volume === 0 ? 'M16.5 9.5l4 5m0-5l-4 5' : 'M16.5 9a4 4 0 010 6'} />
-              </svg>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={volume}
-                onChange={(e) => setVolume(Number(e.target.value))}
-                className="ff-range min-w-0 flex-1"
-              />
-              <span className="w-[34px] text-right text-[12.5px] font-extrabold text-[rgba(51,71,94,0.55)]">{volume}%</span>
-            </div>
-
             {isRealMode && (
               <div className="flex gap-[7px] rounded-[20px] p-[5px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
                 <button
                   onClick={switchToLibrary}
                   className="flex-1 rounded-2xl border-none px-[6px] py-[9px] font-sans text-[12.5px] font-extrabold transition-all duration-[220ms] disabled:cursor-default"
-                  style={{ background: !ytActive ? 'white' : 'transparent', color: !ytActive ? '#22483f' : 'rgba(51,71,94,0.55)' }}
+                  style={{ background: activeTab === 'library' ? 'white' : 'transparent', color: activeTab === 'library' ? '#22483f' : 'rgba(51,71,94,0.55)' }}
                 >
                   {t('room.music.sourceLibrary')}
                 </button>
                 <button
                   onClick={switchToYoutube}
                   className="flex-1 rounded-2xl border-none px-[6px] py-[9px] font-sans text-[12.5px] font-extrabold transition-all duration-[220ms] disabled:cursor-default"
-                  style={{ background: ytActive ? 'white' : 'transparent', color: ytActive ? '#22483f' : 'rgba(51,71,94,0.55)' }}
+                  style={{ background: activeTab === 'youtube' ? 'white' : 'transparent', color: activeTab === 'youtube' ? '#22483f' : 'rgba(51,71,94,0.55)' }}
                 >
                   {t('room.music.sourceYoutube')}
                 </button>
               </div>
             )}
 
-            {ytActive && (
+            {isRealMode && activeTab === 'youtube' && (
               <div className="flex flex-col gap-2">
                 <div className="flex flex-col gap-[7px]">
                   <div className="flex gap-[7px]">
@@ -1623,14 +1762,96 @@ export default function Room() {
                     <span className="text-[12px] font-semibold text-[#a13f2c]">{t('room.music.youtubeInvalid')}</span>
                   )}
                 </div>
-                <span className="truncate text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">
-                  {t('room.music.youtubeCurrent', { url: youtubeUrl })}
-                </span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">
+                    {musicSource === 'youtube'
+                      ? t('room.music.youtubeCurrent', { url: youtubeUrl })
+                      : t('room.music.youtubeSaved', { url: youtubeUrl })}
+                  </span>
+                  {musicSource !== 'youtube' && (
+                    <button
+                      onClick={() => {
+                        if (musicLocked) return
+                        setMusicSource('youtube')
+                        setMusicOn(true)
+                      }}
+                      disabled={musicLocked}
+                      className="shrink-0 rounded-[15px] border-none px-[14px] py-[9px] font-sans text-[12.5px] font-extrabold text-[#1e3549] disabled:opacity-50"
+                      style={{ background: ACCENT_SOFT }}
+                    >
+                      {t('room.music.play')}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
-            {!ytActive && (
-            <div className="flex flex-col gap-2">
+            {(!isRealMode || activeTab === 'library') && (
+            <div className="flex flex-col gap-3">
+              {/* điều khiển thật (trước/sau + tua + âm lượng) — chỉ áp dụng cho Thư viện,
+                  YouTube không cần vì widget nổi góc dưới-trái đã có control âm lượng thật
+                  ngay trong iframe của nó. Mọi thao tác ở đây đều chốt nguồn 'library'. */}
+              <div className="flex items-center justify-center gap-4">
+                <button
+                  onClick={() => playRelativeTrack(-1)}
+                  disabled={musicLocked || tracks.length === 0}
+                  title={t('room.music.prevTrack')}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:enabled:!bg-white disabled:opacity-40"
+                  style={{ background: 'rgba(238,246,248,0.9)' }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="5" y="5" width="3" height="14" />
+                    <path d="M18 5v14l-8-7z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => playRelativeTrack(1)}
+                  disabled={musicLocked || tracks.length === 0}
+                  title={t('room.music.nextTrack')}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:enabled:!bg-white disabled:opacity-40"
+                  style={{ background: 'rgba(238,246,248,0.9)' }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6 5v14l8-7z" />
+                    <rect x="16" y="5" width="3" height="14" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-7 shrink-0 text-right text-[11px] font-semibold text-[rgba(51,71,94,0.5)] tabular-nums">
+                  {fmtTrackTime(audioCurrentTime)}
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={audioDuration || 0}
+                  step={0.1}
+                  value={Math.min(audioCurrentTime, audioDuration || 0)}
+                  onChange={(e) => seekTrackTo(Number(e.target.value))}
+                  disabled={!audioDuration}
+                  className="ff-range w-full flex-1"
+                />
+                <span className="w-7 shrink-0 text-[11px] font-semibold text-[rgba(51,71,94,0.5)] tabular-nums">
+                  {fmtTrackTime(audioDuration)}
+                </span>
+              </div>
+              <div className="flex items-center gap-[11px]">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(51,71,94,0.45)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 9.5h3.5L13 5.5v13L8.5 14.5H5z" />
+                  <path d={volume === 0 ? 'M16.5 9.5l4 5m0-5l-4 5' : 'M16.5 9a4 4 0 010 6'} />
+                </svg>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={volume}
+                  onChange={(e) => setVolume(Number(e.target.value))}
+                  className="ff-range min-w-0 flex-1"
+                />
+                <span className="w-[34px] text-right text-[12.5px] font-extrabold text-[rgba(51,71,94,0.55)]">{volume}%</span>
+              </div>
+
               <div className="flex items-baseline justify-between gap-[10px]">
                 <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
                   {t('room.music.playlist')}
@@ -1653,6 +1874,7 @@ export default function Room() {
                       if (musicLocked) return
                       setTrackIndex(i)
                       setMusicOn(true)
+                      setMusicSource('library')
                     }}
                     disabled={musicLocked}
                     className="flex items-center gap-[11px] rounded-[20px] border-none px-[13px] py-[11px] text-left font-sans transition-all duration-200 hover:enabled:brightness-[0.98] disabled:cursor-default disabled:opacity-70"
@@ -1825,6 +2047,16 @@ export default function Room() {
             void doLeaveRoom()
           }}
           onClose={() => setShowRating(false)}
+        />
+      )}
+
+      {hostLeaveModalOpen && (
+        <HostLeaveModal
+          members={otherMembers.map((m) => ({ id: m.id, name: m.name }))}
+          error={transferError}
+          onClose={() => setHostLeaveModalOpen(false)}
+          onCloseRoom={chooseCloseRoom}
+          onTransfer={chooseTransfer}
         />
       )}
     </div>

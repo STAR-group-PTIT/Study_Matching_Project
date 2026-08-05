@@ -417,6 +417,10 @@
   },
   "room": {
     "headerTag": "Study room",
+    "roomCode": {
+      "label": "Room code",
+      "copy": "Copy room code"
+    },
     "demo": { "two": "2 people", "five": "5 people" },
     "sync": {
       "withCount": "Synced with {{count}} people",
@@ -464,7 +468,7 @@
     "pomodoro": {
       "focusing": "Focusing",
       "onBreak": "On a break",
-      "sessionBoth": "Session {{round}} / {{total}} · running for both",
+      "syncedNote": "everyone here is in sync",
       "doneTitle": "All done ✓",
       "doneHint": "The room completed {{count}} sessions today 🎉",
       "pause": "Pause",
@@ -491,6 +495,11 @@
     "music": {
       "playing": "playing · {{mood}}",
       "paused": "paused",
+      "play": "Play music",
+      "pause": "Pause music",
+      "prevTrack": "Previous track",
+      "nextTrack": "Next track",
+      "volume": "Volume",
       "playlist": "Playlist",
       "onlyYouHear": "only you hear this",
       "personalNote": "Music is personal — picking a track, switching source, or muting doesn't affect anyone else in the room.",
@@ -505,6 +514,7 @@
       "youtubeUse": "Use this link",
       "youtubeInvalid": "That YouTube link doesn't look valid.",
       "youtubeCurrent": "Now playing: {{url}}",
+      "youtubeSaved": "Saved: {{url}}",
       "lockedNote": "This room type keeps music off to stay focused."
     },
     "host": {
@@ -543,6 +553,20 @@
       "liked": "Thanked",
       "close": "Close",
       "leave": "Leave room"
+    },
+    "hostLeave": {
+      "title": "You're the host",
+      "desc": "Before you leave, choose what happens to this room:",
+      "closeTitle": "Close the room",
+      "closeDesc": "Everyone will be removed from the room and it will disappear.",
+      "transferTitle": "Transfer host",
+      "transferDesc": "Pick someone in the room to become the new host — the room keeps going.",
+      "transferNoOne": "No one else is in the room to transfer to.",
+      "transferFailed": "Couldn't transfer host (they may have just left). Try again or close the room instead.",
+      "pickTitle": "Pick a replacement",
+      "pickDesc": "Whoever you pick becomes host the moment you leave.",
+      "back": "Back",
+      "cancel": "Cancel"
     }
   }
 }
