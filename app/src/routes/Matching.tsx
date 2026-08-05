@@ -5,16 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 import { othersWaiting, useQuickMatch, saveMatchConfig } from '../lib/quickMatch'
 import MatchFound from '../components/MatchFound'
-
-type RoomTypeKey = 'chill' | 'hardcore' | 'silent' | 'discuss' | 'watch' | 'free' | 'together'
-
-// 2 loại phòng không dùng khái niệm "thời lượng phiên" (free: đồng hồ đếm tăng liên tục,
-// together: mỗi người tự chạy Pomodoro riêng theo cài đặt cá nhân) — ẩn bộ chọn thời lượng
-// và luôn gửi 1 giá trị cố định khi tạo/ghép phòng cho 2 loại này, để việc ghép ngẫu nhiên
-// không bị phân mảnh bởi giá trị dư từ lần chọn loại phòng trước đó.
-const NO_DURATION_TYPES: RoomTypeKey[] = ['free', 'together']
-const LOCKED_FOCUS_MINUTES = 25
-const LOCKED_BREAK_MINUTES = 5
+import type { RoomTypeKey } from '../lib/roomTypeRules'
 
 type RoomType = {
   key: RoomTypeKey
@@ -58,22 +49,6 @@ const ROOM_TYPES: RoomType[] = [
     hue: 150,
     paths: ['M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z'],
     circle: { cx: 12, cy: 12, r: 2.8 },
-  },
-  {
-    key: 'free',
-    hue: 20,
-    paths: ['M12 13V8', 'M9 3h6'],
-    circle: { cx: 12, cy: 13, r: 8 },
-  },
-  {
-    key: 'together',
-    hue: 300,
-    paths: [
-      'M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19',
-      'M16.4 5.6a3.2 3.2 0 010 5.8',
-      'M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1',
-    ],
-    circle: { cx: 9, cy: 8.5, r: 3.2 },
   },
 ]
 
@@ -238,8 +213,8 @@ export default function Matching() {
     go('searching')
     await quick.start({
       room_type: roomType,
-      focus_minutes: NO_DURATION_TYPES.includes(roomType) ? LOCKED_FOCUS_MINUTES : focusMinutes,
-      break_minutes: NO_DURATION_TYPES.includes(roomType) ? LOCKED_BREAK_MINUTES : breakMinutes,
+      focus_minutes: focusMinutes,
+      break_minutes: breakMinutes,
       session_count: 4,
       language: languageCode,
     })
@@ -332,7 +307,6 @@ export default function Matching() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
     const genCode = () => Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 
-    const locked = NO_DURATION_TYPES.includes(roomType)
     let inserted: { id: string; code: string } | null = null
     for (let attempt = 0; attempt < 5 && !inserted; attempt++) {
       const code = genCode()
@@ -343,8 +317,8 @@ export default function Matching() {
           name: roomName.trim() || defaultRoomName,
           host_id: user.id,
           room_type: roomType,
-          duration_minutes: locked ? LOCKED_FOCUS_MINUTES : focusMinutes,
-          break_minutes: locked ? LOCKED_BREAK_MINUTES : breakMinutes,
+          duration_minutes: focusMinutes,
+          break_minutes: breakMinutes,
           language: language === 'Tiếng Việt' ? 'vi' : 'en',
           capacity,
           visibility,
@@ -376,8 +350,8 @@ export default function Matching() {
     // Lưu config ghép lần này để nút "Ghép ngay" ở Dashboard dùng lại được.
     saveMatchConfig({
       room_type: roomType,
-      focus_minutes: locked ? LOCKED_FOCUS_MINUTES : focusMinutes,
-      break_minutes: locked ? LOCKED_BREAK_MINUTES : breakMinutes,
+      focus_minutes: focusMinutes,
+      break_minutes: breakMinutes,
       session_count: 4,
       language: language === 'Tiếng Việt' ? 'vi' : 'en',
     })
@@ -663,35 +637,33 @@ export default function Matching() {
                   </div>
                 </div>
 
-                {!NO_DURATION_TYPES.includes(roomType) && (
-                  <div className="flex flex-col gap-[11px]">
-                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
-                      {t('matching.filters.durationLabel')}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setFocusMinutes(25)
-                          setBreakMinutes(5)
-                        }}
-                        className="flex-1 rounded-[18px] border-[1.5px] py-[13px] font-sans text-sm font-bold transition-all duration-[220ms]"
-                        style={chipStyle(focusMinutes === 25 && breakMinutes === 5)}
-                      >
-                        25 : 5
-                      </button>
-                      <button
-                        onClick={() => {
-                          setFocusMinutes(50)
-                          setBreakMinutes(10)
-                        }}
-                        className="flex-1 rounded-[18px] border-[1.5px] py-[13px] font-sans text-sm font-bold transition-all duration-[220ms]"
-                        style={chipStyle(focusMinutes === 50 && breakMinutes === 10)}
-                      >
-                        50 : 10
-                      </button>
-                    </div>
+                <div className="flex flex-col gap-[11px]">
+                  <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                    {t('matching.filters.durationLabel')}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setFocusMinutes(25)
+                        setBreakMinutes(5)
+                      }}
+                      className="flex-1 rounded-[18px] border-[1.5px] py-[13px] font-sans text-sm font-bold transition-all duration-[220ms]"
+                      style={chipStyle(focusMinutes === 25 && breakMinutes === 5)}
+                    >
+                      25 : 5
+                    </button>
+                    <button
+                      onClick={() => {
+                        setFocusMinutes(50)
+                        setBreakMinutes(10)
+                      }}
+                      className="flex-1 rounded-[18px] border-[1.5px] py-[13px] font-sans text-sm font-bold transition-all duration-[220ms]"
+                      style={chipStyle(focusMinutes === 50 && breakMinutes === 10)}
+                    >
+                      50 : 10
+                    </button>
                   </div>
-                )}
+                </div>
 
                 <div className="flex flex-col gap-[11px]">
                   <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
@@ -806,7 +778,7 @@ export default function Matching() {
                 <div className="flex flex-wrap justify-center gap-[7px]">
                   {[
                     roomTypeLabel(current.key),
-                    ...(NO_DURATION_TYPES.includes(roomType) ? [] : [t('matching.filters.minutesValue', { count: focusMinutes })]),
+                    t('matching.filters.minutesValue', { count: focusMinutes }),
                     language,
                   ].map((text) => (
                     <span

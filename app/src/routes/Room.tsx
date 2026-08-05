@@ -5,8 +5,10 @@ import { Room as LiveKitRoom, RoomEvent, Track } from 'livekit-client'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 import { playChime } from '../lib/sound'
-import { parseYoutubeUrl, loadYoutubeApi, type YTPlayer } from '../lib/youtube'
+import { parseYoutubeUrl, loadYoutubeApi, DEFAULT_YOUTUBE_URL, MUSIC_YOUTUBE_KEY, loadStoredYoutubeUrlOverride, type YTPlayer } from '../lib/youtube'
+import { BUILTIN_TRACKS, type LibraryTrack } from '../lib/musicLibrary'
 import { phaseTotalSeconds, computeLeftFromRoom, type RoomRow } from '../lib/timer'
+import { ROOM_TYPE_RULES } from '../lib/roomTypeRules'
 import DeviceCheck from '../components/DeviceCheck'
 import SessionRating from '../components/SessionRating'
 
@@ -15,7 +17,7 @@ type Member = { id: string; name: string; statusKey: StatusKey; host: boolean; m
 type Pending = { id: string; userId: string; name: string; wait: string }
 type ChatMsg = { who: string; me: boolean; text: string }
 
-type RealTrack = { id: string; name: string; path: string; durationSeconds: number | null; isDefault: boolean }
+type RealTrack = LibraryTrack & { isDefault: boolean }
 type RealMemberRow = {
   id: string
   room_id: string
@@ -142,13 +144,10 @@ export default function Room() {
   const isRealMode = !!user && !!realRoom
   const isHost = isRealMode ? realRoom!.host_id === user!.id : true
   const roomId = realRoom?.id
-  // 'free': đồng hồ đếm tăng liên tục, không phase/host-control. 'together': Pomodoro chạy
-  // local trên máy mỗi người (không đồng bộ DB) thay vì đọc/ghi timer_* dùng chung cả phòng.
-  const isFreeMode = isRealMode && realRoom!.room_type === 'free'
-  const isTogetherMode = isRealMode && realRoom!.room_type === 'together'
-  const useDbTimer = isRealMode && !isFreeMode && !isTogetherMode
-
-  const [freeElapsedSec, setFreeElapsedSec] = useState(0)
+  const useDbTimer = isRealMode
+  // Luật cam/mic/nhạc theo loại phòng (5 loại, xem lib/roomTypeRules.ts) — null ở demo/guest
+  // mode (không có realRoom nên không enforce gì).
+  const roomRule = isRealMode ? ROOM_TYPE_RULES[realRoom!.room_type] : null
 
   const [running, setRunning] = useState(true)
   const [phase, setPhase] = useState<Phase>('focus')
@@ -180,21 +179,12 @@ export default function Room() {
   const preferredMicIdRef = useRef(preferredMicId)
   preferredMicIdRef.current = preferredMicId
 
-  // Cài đặt Pomodoro cá nhân (giống Dashboard/Settings) — chỉ dùng cho phòng loại 'together',
-  // nơi mỗi người tự chạy Pomodoro riêng theo đúng phút/số phiên/tự-động-tiếp-tục họ đã đặt,
-  // không theo phòng.
-  const [personalFocusMin, setPersonalFocusMin] = useState(25)
-  const [personalBreakMin, setPersonalBreakMin] = useState(5)
-  const [personalSessionCount, setPersonalSessionCount] = useState(4)
-  const [personalAutoStart, setPersonalAutoStart] = useState(true)
-
+  const [profileDefaultYoutubeUrl, setProfileDefaultYoutubeUrl] = useState<string | null>(null)
   useEffect(() => {
     if (!user) return
     supabase
       .from('profiles')
-      .select(
-        'preferred_camera_id, preferred_mic_id, notification_sound, focus_minutes, break_minutes, session_count, auto_start_next',
-      )
+      .select('preferred_camera_id, preferred_mic_id, notification_sound, default_youtube_url')
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
@@ -202,39 +192,63 @@ export default function Room() {
         setPreferredCameraId(data.preferred_camera_id ?? '')
         setPreferredMicId(data.preferred_mic_id ?? '')
         setNotificationSound(data.notification_sound)
-        setPersonalFocusMin(data.focus_minutes)
-        setPersonalBreakMin(data.break_minutes)
-        setPersonalSessionCount(data.session_count)
-        setPersonalAutoStart(data.auto_start_next)
+        setProfileDefaultYoutubeUrl(data.default_youtube_url ?? null)
       })
   }, [user])
-  const personalFocusMinRef = useRef(personalFocusMin)
-  personalFocusMinRef.current = personalFocusMin
-  const personalBreakMinRef = useRef(personalBreakMin)
-  personalBreakMinRef.current = personalBreakMin
-  const personalSessionCountRef = useRef(personalSessionCount)
-  personalSessionCountRef.current = personalSessionCount
-  const personalAutoStartRef = useRef(personalAutoStart)
-  personalAutoStartRef.current = personalAutoStart
   const notificationSoundRef = useRef(notificationSound)
   notificationSoundRef.current = notificationSound
-  const togetherPhaseStartRef = useRef(Date.now())
 
   const [musicOn, setMusicOn] = useState(true)
   const [trackIndex, setTrackIndex] = useState(0)
   const [volume, setVolume] = useState(45)
-  const [musicSource, setMusicSource] = useState<'library' | 'youtube'>('library')
-  const [ytUrl, setYtUrl] = useState<string | null>(null)
+  // Cố tình luôn khởi tạo 'youtube' — y hệt Dashboard (main UI): mỗi lần vào phòng nhạc mặc
+  // định vào thẳng YouTube (link đã lưu trên máy này, hoặc mặc định riêng đặt ở Settings,
+  // hoặc DEFAULT_YOUTUBE_URL gốc của app), Thư viện là lựa chọn tạm trong phiên đang mở.
+  const [musicSource, setMusicSource] = useState<'library' | 'youtube'>('youtube')
+  // Cùng 1 key localStorage với Dashboard (lib/youtube.ts) — link YouTube là lựa chọn cá
+  // nhân theo máy, không theo màn hình đang mở, nên đổi ở đâu cũng thấy ở chỗ kia.
+  const [youtubeUrlOverride, setYoutubeUrlOverride] = useState(loadStoredYoutubeUrlOverride)
+  useEffect(() => {
+    if (youtubeUrlOverride === null) return
+    try {
+      localStorage.setItem(MUSIC_YOUTUBE_KEY, youtubeUrlOverride)
+    } catch {
+      // localStorage không khả dụng — chỉ mất tính năng nhớ lựa chọn, không lỗi.
+    }
+  }, [youtubeUrlOverride])
+  // 3 tầng ưu tiên, giống hệt Dashboard: override máy này > mặc định riêng tài khoản
+  // (Settings) > DEFAULT_YOUTUBE_URL gốc của app.
+  const youtubeUrl = youtubeUrlOverride ?? profileDefaultYoutubeUrl ?? DEFAULT_YOUTUBE_URL
 
-  // Nhạc là riêng của từng người (xem quyết định GĐ8) — playlist = nhạc mặc định
-  // (is_default=true, của bất kỳ ai) hợp với nhạc riêng của chính mình, không liên quan
-  // gì tới host phòng. RLS ở 0007_default_tracks.sql vẫn còn mở khoá select track của
-  // host cho member (shares_room_with_host()) nhưng client giờ không dùng tới nhánh đó nữa.
-  const [realTracks, setRealTracks] = useState<RealTrack[]>([])
+  // Enforce luật cam/mic/nhạc theo loại phòng — chạy ngay khi biết room_type (realRoom tải
+  // xong), set đúng giá trị bắt buộc trước khi user kịp thấy màn hình. 'free' (Chill) không
+  // đụng gì, giữ nguyên lựa chọn hiện tại của user.
+  useEffect(() => {
+    if (!roomRule) return
+    if (roomRule.cam !== 'free') setCam(roomRule.cam === 'on')
+    if (roomRule.mic !== 'free') setMic(roomRule.mic === 'on')
+    if (roomRule.music === 'off') setMusicOn(false)
+  }, [roomRule])
+
+  function toggleCam() {
+    if (roomRule && roomRule.cam !== 'free') return
+    setCam((c) => !c)
+  }
+  function toggleMic() {
+    if (roomRule && roomRule.mic !== 'free') return
+    setMic((v) => !v)
+  }
+  const musicLocked = roomRule?.music === 'off'
+
+  // Thư viện = nhạc built-in (mọi tài khoản) ∪ nhạc thật từ Supabase khi đã đăng nhập —
+  // y hệt Dashboard (main UI), xem lib/musicLibrary.ts. Nhạc là riêng của từng người (xem
+  // quyết định GĐ8) — playlist DB = mặc định (is_default=true, của bất kỳ ai) hợp với nhạc
+  // riêng của chính mình, không liên quan gì tới host phòng.
+  const [dbTracks, setDbTracks] = useState<RealTrack[]>([])
   const myIdForTracks = user?.id
   useEffect(() => {
     if (!isRealMode || !myIdForTracks) {
-      setRealTracks([])
+      setDbTracks([])
       return
     }
     let cancelled = false
@@ -245,8 +259,15 @@ export default function Room() {
       .order('created_at')
       .then(({ data }) => {
         if (cancelled || !data) return
-        setRealTracks(
-          data.map((r) => ({ id: r.id, name: r.name, path: r.storage_path, durationSeconds: r.duration_seconds, isDefault: r.is_default })),
+        setDbTracks(
+          data.map((r) => ({
+            id: r.id,
+            name: r.name,
+            kind: 'db' as const,
+            path: r.storage_path,
+            durationSeconds: r.duration_seconds,
+            isDefault: r.is_default,
+          })),
         )
       })
     return () => {
@@ -254,9 +275,14 @@ export default function Room() {
     }
   }, [isRealMode, myIdForTracks])
 
+  const libraryTracks = useMemo<RealTrack[]>(
+    () => (isRealMode ? [...BUILTIN_TRACKS.map((tr) => ({ ...tr, isDefault: true })), ...dbTracks] : []),
+    [isRealMode, dbTracks],
+  )
+
   const tracks = useMemo(() => {
     if (isRealMode) {
-      return realTracks.map((tr) => ({
+      return libraryTracks.map((tr) => ({
         id: tr.id,
         name: tr.name,
         mood: tr.isDefault ? t('room.music.defaultTag') : t('room.music.mineTag'),
@@ -269,19 +295,24 @@ export default function Room() {
       mood: t(`room.mockTracks.${key}.mood`),
       length: TRACK_LENGTHS[key],
     }))
-  }, [isRealMode, realTracks, t])
+  }, [isRealMode, libraryTracks, t])
 
-  // signed URL của track đang chọn — regen mỗi khi đổi track (bucket `tracks` riêng
-  // tư, signed URL hết hạn sau 1h nhưng phiên nghe nhạc trong phòng thường ngắn hơn).
+  // Nguồn phát của track đang chọn — track built-in dùng thẳng url tĩnh, track DB cần
+  // signed URL (bucket `tracks` riêng tư, hết hạn sau 1h nhưng phiên nghe nhạc trong
+  // phòng thường ngắn hơn).
   const [audioSrc, setAudioSrc] = useState<string | null>(null)
   useEffect(() => {
     if (!isRealMode) {
       setAudioSrc(null)
       return
     }
-    const track = realTracks[trackIndex]
+    const track = libraryTracks[trackIndex]
     if (!track) {
       setAudioSrc(null)
+      return
+    }
+    if (track.kind === 'builtin') {
+      setAudioSrc(track.url)
       return
     }
     let cancelled = false
@@ -294,7 +325,7 @@ export default function Room() {
     return () => {
       cancelled = true
     }
-  }, [isRealMode, realTracks, trackIndex])
+  }, [isRealMode, libraryTracks, trackIndex])
 
   const musicAudioRef = useRef<HTMLAudioElement>(null)
   useEffect(() => {
@@ -328,8 +359,8 @@ export default function Room() {
   const [ytReady, setYtReady] = useState(false)
   const ytContainerRef = useRef<HTMLDivElement>(null)
   const ytPlayerRef = useRef<YTPlayer | null>(null)
-  const ytActive = isRealMode && musicSource === 'youtube'
-  const ytParsed = useMemo(() => (ytUrl ? parseYoutubeUrl(ytUrl) : null), [ytUrl])
+  const ytActive = isRealMode && musicSource === 'youtube' && !musicLocked
+  const ytParsed = useMemo(() => (youtubeUrl ? parseYoutubeUrl(youtubeUrl) : null), [youtubeUrl])
 
   useEffect(() => {
     if (!ytActive) return
@@ -374,13 +405,14 @@ export default function Room() {
   }, [volume])
 
   function applyYoutubeLink() {
+    if (musicLocked) return
     const parsed = parseYoutubeUrl(ytInput)
     if (!parsed) {
       setYtError(true)
       return
     }
     setYtError(false)
-    setYtUrl(ytInput.trim())
+    setYoutubeUrlOverride(ytInput.trim())
     setMusicSource('youtube')
     setMusicOn(true)
     setYtInput('')
@@ -461,29 +493,6 @@ export default function Room() {
     setDone(realRoom.timer_done)
     setLeft(computeLeftFromRoom(realRoom))
   }, [useDbTimer, realRoom])
-
-  // Phòng 'together' — Pomodoro cá nhân local, không đọc timer_* của phòng. Reset về màn
-  // hình sạch (round 1, chưa chạy) đúng 1 lần khi vào phòng loại này.
-  const togetherInitRef = useRef(false)
-  useEffect(() => {
-    if (!isTogetherMode) {
-      togetherInitRef.current = false
-      return
-    }
-    if (togetherInitRef.current) return
-    togetherInitRef.current = true
-    setPhase('focus')
-    setRound(1)
-    setDone(false)
-    setRunning(false)
-    togetherPhaseStartRef.current = Date.now()
-  }, [isTogetherMode])
-  // Giữ `left` khớp đúng phút cá nhân thật (từ profiles) miễn là chưa bấm chạy lần nào —
-  // xử lý race giữa lúc phòng tải xong và lúc fetch cài đặt cá nhân xong.
-  useEffect(() => {
-    if (!isTogetherMode || running || phase !== 'focus' || round !== 1 || done) return
-    setLeft(personalFocusMin * 60)
-  }, [isTogetherMode, personalFocusMin, running, phase, round, done])
 
   // mỗi thành viên tự ghi phiên của mình khi thấy phase thật của phòng chuyển đổi
   // (host là nguồn chuyển phase, member chỉ quan sát qua Realtime — xem flipPhaseReal ở trên).
@@ -835,40 +844,11 @@ export default function Room() {
         if (newLeft <= 0 && realRoom.timer_running && isHost) flipPhaseReal()
         return
       }
-      if (isFreeMode && realRoom) {
-        setFreeElapsedSec(Math.max(0, Math.floor((Date.now() - new Date(realRoom.created_at).getTime()) / 1000)))
-        return
-      }
       if (!runningRef.current) return
       setLeft((prevLeft) => {
         if (prevLeft <= 1) {
           setPhase((prevPhase) => {
             const next: Phase = prevPhase === 'focus' ? 'break' : 'focus'
-            if (isTogetherMode && realRoom && user) {
-              if (notificationSoundRef.current) playChime()
-              const completedMinutes = prevPhase === 'focus' ? personalFocusMinRef.current : personalBreakMinRef.current
-              supabase
-                .from('focus_sessions')
-                .insert({
-                  user_id: user.id,
-                  room_id: realRoom.id,
-                  phase: prevPhase,
-                  minutes: completedMinutes,
-                  started_at: new Date(togetherPhaseStartRef.current).toISOString(),
-                })
-                .then(({ error }) => {
-                  if (error) console.error('log focus_session failed', error)
-                })
-              const isFinalCompletion = next === 'focus' && roundRef.current >= personalSessionCountRef.current
-              if (next === 'focus' && !isFinalCompletion) setRound((r) => r + 1)
-              if (isFinalCompletion) {
-                setDone(true)
-                setRunning(false)
-                return prevPhase
-              }
-              setRunning(personalAutoStartRef.current)
-              return next
-            }
             const isFinalCompletion = next === 'focus' && roundRef.current >= SESSION_COUNT_DEFAULT
             if (next === 'focus' && !isFinalCompletion) setRound((r) => r + 1)
             if (isFinalCompletion) {
@@ -884,7 +864,7 @@ export default function Room() {
       })
     }, 1000)
     return () => clearInterval(id)
-  }, [useDbTimer, isFreeMode, isTogetherMode, realRoom, isHost, user, flipPhaseReal])
+  }, [useDbTimer, realRoom, isHost, flipPhaseReal])
 
   const prevPhaseRef = useRef(phase)
   useEffect(() => {
@@ -893,28 +873,18 @@ export default function Room() {
       return
     }
     if (prevPhaseRef.current !== phase) {
-      togetherPhaseStartRef.current = Date.now()
-      setLeft(isTogetherMode ? (phase === 'focus' ? personalFocusMin * 60 : personalBreakMin * 60) : phase === 'focus' ? focusSecs() : breakSecs())
+      setLeft(phase === 'focus' ? focusSecs() : breakSecs())
       prevPhaseRef.current = phase
     }
-  }, [phase, useDbTimer, isTogetherMode, personalFocusMin, personalBreakMin])
+  }, [phase, useDbTimer])
 
-  const total = useDbTimer && realRoom
-    ? phaseTotalSeconds(realRoom, phase)
-    : isTogetherMode
-      ? (phase === 'focus' ? personalFocusMin * 60 : personalBreakMin * 60)
-      : phase === 'focus' ? focusSecs() : breakSecs()
-  const sessionCount = useDbTimer && realRoom ? realRoom.session_count : isTogetherMode ? personalSessionCount : SESSION_COUNT_DEFAULT
+  const total = useDbTimer && realRoom ? phaseTotalSeconds(realRoom, phase) : phase === 'focus' ? focusSecs() : breakSecs()
+  const sessionCount = useDbTimer && realRoom ? realRoom.session_count : SESSION_COUNT_DEFAULT
   const progress = Math.min(1, Math.max(0, 1 - left / total))
   const dashOffset = 270.2 * (1 - progress)
   const m = Math.floor(left / 60)
   const s = left % 60
   const timeText = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0')
-  const freeH = Math.floor(freeElapsedSec / 3600)
-  const freeM = Math.floor((freeElapsedSec % 3600) / 60)
-  const freeS = freeElapsedSec % 60
-  const freeTimeText =
-    String(freeH).padStart(2, '0') + ':' + String(freeM).padStart(2, '0') + ':' + String(freeS).padStart(2, '0')
 
   const queued = admit === 'manual' && pending.length > 0
   const effectiveTab: Tab = tab === 'host' && !isHost ? 'chat' : tab
@@ -949,8 +919,7 @@ export default function Room() {
     setPhase('focus')
     setRound(1)
     setDone(false)
-    togetherPhaseStartRef.current = Date.now()
-    setLeft(isTogetherMode ? personalFocusMin * 60 : focusSecs())
+    setLeft(focusSecs())
     setRunning(true)
   }
   function toggleRunning() {
@@ -1113,8 +1082,10 @@ export default function Room() {
       <DeviceCheck
         cameraOn={cam}
         micOn={mic}
-        onToggleCam={() => setCam((c) => !c)}
-        onToggleMic={() => setMic((v) => !v)}
+        camLocked={roomRule ? roomRule.cam !== 'free' : false}
+        micLocked={roomRule ? roomRule.mic !== 'free' : false}
+        onToggleCam={toggleCam}
+        onToggleMic={toggleMic}
         onDone={() => setDeviceChecked(true)}
       />
     )
@@ -1257,29 +1228,9 @@ export default function Room() {
         </div>
       </div>
 
-      {/* floating pomodoro / đồng hồ tự do — 3 chế độ tuỳ room_type: mặc định (đồng bộ cả
-          phòng, chỉ host điều khiển), 'free' (đếm tăng liên tục, không nút), 'together'
-          (Pomodoro cá nhân, ai cũng điều khiển được của riêng mình) */}
-      {isFreeMode ? (
-        <div
-          className="absolute top-[106px] left-1/2 z-40 flex -translate-x-1/2 items-center gap-[18px] rounded-[30px] py-[14px] pr-6 pl-4"
-          style={{ background: 'rgba(255,255,255,0.62)', backdropFilter: 'blur(18px)', boxShadow: '0 16px 40px rgba(58,98,126,0.16)' }}
-        >
-          <div className="relative flex h-[92px] w-[92px] items-center justify-center">
-            <svg viewBox="0 0 100 100" className="absolute h-[92px] w-[92px]" style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx="50" cy="50" r="43" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="8" />
-              <circle cx="50" cy="50" r="43" fill="none" stroke={ACCENT} strokeWidth="8" strokeLinecap="round" strokeDasharray="270.2" />
-            </svg>
-            <span className="relative text-base font-extrabold text-[#2c3f55] tabular-nums">{freeTimeText}</span>
-          </div>
-          <div className="flex flex-col gap-px">
-            <span className="text-xs font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.5)] uppercase">
-              {t('room.pomodoro.freeRunning')}
-            </span>
-            <span className="text-[13.5px] font-bold text-[#2c3f55]">{t('room.pomodoro.freeHint')}</span>
-          </div>
-        </div>
-      ) : (
+      {/* floating pomodoro — đồng bộ cả phòng qua DB (real mode), chỉ host điều khiển; local
+          ở demo/guest mode */}
+      {
         <div
           className="absolute top-[106px] left-1/2 z-40 flex -translate-x-1/2 items-center gap-[18px] rounded-[30px] py-[14px] pr-6 pl-4"
           style={{ background: 'rgba(255,255,255,0.62)', backdropFilter: 'blur(18px)', boxShadow: '0 16px 40px rgba(58,98,126,0.16)' }}
@@ -1314,8 +1265,8 @@ export default function Room() {
               </span>
               <span className="text-[13.5px] font-bold text-[#2c3f55]">
                 {done
-                  ? t(isTogetherMode ? 'room.pomodoro.doneHintPersonal' : 'room.pomodoro.doneHint', { count: sessionCount })
-                  : t(isTogetherMode ? 'room.pomodoro.sessionPersonal' : 'room.pomodoro.sessionBoth', { round, total: sessionCount })}
+                  ? t('room.pomodoro.doneHint', { count: sessionCount })
+                  : t('room.pomodoro.sessionBoth', { round, total: sessionCount })}
               </span>
             </div>
             <div className="flex gap-[7px]">
@@ -1351,7 +1302,7 @@ export default function Room() {
             </div>
           </div>
         </div>
-      )}
+      }
 
       {/* bottom controls */}
       <div
@@ -1359,9 +1310,16 @@ export default function Room() {
         style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px rgba(58,98,126,0.15)' }}
       >
         <button
-          onClick={() => setCam((c) => !c)}
-          title={cam ? t('room.controls.camera') : t('room.controls.cameraOff')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:brightness-[1.03] md:px-5"
+          onClick={toggleCam}
+          disabled={roomRule ? roomRule.cam !== 'free' : false}
+          title={
+            roomRule && roomRule.cam !== 'free'
+              ? t('room.controls.locked')
+              : cam
+                ? t('room.controls.camera')
+                : t('room.controls.cameraOff')
+          }
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:enabled:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70 md:px-5"
           style={{ background: cam ? 'rgba(255,255,255,0.4)' : 'rgba(206,222,232,0.85)', color: cam ? '#354c65' : 'rgba(51,71,94,0.62)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -1372,9 +1330,16 @@ export default function Room() {
           <span className="hidden md:inline">{cam ? t('room.controls.camera') : t('room.controls.cameraOff')}</span>
         </button>
         <button
-          onClick={() => setMic((v) => !v)}
-          title={mic ? t('room.controls.mic') : t('room.controls.micOff')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:brightness-[1.03] md:px-5"
+          onClick={toggleMic}
+          disabled={roomRule ? roomRule.mic !== 'free' : false}
+          title={
+            roomRule && roomRule.mic !== 'free'
+              ? t('room.controls.locked')
+              : mic
+                ? t('room.controls.mic')
+                : t('room.controls.micOff')
+          }
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:enabled:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70 md:px-5"
           style={{ background: mic ? 'rgba(255,255,255,0.4)' : 'rgba(206,222,232,0.85)', color: mic ? '#354c65' : 'rgba(51,71,94,0.62)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -1572,8 +1537,11 @@ export default function Room() {
                 </span>
               </div>
               <button
-                onClick={() => setMusicOn((v) => !v)}
-                disabled={!ytActive && tracks.length === 0}
+                onClick={() => {
+                  if (musicLocked) return
+                  setMusicOn((v) => !v)
+                }}
+                disabled={musicLocked || (!ytActive && tracks.length === 0)}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[15px] border-none text-[#1e3549] hover:enabled:brightness-[0.97] disabled:opacity-50"
                 style={{ background: ACCENT_SOFT }}
               >
@@ -1582,6 +1550,15 @@ export default function Room() {
                 </svg>
               </button>
             </div>
+
+            {musicLocked && (
+              <span
+                className="rounded-[18px] px-[15px] py-3 text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.65)]"
+                style={{ background: 'rgba(255,255,255,0.66)', boxShadow: 'inset 0 0 0 1.5px rgba(51,71,94,0.07)' }}
+              >
+                {t('room.music.lockedNote')}
+              </span>
+            )}
 
             <div className="flex items-center gap-[11px]">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(51,71,94,0.45)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -1646,16 +1623,9 @@ export default function Room() {
                     <span className="text-[12px] font-semibold text-[#a13f2c]">{t('room.music.youtubeInvalid')}</span>
                   )}
                 </div>
-                {ytUrl && (
-                  <span className="truncate text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">
-                    {t('room.music.youtubeCurrent', { url: ytUrl })}
-                  </span>
-                )}
-                {!ytUrl && (
-                  <span className="rounded-[20px] px-[13px] py-[15px] text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.5)]" style={{ background: 'rgba(238,246,248,0.8)' }}>
-                    {t('room.music.youtubeEmpty')}
-                  </span>
-                )}
+                <span className="truncate text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">
+                  {t('room.music.youtubeCurrent', { url: youtubeUrl })}
+                </span>
               </div>
             )}
 
@@ -1680,9 +1650,11 @@ export default function Room() {
                   <button
                     key={track.id}
                     onClick={() => {
+                      if (musicLocked) return
                       setTrackIndex(i)
                       setMusicOn(true)
                     }}
+                    disabled={musicLocked}
                     className="flex items-center gap-[11px] rounded-[20px] border-none px-[13px] py-[11px] text-left font-sans transition-all duration-200 hover:enabled:brightness-[0.98] disabled:cursor-default disabled:opacity-70"
                     style={{
                       background: on ? 'color-mix(in oklab, var(--ff-accent) 20%, white)' : 'rgba(238,246,248,0.8)',

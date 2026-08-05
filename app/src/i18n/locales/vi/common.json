@@ -169,9 +169,7 @@
       "hardcore": { "name": "Hardcore", "rule": "Bắt buộc bật cam, tắt nhạc và mic." },
       "silent": { "name": "Im lặng", "rule": "Không nhạc, không cam, không mic — chỉ đồng hồ chung." },
       "discuss": { "name": "Thảo luận", "rule": "Bật cam và mic để trao đổi, không nhạc." },
-      "watch": { "name": "Giám sát", "rule": "Bắt buộc bật cam để giám sát nhau, tắt nhạc và mic." },
-      "free": { "name": "Tự do", "rule": "Không chia phiên học/nghỉ — đồng hồ tự đếm tăng dần từ lúc phòng được tạo, chạy liên tục không dừng cho tới khi bạn rời phòng." },
-      "together": { "name": "Đồng hành", "rule": "Mỗi người tự chạy Pomodoro riêng theo cài đặt cá nhân của mình — chỉ chia sẻ video/chat để có động lực học cùng nhau." }
+      "watch": { "name": "Giám sát", "rule": "Bắt buộc bật cam để giám sát nhau, tắt nhạc và mic." }
     },
     "filters": {
       "title": "Tìm bạn học cùng",
@@ -467,12 +465,8 @@
       "focusing": "Đang tập trung",
       "onBreak": "Nghỉ ngắn",
       "sessionBoth": "Phiên {{round}} / {{total}} · cả hai cùng chạy",
-      "sessionPersonal": "Phiên {{round}} / {{total}} · Pomodoro riêng của bạn",
       "doneTitle": "Đã hoàn thành ✓",
       "doneHint": "Cả phòng đã học đủ {{count}} phiên hôm nay 🎉",
-      "doneHintPersonal": "Bạn đã học đủ {{count}} phiên hôm nay 🎉",
-      "freeRunning": "Tự do",
-      "freeHint": "Đồng hồ chạy từ lúc mở phòng, không dừng",
       "pause": "Tạm dừng",
       "resume": "Tiếp tục",
       "reset": "Reset",
@@ -486,7 +480,8 @@
       "chat": "Chat",
       "music": "Nhạc",
       "manage": "Quản lý",
-      "leave": "Rời phòng"
+      "leave": "Rời phòng",
+      "locked": "Loại phòng này khoá, không tự đổi được"
     },
     "panel": {
       "collapse": "Thu gọn",
@@ -510,7 +505,7 @@
       "youtubeUse": "Dùng link này",
       "youtubeInvalid": "Link YouTube không hợp lệ.",
       "youtubeCurrent": "Đang phát: {{url}}",
-      "youtubeEmpty": "Bạn chưa dán link YouTube nào."
+      "lockedNote": "Loại phòng này tắt nhạc để giữ tập trung."
     },
     "host": {
       "admitMode": "Chế độ vào phòng",
@@ -536,7 +531,9 @@
       "subtitle": "Xem thử hình ảnh và âm thanh trước khi vào phòng",
       "cameraOff": "Camera đang tắt",
       "enter": "Vào phòng",
-      "denied": "Trình duyệt từ chối quyền truy cập camera/mic — bạn vẫn có thể vào phòng."
+      "denied": "Trình duyệt từ chối quyền truy cập camera/mic — bạn vẫn có thể vào phòng.",
+      "locked": "Loại phòng này khoá, không tự đổi được",
+      "lockedNote": "Loại phòng này quy định sẵn cam/mic — bạn không tự bật/tắt được ở đây."
     },
     "rating": {
       "title": "Buổi học kết thúc",

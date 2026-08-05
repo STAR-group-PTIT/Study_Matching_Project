@@ -7,6 +7,19 @@
 // làm placeholder + fallback khi ô "link mặc định riêng" đang để trống).
 export const DEFAULT_YOUTUBE_URL = 'https://www.youtube.com/watch?v=e6KzjUOfmBk&list=RDe6KzjUOfmBk&start_radio=1'
 
+// Link YouTube đã dán/áp dụng trên máy này — cùng 1 key dùng chung cho Dashboard (solo) và
+// Room (trong phòng), vì đây là lựa chọn cá nhân theo máy, không theo màn hình đang mở: đổi
+// ở Dashboard thì Room cũng thấy ngay và ngược lại. Chuỗi ưu tiên đầy đủ khi phát: override
+// máy này > `profiles.default_youtube_url` (đặt ở Settings) > DEFAULT_YOUTUBE_URL ở trên.
+export const MUSIC_YOUTUBE_KEY = 'ff-music-youtube-url'
+export function loadStoredYoutubeUrlOverride(): string | null {
+  try {
+    return localStorage.getItem(MUSIC_YOUTUBE_KEY)
+  } catch {
+    return null
+  }
+}
+
 export function parseYoutubeUrl(raw: string): { videoId: string | null; playlistId: string | null } | null {
   let url: URL
   try {
