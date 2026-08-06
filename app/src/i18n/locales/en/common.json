@@ -53,15 +53,11 @@
   },
   "dashboard": {
     "topbar": {
-      "zen": "Zen",
       "focusMode": "Focus mode",
       "dashboardMode": "Dashboard mode",
       "login": "Log in",
       "tabFocus": "Focus",
-      "tabDashboard": "Dashboard",
-      "toggleUiTitle": "Hide / show UI",
-      "showUi": "Show UI",
-      "hideUi": "Hide UI"
+      "tabDashboard": "Dashboard"
     },
     "clock": {
       "focusing": "Focusing",
@@ -89,7 +85,6 @@
       "remaining": "{{open}} left · {{done}} done"
     },
     "rightColumn": {
-      "cameraOff": "Camera is off",
       "you": "You",
       "turnOffCamera": "Turn off camera",
       "turnOnCamera": "Turn on camera",
@@ -343,8 +338,9 @@
       "count": "{{count}} images",
       "delete": "Delete",
       "add": "Add image",
-      "hint": "JPG or PNG, up to 5 MB each.",
-      "tooLarge": "Images can be up to 5 MB."
+      "hint": "JPG, PNG, WEBP, GIF (animated too), or MP4 — up to 5 MB per image / 15 MB per video. Static images over 1920x1080 are auto-resized.",
+      "tooLarge": "Images can be up to 5 MB.",
+      "tooLargeVideo": "Videos can be up to 15 MB."
     },
     "music": {
       "title": "My music",

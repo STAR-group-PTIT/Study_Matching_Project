@@ -7,27 +7,31 @@ import { playChime } from '../lib/sound'
 import { parseYoutubeUrl, loadYoutubeApi, DEFAULT_YOUTUBE_URL, MUSIC_YOUTUBE_KEY, loadStoredYoutubeUrlOverride, type YTPlayer } from '../lib/youtube'
 import { BUILTIN_TRACKS, type LibraryTrack } from '../lib/musicLibrary'
 import { loadSavedMatchConfig, othersWaiting, useQuickMatch } from '../lib/quickMatch'
+import { isVideoWallpaper } from '../lib/wallpaper'
 import MatchFound from '../components/MatchFound'
 import Settings from './Settings'
 import Stats from './Stats'
 
-type WallpaperOption = { id: string; kind: 'gradient' | 'image'; value: string }
+type WallpaperOption = { id: string; kind: 'gradient' | 'image' | 'video'; value: string }
 
 const BUILTIN_GRADIENTS: WallpaperOption[] = ['linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)'].map(
   (value, i) => ({ id: 'gradient-' + i, kind: 'gradient' as const, value }),
 )
 
-// Ảnh nền có sẵn cho mọi tài khoản — thả file .jpg/.jpeg/.png/.webp vào app/src/assets/wallpapers/
-// là tự động xuất hiện trong popup "Đổi hình nền", không cần sửa code.
-const builtinWallpaperImages = import.meta.glob<string>('/src/assets/wallpapers/*.{jpg,jpeg,png,webp}', {
+// Ảnh/video nền có sẵn cho mọi tài khoản — thả file .jpg/.jpeg/.png/.webp/.gif/.mp4 vào
+// app/src/assets/wallpapers/ là tự động xuất hiện trong popup "Đổi hình nền", không cần sửa
+// code. .gif chạy động tự nhiên vì nền chỉ render qua CSS `background-image` (trình duyệt tự
+// lo hoạt hình); .mp4 thì khác — không gán được qua `background-image`, phải render bằng thẻ
+// <video> riêng (xem chỗ dùng `selectedWallpaper.kind === 'video'` bên dưới).
+const builtinWallpaperMedia = import.meta.glob<string>('/src/assets/wallpapers/*.{jpg,jpeg,png,webp,gif,mp4}', {
   eager: true,
   import: 'default',
 })
-const BUILTIN_IMAGES: WallpaperOption[] = Object.entries(builtinWallpaperImages)
+const BUILTIN_MEDIA: WallpaperOption[] = Object.entries(builtinWallpaperMedia)
   .sort(([a], [b]) => a.localeCompare(b))
-  .map(([path, url]) => ({ id: path, kind: 'image' as const, value: url }))
+  .map(([path, url]) => ({ id: path, kind: isVideoWallpaper(path) ? ('video' as const) : ('image' as const), value: url }))
 
-const BUILTIN_WALLPAPERS: WallpaperOption[] = [...BUILTIN_GRADIENTS, ...BUILTIN_IMAGES]
+const BUILTIN_WALLPAPERS: WallpaperOption[] = [...BUILTIN_GRADIENTS, ...BUILTIN_MEDIA]
 
 const WALLPAPER_STORAGE_KEY = 'ff-wallpaper-id'
 function loadStoredWallpaperId() {
@@ -150,7 +154,6 @@ export default function Dashboard() {
     [t],
   )
   const [mode, setMode] = useState<Mode>('dashboard')
-  const [hidden, setHidden] = useState(false)
   const [timerType, setTimerType] = useState<TimerType>('pomodoro')
   const [pomodoroStarted, setPomodoroStarted] = useState(false)
   const [running, setRunning] = useState(false)
@@ -386,11 +389,30 @@ export default function Dashboard() {
       videoId: ytParsed.videoId || undefined,
       playerVars: { listType: ytParsed.playlistId ? 'playlist' : undefined, list: ytParsed.playlistId || undefined, playsinline: 1 },
       events: {
+        // Trình duyệt có thể chặn autoplay có tiếng vì lúc này chưa có tương tác nào của user
+        // trên trang (chặn ngay từ đầu, không phải lỗi mạng/link) — YouTube IFrame API không
+        // bắn sự kiện lỗi riêng cho việc này, `playVideo()` gọi xong coi như thành công dù
+        // thực ra không có tiếng gì. Tự kiểm tra lại trạng thái thật sau 1.2s: nếu chưa thực
+        // sự "đang phát" thì đồng bộ lại `playing=false`, để lần bấm Play đầu tiên của user
+        // (có gesture thật) mới là lệnh play() thành công — cùng cách đã sửa cho nhạc Thư viện
+        // (Giai đoạn 8 phần 8).
         onReady: (e: { target: YTPlayer }) => {
           ytPlayerRef.current = e.target
           e.target.setVolume(ytVolume)
           if (ytMuted) e.target.mute()
-          if (playing) e.target.playVideo()
+          if (playing) {
+            e.target.playVideo()
+            setTimeout(() => {
+              if (ytPlayerRef.current === e.target && e.target.getPlayerState() !== 1) setPlaying(false)
+            }, 1200)
+          }
+        },
+        // Đồng bộ tiếp sau khi đã sẵn sàng — bắt cả trường hợp user tự bấm pause/play ngay
+        // trên control gốc của khung video YouTube (khi đang mở rộng xem video), không chỉ
+        // qua nút Play/Pause của app.
+        onStateChange: (e: { data: number }) => {
+          if (e.data === 1) setPlaying(true)
+          else if (e.data === 2 || e.data === 0) setPlaying(false)
         },
       },
     })
@@ -499,7 +521,11 @@ export default function Dashboard() {
         if (cancelled) return
         setCustomWallpapers(
           data
-            .map((r, i) => ({ id: r.id, kind: 'image' as const, value: signed?.[i]?.signedUrl ?? '' }))
+            .map((r, i) => ({
+              id: r.id,
+              kind: isVideoWallpaper(r.storage_path) ? ('video' as const) : ('image' as const),
+              value: signed?.[i]?.signedUrl ?? '',
+            }))
             .filter((w) => w.value),
         )
       })
@@ -655,8 +681,7 @@ export default function Dashboard() {
   const clockTimeText = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0')
 
   const isFocus = mode === 'focus'
-  const chromeVisible = !hidden
-  const dashVisible = !hidden && !isFocus
+  const dashVisible = !isFocus
 
   const openCount = tasks.filter((task) => !task.done).length
   const active = tasks.find((task) => !task.done)
@@ -851,12 +876,6 @@ export default function Dashboard() {
     }
   }
 
-  const chromeStyle = {
-    opacity: chromeVisible ? 1 : 0,
-    transform: `translateY(${chromeVisible ? '0px' : '-12px'})`,
-    pointerEvents: chromeVisible ? ('auto' as const) : ('none' as const),
-    transition: 'opacity 480ms ease, transform 480ms ease',
-  }
   const dashStyleBase = {
     opacity: dashVisible ? 1 : 0,
     pointerEvents: dashVisible ? ('auto' as const) : ('none' as const),
@@ -866,40 +885,67 @@ export default function Dashboard() {
     <div
       className="relative h-svh w-full overflow-hidden bg-cover bg-center font-sans text-[#33475e] antialiased"
       style={{
-        backgroundImage: selectedWallpaper.kind === 'image' ? `url(${selectedWallpaper.value})` : selectedWallpaper.value,
+        backgroundImage:
+          selectedWallpaper.kind === 'gradient'
+            ? selectedWallpaper.value
+            : selectedWallpaper.kind === 'image'
+              ? `url(${selectedWallpaper.value})`
+              : undefined,
         transition: 'background-image 900ms ease',
       }}
     >
+      {/* wallpaper video — .mp4 không gán được qua CSS `background-image` như ảnh/gradient nên
+          render riêng bằng thẻ <video>, phủ kín màn hình ngay dưới lớp phủ màu bên dưới. `key`
+          theo id để React remount hẳn thẻ <video> khi đổi giữa 2 video khác nhau thay vì chỉ đổi
+          `src` (đổi src không tự load lại đáng tin cậy ở mọi trình duyệt). */}
+      {selectedWallpaper.kind === 'video' && (
+        <video
+          key={selectedWallpaper.id}
+          className="absolute inset-0 h-full w-full object-cover"
+          src={selectedWallpaper.value}
+          autoPlay
+          loop
+          muted
+          playsInline
+          // `loop` thường tự lo việc này, nhưng thêm chốt chặn thủ công phòng trường hợp trình
+          // duyệt/codec không tự seek lại về đầu đáng tin cậy (từng gặp với video nặng/độ phân
+          // giải cao) — video "đứng hình" ở khung cuối thay vì chạy lại.
+          onEnded={(e) => {
+            e.currentTarget.currentTime = 0
+            e.currentTarget.play().catch(() => {})
+          }}
+        />
+      )}
       <audio ref={musicAudioRef} loop style={{ display: 'none' }} />
 
       {/* mini player nhạc nền — góc dưới-trái, 1 vị trí + 1 kiểu tương tác (thu gọn thành icon
           tròn, bấm mở ra thanh điều khiển) dùng chung cho cả Thư viện lẫn YouTube, nội dung
           thanh đổi theo `musicSource` đang active (xem hasActiveMusic). Video YouTube (iframe)
-          LUÔN mounted khi đang là nguồn active, kể cả lúc panel đóng hay "Ẩn UI" bật — KHÔNG
-          unmount, chỉ co kích thước + opacity về gần 0, để nhạc không bao giờ bị ngắt (đúng ToS
-          nhúng của YouTube). Video 400x225 chỉ hiện thêm khi bấm nút mở rộng riêng trong thanh. */}
+          LUÔN mounted khi đang là nguồn active, kể cả lúc panel đóng — KHÔNG unmount, chỉ co
+          kích thước + opacity về gần 0, để nhạc không bao giờ bị ngắt (đúng ToS nhúng của
+          YouTube). Video 400x225 chỉ hiện thêm khi bấm nút mở rộng riêng trong thanh. */}
       {hasActiveMusic && (
         <div
           className="absolute z-[41] flex flex-col items-start"
-          style={{ bottom: '34px', left: '26px', gap: !hidden && musicPanelOpen && ytActive && ytVideoVisible ? '8px' : '0px' }}
+          style={{ bottom: '34px', left: '26px', gap: musicPanelOpen && ytActive && ytVideoVisible ? '8px' : '0px' }}
         >
           {ytActive && ytParsed && (
             <div
               className="overflow-hidden rounded-[18px] transition-all duration-300"
               style={{
-                width: !hidden && musicPanelOpen && ytVideoVisible ? 'clamp(200px, 30vw, 400px)' : '1px',
+                width: musicPanelOpen && ytVideoVisible ? 'clamp(200px, 30vw, 400px)' : '1px',
                 aspectRatio: '16 / 9',
-                opacity: !hidden && musicPanelOpen && ytVideoVisible ? 1 : 0,
-                pointerEvents: !hidden && musicPanelOpen && ytVideoVisible ? 'auto' : 'none',
+                opacity: musicPanelOpen && ytVideoVisible ? 1 : 0,
+                pointerEvents: musicPanelOpen && ytVideoVisible ? 'auto' : 'none',
                 background: 'rgba(0,0,0,0.85)',
-                boxShadow: !hidden && musicPanelOpen && ytVideoVisible ? '0 10px 26px rgba(20,30,40,0.28)' : 'none',
+                boxShadow: musicPanelOpen && ytVideoVisible ? '0 10px 26px rgba(20,30,40,0.28)' : 'none',
               }}
             >
               <div ref={ytContainerRef} className="block h-full w-full" />
             </div>
           )}
 
-          <div style={{ opacity: hidden ? 0 : 1, pointerEvents: hidden ? 'none' : 'auto', transition: 'opacity 300ms ease' }}>
+          <div>
             {!musicPanelOpen ? (
               <button
                 onClick={() => setMusicPanelOpen(true)}
@@ -1090,24 +1136,26 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* lớp phủ nền — trắng mờ + blur nhẹ hợp với 6 gradient pastel, nhưng phủ lên ảnh thật thì
-          làm ảnh xám/mất chi tiết; ảnh thật dùng lớp tối rất nhẹ thay thế, không blur, để giữ màu
-          gốc mà card kính trắng vẫn nổi rõ. */}
+      {/* lớp phủ nền — trắng mờ + blur nhẹ hợp với 6 gradient pastel, nhưng phủ lên ảnh/video thật
+          thì làm xám/mất chi tiết; ảnh/video thật dùng lớp tối rất nhẹ thay thế, không blur, để
+          giữ màu gốc mà card kính trắng vẫn nổi rõ. */}
       <div
         className="absolute inset-0"
         style={
-          selectedWallpaper.kind === 'image'
+          selectedWallpaper.kind === 'image' || selectedWallpaper.kind === 'video'
             ? { background: 'rgba(8,20,24,0.12)' }
             : { backdropFilter: 'blur(2px)', background: 'rgba(255,255,255,0.14)' }
         }
       />
 
-      {/* top bar */}
+      {/* top bar — chỉ còn tên app + toggle Focus/Dashboard. Hide UI (Zen mode) và VI/EN đã bỏ
+          khỏi đây (2026-08-06): Hide UI bị coi là dư thừa (làm gần như đúng việc tab Focus đã
+          làm — ẩn bớt widget), còn đổi ngôn ngữ giờ CHỈ làm trong Cài đặt (Settings.tsx đã có
+          sẵn khối "language" y hệt UI cũ ở đây), tránh trùng chỗ chỉnh. */}
       <div className="absolute top-[26px] right-8 left-8 z-40 flex flex-wrap items-center justify-between gap-4">
         <div
           className="flex items-center gap-[11px] rounded-[22px] py-[9px] pr-[18px] pl-[13px]"
           style={{
-            ...chromeStyle,
             background: 'rgba(255,255,255,0.6)',
             boxShadow: '0 6px 20px rgba(64,102,128,0.09)',
             backdropFilter: 'blur(14px)',
@@ -1123,12 +1171,7 @@ export default function Dashboard() {
             {t('app.name')}
           </span>
           <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.5)]">
-            ·{' '}
-            {hidden
-              ? t('dashboard.topbar.zen')
-              : isFocus
-                ? t('dashboard.topbar.focusMode')
-                : t('dashboard.topbar.dashboardMode')}
+            · {isFocus ? t('dashboard.topbar.focusMode') : t('dashboard.topbar.dashboardMode')}
           </span>
         </div>
 
@@ -1138,7 +1181,6 @@ export default function Dashboard() {
               to="/auth"
               className="rounded-[18px] px-4 py-[10px] font-sans text-[13px] font-extrabold text-[#1e3549] no-underline"
               style={{
-                ...chromeStyle,
                 background: 'var(--ff-accent-soft)',
                 boxShadow: '0 6px 20px rgba(64,102,128,0.09)',
               }}
@@ -1149,7 +1191,6 @@ export default function Dashboard() {
           <div
             className="flex gap-1 rounded-[20px] p-[5px]"
             style={{
-              ...chromeStyle,
               background: 'rgba(255,255,255,0.6)',
               boxShadow: '0 6px 20px rgba(64,102,128,0.09)',
               backdropFilter: 'blur(14px)',
@@ -1159,7 +1200,6 @@ export default function Dashboard() {
               onClick={() => {
                 setMode('focus')
                 setPanel(null)
-                setHidden(false)
               }}
               className="rounded-[15px] border-none px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
               style={{
@@ -1170,10 +1210,7 @@ export default function Dashboard() {
               {t('dashboard.topbar.tabFocus')}
             </button>
             <button
-              onClick={() => {
-                setMode('dashboard')
-                setHidden(false)
-              }}
+              onClick={() => setMode('dashboard')}
               className="rounded-[15px] border-none px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
               style={{
                 background: !isFocus ? 'rgba(255,255,255,0.95)' : 'transparent',
@@ -1182,61 +1219,6 @@ export default function Dashboard() {
             >
               {t('dashboard.topbar.tabDashboard')}
             </button>
-          </div>
-          <button
-            onClick={() => {
-              setHidden((h) => !h)
-              setPanel(null)
-            }}
-            title={t('dashboard.topbar.toggleUiTitle')}
-            className="flex items-center gap-2 rounded-[18px] border-none px-[15px] py-[10px] font-sans text-[13px] font-bold text-[#3c5470] transition-all duration-[400ms] hover:!bg-[rgba(255,255,255,0.85)] hover:!opacity-100"
-            style={{
-              background: `rgba(255,255,255,${hidden ? 0.32 : 0.6})`,
-              boxShadow: '0 6px 18px rgba(64,102,128,0.1)',
-              backdropFilter: 'blur(14px)',
-              opacity: hidden ? 0.42 : 1,
-            }}
-          >
-            <svg
-              width="17"
-              height="17"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-              strokeLinecap="round"
-            >
-              <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z" />
-              <circle cx="12" cy="12" r="2.6" />
-              <path d={hidden ? 'M4 20L20 4' : 'M12 12'} />
-            </svg>
-            <span>{hidden ? t('dashboard.topbar.showUi') : t('dashboard.topbar.hideUi')}</span>
-          </button>
-          <div
-            className="flex gap-1 rounded-[20px] p-[5px]"
-            style={{
-              ...chromeStyle,
-              background: 'rgba(255,255,255,0.6)',
-              boxShadow: '0 6px 20px rgba(64,102,128,0.09)',
-              backdropFilter: 'blur(14px)',
-            }}
-          >
-            {(['vi', 'en'] as const).map((lng) => {
-              const on = i18n.resolvedLanguage === lng
-              return (
-                <button
-                  key={lng}
-                  onClick={() => void i18n.changeLanguage(lng)}
-                  className="rounded-[15px] border-none px-3 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
-                  style={{
-                    background: on ? 'rgba(255,255,255,0.95)' : 'transparent',
-                    color: on ? '#25415c' : 'rgba(51,71,94,0.55)',
-                  }}
-                >
-                  {lng.toUpperCase()}
-                </button>
-              )
-            })}
           </div>
         </div>
       </div>
@@ -1249,7 +1231,7 @@ export default function Dashboard() {
         <div
           className="group relative flex items-center justify-center"
           style={{
-            transform: `scale(${isFocus || hidden ? 1 : 0.78})`,
+            transform: `scale(${isFocus ? 1 : 0.78})`,
             transition: 'transform 620ms cubic-bezier(0.22,1,0.36,1)',
           }}
         >
@@ -1611,10 +1593,8 @@ export default function Dashboard() {
         <div
           className="flex items-center gap-3"
           style={{
-            opacity:
-              chromeVisible && (timerType === 'pomodoro' ? !pomodoroStarted : !endlessStarted) ? 1 : 0,
-            pointerEvents:
-              chromeVisible && (timerType === 'pomodoro' ? !pomodoroStarted : !endlessStarted) ? 'auto' : 'none',
+            opacity: (timerType === 'pomodoro' ? !pomodoroStarted : !endlessStarted) ? 1 : 0,
+            pointerEvents: (timerType === 'pomodoro' ? !pomodoroStarted : !endlessStarted) ? 'auto' : 'none',
             transition: 'opacity 480ms ease',
           }}
         >
@@ -1708,66 +1688,6 @@ export default function Dashboard() {
           transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
         }}
       >
-        <div
-          className="rounded-[24px] p-3"
-          style={{
-            background: 'rgba(255,255,255,0.62)',
-            backdropFilter: 'blur(16px)',
-            boxShadow: '0 10px 28px rgba(58,98,126,0.1)',
-          }}
-        >
-          <div
-            className="relative flex h-[148px] items-center justify-center overflow-hidden rounded-[18px]"
-            style={{
-              background: 'linear-gradient(150deg, oklch(0.86 0.045 205), oklch(0.79 0.055 235))',
-            }}
-          >
-            {cameraOn ? (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="absolute inset-0 h-full w-full object-cover"
-                style={{ transform: 'scaleX(-1)' }}
-              />
-            ) : (
-              <div className="flex flex-col items-center gap-2 text-[rgba(255,255,255,0.9)]" style={{ opacity: 0.5 }}>
-                <svg
-                  width="30"
-                  height="30"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                >
-                  <circle cx="12" cy="9" r="3.4" />
-                  <path d="M5 19.5c1.3-3 4-4.4 7-4.4s5.7 1.4 7 4.4" />
-                </svg>
-                <span className="text-xs font-bold">{t('dashboard.rightColumn.cameraOff')}</span>
-              </div>
-            )}
-            <div
-              className="absolute top-[10px] left-[10px] flex items-center gap-[6px] rounded-full px-[9px] py-1 text-[11px] font-extrabold tracking-[0.4px] text-[#2c3f55]"
-              style={{ background: 'rgba(255,255,255,0.82)' }}
-            >
-              <span
-                className="h-[7px] w-[7px] rounded-full"
-                style={{ background: cameraOn ? '#4bbf9a' : 'rgba(51,71,94,0.28)' }}
-              />
-              {t('dashboard.rightColumn.you')}
-            </div>
-          </div>
-          <button
-            onClick={() => setCameraOn((c) => !c)}
-            className="mt-[10px] w-full rounded-[15px] border-none py-[10px] font-sans text-[13px] font-extrabold text-[#2c3f55] transition-colors duration-[220ms] hover:!bg-white"
-            style={{ background: 'rgba(255,255,255,0.72)' }}
-          >
-            {cameraOn ? t('dashboard.rightColumn.turnOffCamera') : t('dashboard.rightColumn.turnOnCamera')}
-          </button>
-        </div>
-
         <button
           onClick={quickStart}
           className="flex w-full items-center gap-3 rounded-[24px] px-[18px] py-[15px] text-left text-inherit transition-[transform,background] duration-[220ms] hover:!bg-white hover:!-translate-y-0.5"
@@ -1807,7 +1727,8 @@ export default function Dashboard() {
         </button>
         <Link
           to="/matching"
-          className="mt-[8px] block text-center text-[12.5px] font-extrabold text-[oklch(0.58_0.075_220)] no-underline hover:text-[oklch(0.5_0.08_220)]"
+          className="mt-[2px] block rounded-[16px] px-3 py-[9px] text-center text-[12.5px] font-extrabold text-[#354c65] no-underline transition-colors duration-[220ms] hover:!bg-[rgba(255,255,255,0.85)]"
+          style={{ background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(14px)' }}
         >
           {t('dashboard.rightColumn.browseRooms')}
         </Link>
@@ -1944,6 +1865,87 @@ export default function Dashboard() {
           {t('dashboard.taskbar.stats')}
         </button>
       </div>
+
+      {/* camera — đặt NGANG HÀNG với Stats/Settings (góc phải dưới), không gộp chung 1 khối,
+          chỉ để nó có "chỗ dựa" cùng cụm icon thay vì đứng trơ trọi một mình như trước (từng
+          nằm riêng ở đầu cột phải). Icon này LUÔN hiện ở đây (kể cả khi BẬT) — trước đó bị ẩn
+          đi lúc bật, làm hàng icon tụt còn 2 cái trông như thiếu — giờ chỉ đổi hình (có gạch
+          chéo khi tắt, chấm xanh khi bật) và bấm để bật/tắt, y như 1 toggle bình thường. Lúc
+          BẬT, khung preview bung thêm lên phía trên đúng vị trí này — cùng cơ chế "bung lên
+          trên từ 1 điểm neo" mà popup Wallpaper/Music/To-do đang dùng với taskbar. */}
+      <button
+        onClick={() => setCameraOn((c) => !c)}
+        title={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
+        aria-label={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
+        className="absolute right-[124px] bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:right-[144px]"
+        style={{
+          ...dashStyleBase,
+          opacity: dashVisible && panel === null ? 1 : 0,
+          pointerEvents: dashVisible && panel === null ? 'auto' : 'none',
+          background: 'rgba(255,255,255,0.66)',
+          backdropFilter: 'blur(18px)',
+          boxShadow: '0 14px 34px rgba(58,98,126,0.14)',
+          transform: `translateY(${dashVisible ? '0px' : '26px'})`,
+          transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
+        }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="6" width="12" height="12" rx="2.5" />
+          <path d="M15 10.5l6-3.3v9.6l-6-3.3" />
+          {!cameraOn && <path d="M3 3l18 18" />}
+        </svg>
+        {cameraOn && (
+          <span
+            className="absolute right-[3px] bottom-[3px] h-[9px] w-[9px] rounded-full"
+            style={{ background: '#4bbf9a', boxShadow: '0 0 0 2px rgba(255,255,255,0.85)' }}
+          />
+        )}
+      </button>
+      {cameraOn && (
+        <div
+          // KHÔNG ẩn theo `panel` (khác Stats/Settings/icon camera lúc tắt) — user báo mở popup
+          // Wallpaper/Music/To-do làm khung camera đang bật biến mất đột ngột, để lại chỗ trống
+          // trông trống trải. Camera đang BẬT thì giữ hiển thị liên tục, chỉ ẩn theo `dashVisible`
+          // (đúng lúc chuyển sang Focus mode — khi đó mọi thứ khác cũng ẩn theo, nhất quán).
+          className="absolute right-3 bottom-[90px] w-[214px] rounded-[24px] p-3 md:right-8"
+          style={{
+            ...dashStyleBase,
+            background: 'rgba(255,255,255,0.62)',
+            backdropFilter: 'blur(16px)',
+            boxShadow: '0 10px 28px rgba(58,98,126,0.1)',
+            transform: `translateY(${dashVisible ? '0px' : '26px'})`,
+            transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
+          }}
+        >
+          <div
+            className="relative flex h-[148px] items-center justify-center overflow-hidden rounded-[18px]"
+            style={{ background: 'linear-gradient(150deg, oklch(0.86 0.045 205), oklch(0.79 0.055 235))' }}
+          >
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{ transform: 'scaleX(-1)' }}
+            />
+            <div
+              className="absolute top-[10px] left-[10px] flex items-center gap-[6px] rounded-full px-[9px] py-1 text-[11px] font-extrabold tracking-[0.4px] text-[#2c3f55]"
+              style={{ background: 'rgba(255,255,255,0.82)' }}
+            >
+              <span className="h-[7px] w-[7px] rounded-full" style={{ background: '#4bbf9a' }} />
+              {t('dashboard.rightColumn.you')}
+            </div>
+          </div>
+          <button
+            onClick={() => setCameraOn(false)}
+            className="mt-[10px] w-full rounded-[15px] border-none py-[10px] font-sans text-[13px] font-extrabold text-[#2c3f55] transition-colors duration-[220ms] hover:!bg-white"
+            style={{ background: 'rgba(255,255,255,0.72)' }}
+          >
+            {t('dashboard.rightColumn.turnOffCamera')}
+          </button>
+        </div>
+      )}
 
       {/* stats — standalone icon-only button, ngay cạnh trái nút Cài đặt, cùng hàng cùng
           kiểu (tròn, frosted glass) — thay cho link text "Stats" trước đây nằm rời trong
@@ -2117,13 +2119,34 @@ export default function Dashboard() {
             <button
               key={option.id}
               onClick={() => setWp(option.id)}
-              className="h-[66px] rounded-[18px] bg-cover bg-center transition-transform duration-200 hover:!-translate-y-0.5"
+              className="relative h-[66px] overflow-hidden rounded-[18px] bg-cover bg-center transition-transform duration-200 hover:!-translate-y-0.5"
               style={{
-                backgroundImage: option.kind === 'image' ? `url(${option.value})` : option.value,
+                backgroundImage:
+                  option.kind === 'gradient'
+                    ? option.value
+                    : option.kind === 'image'
+                      ? `url(${option.value})`
+                      : undefined,
                 border: option.id === wp ? `2px solid ${ACCENT}` : '2px solid rgba(255,255,255,0.7)',
                 boxShadow: '0 4px 12px rgba(58,98,126,0.1)',
               }}
-            />
+            >
+              {/* Popup này LUÔN mounted trong DOM (chỉ ẩn/hiện qua opacity, xem style của popup
+                  bên dưới), không phải mở mới render — nên chỉ render <video> thumbnail khi
+                  popup thật sự đang mở (`panel === 'wp'`), tránh video nền + video thumbnail
+                  cùng giải mã song song VĨNH VIỄN dù popup chưa từng được mở, tốn tài nguyên vô
+                  ích và có thể làm cả 2 video giật/đứng sau 1 lúc. */}
+              {option.kind === 'video' && panel === 'wp' && (
+                <video
+                  className="absolute inset-0 h-full w-full object-cover"
+                  src={option.value}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
+              )}
+            </button>
           ))}
         </div>
         <div className="mt-[14px] text-xs font-semibold text-[rgba(51,71,94,0.5)]">
