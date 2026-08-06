@@ -95,6 +95,7 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Fix bug phải bấm 2 lần nhạc Thư viện mới chạy khi mới vào phòng (autoplay bị trình duyệt chặn nhưng state không đồng bộ lại) — xong 2026-08-05, xem CONTEXT.md "Giai đoạn 9 (phần 8)"
 - [x] Tab "Tiến độ" kiểu GitHub contribution graph (thời gian học + Pomodoro 25:5/50:10 đã hoàn thành theo ngày/năm) + thêm entry point "Thống kê" ở Dashboard — xong 2026-08-05, xem CONTEXT.md "Giai đoạn 9 (phần 9)"
 - [x] Polish theo góp ý user: gộp "Tiến độ" vào "Tổng quan" thành 1 view, màu lưới đổi sang oklch bão hoà cao hơn, biến toàn bộ Stats từ route `/stats` thành popup mở từ Dashboard (đúng pattern Settings) — xong 2026-08-05, xem CONTEXT.md "Giai đoạn 9 (phần 10)"
+- [x] Polish đồng hồ Pomodoro (ẩn nút mũi tên khi không hover, sửa lệch tâm Work/Break), bỏ bar chart tuần ở Stats (trùng `ContributionGraph`), nút "Thống kê" thành icon cạnh Cài đặt, khung video YouTube co giãn theo màn hình, gộp player Thư viện + YouTube thành 1 widget thu gọn/mở rộng có điều khiển thật (play/pause/mute/volume) — xong 2026-08-06, xem CONTEXT.md "Giai đoạn 9 (phần 11)"
 
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).

@@ -4,6 +4,7 @@ import {
   buildContributionDays,
   computeStreaks,
   contributionCellColor,
+  mixAccent,
   type ContributionDay,
   type ContributionRange,
   type ContributionSession,
@@ -44,6 +45,14 @@ export default function ContributionGraph({ sessions }: { sessions: Contribution
 
   const days = useMemo(() => buildContributionDays(sessions, range), [sessions, range])
   const weeks = useMemo(() => buildWeeks(days), [days])
+
+  // Chi tiết 7 ngày gần nhất — luôn tính trên trailing365 bất kể `range` đang chọn năm nào,
+  // để phần "gần đây" ổn định thay vì biến mất khi user bấm xem một năm cũ.
+  const last7Days = useMemo(() => buildContributionDays(sessions, { mode: 'trailing365' }).slice(-7), [sessions])
+  const last7Max = Math.max(1, ...last7Days.map((d) => d.totalMinutes))
+  const last7Best = last7Days.some((d) => d.totalMinutes > 0)
+    ? last7Days.reduce((a, d) => (d.totalMinutes > a.totalMinutes ? d : a), last7Days[0])
+    : null
   const monthFormatter = useMemo(() => new Intl.DateTimeFormat(i18n.language, { month: 'short' }), [i18n.language])
 
   const monthLabels = useMemo(() => {
@@ -178,6 +187,43 @@ export default function ContributionGraph({ sessions }: { sessions: Contribution
             <div key={lv} className="h-[13px] w-[13px] rounded" style={{ background: contributionCellColor(lv) }} />
           ))}
           <span className="text-[11.5px] font-bold text-[rgba(51,71,94,0.42)]">{t('stats.heatmap.more')}</span>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-5 rounded-[30px] px-7 pt-[26px] pb-[22px]" style={cardStyle}>
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-[16.5px] font-extrabold text-[#2c3f55]">{t('stats.contributions.last7Title')}</span>
+          <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">
+            {last7Best
+              ? t('stats.contributions.last7Highest', {
+                  day: t(`stats.weekdaysShort.${WEEKDAY_ROW_KEYS[last7Best.date.getDay()]}`),
+                })
+              : ''}
+          </span>
+        </div>
+        <div className="flex h-[150px] items-end gap-3">
+          {last7Days.map((d) => {
+            const isBest = last7Best !== null && d.key === last7Best.key
+            const weekdayKey = WEEKDAY_ROW_KEYS[d.date.getDay()]
+            return (
+              <div key={d.key} className="flex h-full flex-1 flex-col items-center justify-end gap-[9px]">
+                <span className="text-[12.5px] font-extrabold" style={{ color: isBest ? '#22483f' : 'rgba(51,71,94,0.55)' }}>
+                  {d.totalMinutes}
+                </span>
+                <div
+                  className="w-full rounded-[14px_14px_8px_8px] transition-[height] duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+                  style={{
+                    height: Math.round((d.totalMinutes / last7Max) * 100) + '%',
+                    background: isBest ? mixAccent(58) : mixAccent(32),
+                    boxShadow: '0 6px 14px rgba(58,98,126,0.08)',
+                  }}
+                />
+                <span className="text-[12.5px] font-bold" style={{ color: isBest ? '#2c3f55' : 'rgba(51,71,94,0.5)' }}>
+                  {t(`stats.weekdaysShort.${weekdayKey}`)}
+                </span>
+              </div>
+            )
+          })}
         </div>
       </div>
 

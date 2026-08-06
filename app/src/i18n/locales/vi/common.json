@@ -95,8 +95,7 @@
       "turnOnCamera": "Bật camera",
       "studyTogether": "Học cùng nhau",
       "findStudyBuddy": "Tìm bạn học online",
-      "browseRooms": "Duyệt phòng thủ công",
-      "stats": "Thống kê"
+      "browseRooms": "Duyệt phòng thủ công"
     },
     "quickMatch": {
       "hint": "Đang tìm bạn học cho bạn…"
@@ -138,6 +137,14 @@
       "youtubeCurrent": "Đang phát: {{url}}",
       "youtubeSaved": "Đã lưu: {{url}}",
       "youtubeEmpty": "Chưa có link YouTube nào. Dán 1 link ở trên."
+    },
+    "musicMini": {
+      "open": "Mở trình phát nhạc",
+      "collapse": "Thu gọn trình phát",
+      "mute": "Tắt tiếng",
+      "unmute": "Bật tiếng",
+      "showVideo": "Hiện video",
+      "hideVideo": "Ẩn video"
     },
     "todoPanel": {
       "title": "Việc cần làm",
@@ -292,10 +299,6 @@
       "daysUnit": "ngày",
       "bestStreak": "Kỷ lục của bạn: {{count}} ngày"
     },
-    "barChart": {
-      "title": "Phút tập trung theo ngày",
-      "highest": " · cao nhất {{day}}"
-    },
     "heatmap": {
       "less": "ít",
       "more": "nhiều"
@@ -317,7 +320,9 @@
       "tooltipEmpty": "{{date}} · Không học",
       "activeDaysLabel": "Ngày có học",
       "pomo25Label": "Pomodoro 25:5 hoàn thành",
-      "pomo50Label": "Pomodoro 50:10 hoàn thành"
+      "pomo50Label": "Pomodoro 50:10 hoàn thành",
+      "last7Title": "7 ngày gần đây",
+      "last7Highest": " · cao nhất {{day}}"
     }
   },
   "settings": {
