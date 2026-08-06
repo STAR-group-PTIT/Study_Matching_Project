@@ -340,18 +340,23 @@ export default function Dashboard() {
   // 2 cụm UI khác nhau như trước (thẻ Thư viện luôn mở nổi giữa taskbar vs icon YouTube).
   // Nội dung bên trong thanh đổi tuỳ `musicSource` đang active — xem hasActiveMusic bên dưới.
   const [musicPanelOpen, setMusicPanelOpen] = useState(false)
+  // Đổi nguồn (chọn bài Thư viện, hoặc bấm "Dùng link này"/"Phát" cho YouTube ở popup "Nhạc
+  // nền") thì tự MỞ panel lên luôn — user vừa chủ động chọn nhạc thì nên thấy ngay điều khiển,
+  // không phải tự bấm icon lần nữa. So với giá trị `musicSource` LẦN TRƯỚC (không phải cờ
+  // "đã chạy lần đầu chưa") để không mở nhầm lúc mount — StrictMode chạy effect 2 lần liên
+  // tiếp với cùng 1 giá trị nên cách dùng cờ boolean đơn giản sẽ bị lật sai ở lần chạy thứ 2.
+  const prevMusicSourceRef = useRef<MusicSource | null>(null)
+  useEffect(() => {
+    if (prevMusicSourceRef.current !== null && prevMusicSourceRef.current !== musicSource) {
+      setMusicPanelOpen(true)
+    }
+    prevMusicSourceRef.current = musicSource
+  }, [musicSource])
   // Video YouTube (400x225) chỉ hiện thêm khi user chủ động bấm mở rộng trong thanh — chỉ có
   // ý nghĩa khi nguồn đang active là YouTube (Thư viện không có video để hiện).
   const [ytVideoVisible, setYtVideoVisible] = useState(false)
   const [ytMuted, setYtMuted] = useState(false)
   const [ytVolume, setYtVolume] = useState(70)
-  // Đổi nguồn (Thư viện <-> YouTube) thì tự thu gọn panel về icon — 2 nguồn có nội dung/kích
-  // thước thanh khác hẳn nhau (thanh ngang gọn của YouTube vs thẻ dọc có tên bài + tua của Thư
-  // viện), giữ mở sẽ bị giật hình dạng đột ngột. Thu gọn lại để mở ra lần nữa luôn đúng ý.
-  useEffect(() => {
-    setMusicPanelOpen(false)
-    setYtVideoVisible(false)
-  }, [musicSource])
   useEffect(() => {
     if (ytActive) ytPlayerRef.current?.setVolume(ytVolume)
   }, [ytActive, ytVolume])
