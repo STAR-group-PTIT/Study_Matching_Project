@@ -97,6 +97,7 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Polish theo góp ý user: gộp "Tiến độ" vào "Tổng quan" thành 1 view, màu lưới đổi sang oklch bão hoà cao hơn, biến toàn bộ Stats từ route `/stats` thành popup mở từ Dashboard (đúng pattern Settings) — xong 2026-08-05, xem CONTEXT.md "Giai đoạn 9 (phần 10)"
 - [x] Polish đồng hồ Pomodoro (ẩn nút mũi tên khi không hover, sửa lệch tâm Work/Break), bỏ bar chart tuần ở Stats (trùng `ContributionGraph`), nút "Thống kê" thành icon cạnh Cài đặt, khung video YouTube co giãn theo màn hình, gộp player Thư viện + YouTube thành 1 widget thu gọn/mở rộng có điều khiển thật (play/pause/mute/volume) — xong 2026-08-06, xem CONTEXT.md "Giai đoạn 9 (phần 11)"
 - [x] Sửa lại panel nhạc nền: không tự đóng về icon khi đổi nguồn (hiểu nhầm yêu cầu ở phần 11) + thêm tự mở panel khi đổi nguồn lúc đang thu gọn — xong 2026-08-06, xem CONTEXT.md "Giai đoạn 9 (phần 12)"
+- [x] Polish Dashboard theo loạt góp ý user: gom rồi bỏ hẳn Hide UI/VI-EN khỏi top bar, camera chuyển vị trí 2 lần (cột phải riêng → icon ngang hàng Stats/Settings → không tự ẩn/mất khi bật), nổi bật link "Duyệt phòng thủ công"; sửa bug nhạc YouTube bị chặn autoplay im lặng; wallpaper hỗ trợ GIF động + video MP4 (kèm tự resize ảnh tĩnh khi upload, sửa bug video giải mã trùng lặp/đứng hình) — xong 2026-08-06, xem CONTEXT.md "Giai đoạn 9 (phần 13)"
 
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).

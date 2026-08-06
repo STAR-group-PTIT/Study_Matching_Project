@@ -40,6 +40,7 @@ export type YTPlayer = {
   pauseVideo: () => void
   seekTo: (seconds: number, allowSeekAhead: boolean) => void
   getCurrentTime: () => number
+  getPlayerState: () => number
   setVolume: (v: number) => void
   mute: () => void
   unMute: () => void

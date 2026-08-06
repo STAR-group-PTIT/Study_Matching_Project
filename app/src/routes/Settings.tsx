@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 import { parseYoutubeUrl, DEFAULT_YOUTUBE_URL } from '../lib/youtube'
+import { isVideoWallpaper } from '../lib/wallpaper'
 
 const GRADIENTS = [
   'linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)',
@@ -16,7 +17,46 @@ const GRADIENTS = [
 ]
 
 const MAX_WALLPAPER_BYTES = 5 * 1024 * 1024
+// Video nền (mp4) nặng hơn ảnh tĩnh dù đã nén tốt (dù mp4 vẫn nhẹ hơn GIF nhiều lần ở cùng chất
+// lượng) — cho cap riêng cao hơn thay vì dùng chung MAX_WALLPAPER_BYTES với ảnh.
+const MAX_WALLPAPER_VIDEO_BYTES = 15 * 1024 * 1024
 const MAX_TRACK_BYTES = 25 * 1024 * 1024
+
+// Ảnh nền upload thường chụp thẳng từ điện thoại (4000x3000+), nặng hơn nhiều so với mức cần
+// thiết để làm background (màn hình lớn nhất thực tế cũng chỉ ~2560x1440). Tự co về tối đa
+// Full HD trước khi lưu lên Storage — giảm dung lượng đáng kể mà mắt thường không thấy khác
+// biệt khi dùng làm nền toàn màn hình, user không cần tự nén tay.
+const MAX_WALLPAPER_WIDTH = 1920
+const MAX_WALLPAPER_HEIGHT = 1080
+
+// Chỉ resize ảnh TĨNH thật (jpg/png/webp) — GIF/mp4 bỏ qua vì canvas chỉ vẽ được 1 khung hình,
+// resize qua canvas sẽ làm mất hoạt hình/chuyển động (GIF chỉ còn khung đầu, video thì canvas
+// không đọc được luôn).
+const RESIZABLE_STATIC_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+async function resizeWallpaperIfOversized(file: File): Promise<File> {
+  if (!RESIZABLE_STATIC_TYPES.has(file.type)) return file
+  const bitmap = await createImageBitmap(file)
+  if (bitmap.width <= MAX_WALLPAPER_WIDTH && bitmap.height <= MAX_WALLPAPER_HEIGHT) {
+    bitmap.close()
+    return file
+  }
+  const scale = Math.min(MAX_WALLPAPER_WIDTH / bitmap.width, MAX_WALLPAPER_HEIGHT / bitmap.height)
+  const targetWidth = Math.round(bitmap.width * scale)
+  const targetHeight = Math.round(bitmap.height * scale)
+  const canvas = document.createElement('canvas')
+  canvas.width = targetWidth
+  canvas.height = targetHeight
+  const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    bitmap.close()
+    return file
+  }
+  ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight)
+  bitmap.close()
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, file.type, 0.88))
+  if (!blob) return file
+  return new File([blob], file.name, { type: blob.type })
+}
 
 const ACCENT_PRESETS = [
   { hue: 195, key: 'mint' },
@@ -336,11 +376,16 @@ export default function Settings({ onClose }: { onClose: () => void }) {
   }
 
   async function handleWallpaperFile(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
+    const rawFile = e.target.files?.[0]
     e.target.value = ''
-    if (!file || !user) return
-    if (file.size > MAX_WALLPAPER_BYTES) {
-      alert(t('settings.wallpapers.tooLarge'))
+    if (!rawFile || !user) return
+    // Resize trước rồi mới kiểm tra dung lượng — ảnh chụp thẳng từ điện thoại thường vượt xa
+    // MAX_WALLPAPER_BYTES ở kích thước gốc nhưng lọt qua dễ dàng sau khi co về Full HD.
+    const file = await resizeWallpaperIfOversized(rawFile).catch(() => rawFile)
+    const isVideo = isVideoWallpaper(file.name)
+    const maxBytes = isVideo ? MAX_WALLPAPER_VIDEO_BYTES : MAX_WALLPAPER_BYTES
+    if (file.size > maxBytes) {
+      alert(t(isVideo ? 'settings.wallpapers.tooLargeVideo' : 'settings.wallpapers.tooLarge'))
       return
     }
     const path = `${user.id}/${crypto.randomUUID()}-${file.name}`
@@ -533,18 +578,36 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                 </span>
               </div>
               <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
-                {wallpapers.map((w, i) => (
+                {wallpapers.map((w, i) => {
+                  const isVideo = w.url && isVideoWallpaper(w.name)
+                  return (
                   <div
                     key={w.id}
                     className="relative h-[100px] overflow-hidden rounded-[22px]"
                     style={{
-                      ...(w.url
+                      ...(w.url && !isVideo
                         ? { backgroundImage: `url(${w.url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                        : { background: GRADIENTS[i % GRADIENTS.length] }),
+                        : !w.url
+                          ? { background: GRADIENTS[i % GRADIENTS.length] }
+                          : {}),
                       boxShadow: '0 6px 16px rgba(58,98,126,0.1)',
                       border: i === 0 ? '2px solid var(--ff-accent-border)' : '2px solid rgba(255,255,255,0.75)',
                     }}
                   >
+                    {isVideo && (
+                      <video
+                        className="absolute inset-0 h-full w-full object-cover"
+                        src={w.url ?? undefined}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        onEnded={(e) => {
+                          e.currentTarget.currentTime = 0
+                          e.currentTarget.play().catch(() => {})
+                        }}
+                      />
+                    )}
                     <span
                       className="absolute bottom-[9px] left-[11px] rounded-[9px] px-2 py-1 font-mono text-[10.5px] text-[rgba(51,71,94,0.62)]"
                       style={{ background: 'rgba(255,255,255,0.72)' }}
@@ -562,7 +625,8 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                       </svg>
                     </button>
                   </div>
-                ))}
+                  )
+                })}
                 <button
                   onClick={() => wallpaperInputRef.current?.click()}
                   className="flex h-[100px] cursor-pointer flex-col items-center justify-center gap-[5px] rounded-[22px] border-2 border-dashed border-[rgba(51,71,94,0.18)] font-sans text-[13px] font-bold text-[rgba(51,71,94,0.55)] transition-all duration-[220ms] hover:!border-[rgba(126,201,198,0.9)] hover:!text-[#2c5b53]"
@@ -571,7 +635,13 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                   <span className="text-[22px] leading-none font-bold">+</span>
                   {t('settings.wallpapers.add')}
                 </button>
-                <input ref={wallpaperInputRef} type="file" accept="image/jpeg,image/png" hidden onChange={handleWallpaperFile} />
+                <input
+                  ref={wallpaperInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4"
+                  hidden
+                  onChange={handleWallpaperFile}
+                />
               </div>
               <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.45)]">
                 {t('settings.wallpapers.hint')}

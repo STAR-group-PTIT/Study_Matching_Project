@@ -53,15 +53,11 @@
   },
   "dashboard": {
     "topbar": {
-      "zen": "Zen",
       "focusMode": "Focus mode",
       "dashboardMode": "Dashboard mode",
       "login": "Đăng nhập",
       "tabFocus": "Focus",
-      "tabDashboard": "Dashboard",
-      "toggleUiTitle": "Ẩn / hiện giao diện",
-      "showUi": "Hiện UI",
-      "hideUi": "Ẩn UI"
+      "tabDashboard": "Dashboard"
     },
     "clock": {
       "focusing": "Đang tập trung",
@@ -89,7 +85,6 @@
       "remaining": "{{open}} việc còn lại · {{done}} đã xong"
     },
     "rightColumn": {
-      "cameraOff": "Camera đang tắt",
       "you": "Bạn",
       "turnOffCamera": "Tắt camera",
       "turnOnCamera": "Bật camera",
@@ -343,8 +338,9 @@
       "count": "{{count}} ảnh",
       "delete": "Xoá",
       "add": "Thêm ảnh",
-      "hint": "JPG hoặc PNG, tối đa 5 MB mỗi ảnh.",
-      "tooLarge": "Ảnh tối đa 5 MB."
+      "hint": "JPG, PNG, WEBP, GIF (kể cả ảnh động) hoặc MP4, tối đa 5 MB mỗi ảnh / 15 MB mỗi video — ảnh tĩnh vượt quá 1920x1080 sẽ tự động thu nhỏ.",
+      "tooLarge": "Ảnh tối đa 5 MB.",
+      "tooLargeVideo": "Video tối đa 15 MB."
     },
     "music": {
       "title": "Nhạc của tôi",
