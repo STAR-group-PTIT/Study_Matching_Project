@@ -345,13 +345,6 @@ export default function Dashboard() {
   const [ytVideoVisible, setYtVideoVisible] = useState(false)
   const [ytMuted, setYtMuted] = useState(false)
   const [ytVolume, setYtVolume] = useState(70)
-  // Đổi nguồn (Thư viện <-> YouTube) thì tự thu gọn panel về icon — 2 nguồn có nội dung/kích
-  // thước thanh khác hẳn nhau (thanh ngang gọn của YouTube vs thẻ dọc có tên bài + tua của Thư
-  // viện), giữ mở sẽ bị giật hình dạng đột ngột. Thu gọn lại để mở ra lần nữa luôn đúng ý.
-  useEffect(() => {
-    setMusicPanelOpen(false)
-    setYtVideoVisible(false)
-  }, [musicSource])
   useEffect(() => {
     if (ytActive) ytPlayerRef.current?.setVolume(ytVolume)
   }, [ytActive, ytVolume])
