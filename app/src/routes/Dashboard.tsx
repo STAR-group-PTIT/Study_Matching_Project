@@ -246,12 +246,10 @@ export default function Dashboard() {
   // + nút bài trước/bài tiếp ở popup "Nhạc nền" > Thư viện.
   const [audioCurrentTime, setAudioCurrentTime] = useState(0)
   const [audioDuration, setAudioDuration] = useState(0)
-  // Âm lượng nhạc Thư viện — chỉ áp dụng cho <audio>, không áp dụng cho YouTube (widget
-  // YouTube đã có nút chỉnh âm lượng thật riêng trong chính iframe của nó rồi). Nhớ qua
-  // localStorage giống các tuỳ chỉnh khác (wallpaper/camera/nhạc) để không phải chỉnh lại
-  // mỗi lần mở app.
+  // Âm lượng nhạc Thư viện — chỉ áp dụng cho <audio>; nhạc YouTube có state âm lượng riêng
+  // (ytVolume/ytMuted, xem thanh mini YouTube bên dưới). Nhớ qua localStorage giống các tuỳ
+  // chỉnh khác (wallpaper/camera/nhạc) để không phải chỉnh lại mỗi lần mở app.
   const [libraryVolume, setLibraryVolume] = useState(loadStoredLibraryVolume)
-  const [volumePopoverOpen, setVolumePopoverOpen] = useState(false)
   useEffect(() => {
     try {
       localStorage.setItem(LIBRARY_VOLUME_KEY, String(libraryVolume))
@@ -337,6 +335,33 @@ export default function Dashboard() {
   const ytActive = musicSource === 'youtube'
   const ytParsed = useMemo(() => (youtubeUrl ? parseYoutubeUrl(youtubeUrl) : null), [youtubeUrl])
 
+  // Widget mini nhạc nền góc dưới-trái — dùng CHUNG 1 vị trí + 1 kiểu tương tác (thu gọn
+  // thành icon tròn, bấm mở ra thanh điều khiển) cho cả 2 nguồn Thư viện/YouTube, thay vì
+  // 2 cụm UI khác nhau như trước (thẻ Thư viện luôn mở nổi giữa taskbar vs icon YouTube).
+  // Nội dung bên trong thanh đổi tuỳ `musicSource` đang active — xem hasActiveMusic bên dưới.
+  const [musicPanelOpen, setMusicPanelOpen] = useState(false)
+  // Video YouTube (400x225) chỉ hiện thêm khi user chủ động bấm mở rộng trong thanh — chỉ có
+  // ý nghĩa khi nguồn đang active là YouTube (Thư viện không có video để hiện).
+  const [ytVideoVisible, setYtVideoVisible] = useState(false)
+  const [ytMuted, setYtMuted] = useState(false)
+  const [ytVolume, setYtVolume] = useState(70)
+  // Đổi nguồn (Thư viện <-> YouTube) thì tự thu gọn panel về icon — 2 nguồn có nội dung/kích
+  // thước thanh khác hẳn nhau (thanh ngang gọn của YouTube vs thẻ dọc có tên bài + tua của Thư
+  // viện), giữ mở sẽ bị giật hình dạng đột ngột. Thu gọn lại để mở ra lần nữa luôn đúng ý.
+  useEffect(() => {
+    setMusicPanelOpen(false)
+    setYtVideoVisible(false)
+  }, [musicSource])
+  useEffect(() => {
+    if (ytActive) ytPlayerRef.current?.setVolume(ytVolume)
+  }, [ytActive, ytVolume])
+  useEffect(() => {
+    if (!ytActive) return
+    if (ytMuted) ytPlayerRef.current?.mute()
+    else ytPlayerRef.current?.unMute()
+  }, [ytActive, ytMuted])
+  const hasActiveMusic = (ytActive && !!ytParsed) || (musicSource === 'library' && tracks.length > 0)
+
   useEffect(() => {
     if (!ytActive) return
     let cancelled = false
@@ -351,13 +376,15 @@ export default function Dashboard() {
   useEffect(() => {
     if (!ytActive || !ytReady || !ytParsed || !ytContainerRef.current) return
     const player = new window.YT!.Player(ytContainerRef.current, {
-      width: '400',
-      height: '225',
+      width: '100%',
+      height: '100%',
       videoId: ytParsed.videoId || undefined,
       playerVars: { listType: ytParsed.playlistId ? 'playlist' : undefined, list: ytParsed.playlistId || undefined, playsinline: 1 },
       events: {
         onReady: (e: { target: YTPlayer }) => {
           ytPlayerRef.current = e.target
+          e.target.setVolume(ytVolume)
+          if (ytMuted) e.target.mute()
           if (playing) e.target.playVideo()
         },
       },
@@ -840,26 +867,221 @@ export default function Dashboard() {
     >
       <audio ref={musicAudioRef} loop style={{ display: 'none' }} />
 
-      {/* mini player YouTube — góc dưới-trái, cùng hàng với taskbar. Khi "Ẩn UI" bật thì
-          chỉ co lại 1x1px + opacity 0 (KHÔNG unmount, KHÔNG display:none/visibility:hidden)
-          — iframe vẫn "hiện thật" theo đúng ToS nhúng của YouTube và tiếp tục phát audio
-          bình thường, chỉ là không nhìn thấy nữa. Unmount hẳn sẽ huỷ luôn YT.Player và
-          dừng nhạc, không phải điều user muốn ("chỉ ẩn hình, giữ nhạc"). */}
-      {ytActive && ytParsed && (
+      {/* mini player nhạc nền — góc dưới-trái, 1 vị trí + 1 kiểu tương tác (thu gọn thành icon
+          tròn, bấm mở ra thanh điều khiển) dùng chung cho cả Thư viện lẫn YouTube, nội dung
+          thanh đổi theo `musicSource` đang active (xem hasActiveMusic). Video YouTube (iframe)
+          LUÔN mounted khi đang là nguồn active, kể cả lúc panel đóng hay "Ẩn UI" bật — KHÔNG
+          unmount, chỉ co kích thước + opacity về gần 0, để nhạc không bao giờ bị ngắt (đúng ToS
+          nhúng của YouTube). Video 400x225 chỉ hiện thêm khi bấm nút mở rộng riêng trong thanh. */}
+      {hasActiveMusic && (
         <div
-          className="absolute z-[41] overflow-hidden rounded-[18px] transition-all duration-300"
-          style={{
-            bottom: '34px',
-            left: '26px',
-            width: hidden ? '1px' : '400px',
-            height: hidden ? '1px' : '225px',
-            opacity: hidden ? 0 : 1,
-            pointerEvents: hidden ? 'none' : 'auto',
-            background: 'rgba(0,0,0,0.85)',
-            boxShadow: hidden ? 'none' : '0 10px 26px rgba(20,30,40,0.28)',
-          }}
+          className="absolute z-[41] flex flex-col items-start"
+          style={{ bottom: '34px', left: '26px', gap: !hidden && musicPanelOpen && ytActive && ytVideoVisible ? '8px' : '0px' }}
         >
-          <div ref={ytContainerRef} className="block h-[225px] w-[400px]" />
+          {ytActive && ytParsed && (
+            <div
+              className="overflow-hidden rounded-[18px] transition-all duration-300"
+              style={{
+                width: !hidden && musicPanelOpen && ytVideoVisible ? 'clamp(200px, 30vw, 400px)' : '1px',
+                aspectRatio: '16 / 9',
+                opacity: !hidden && musicPanelOpen && ytVideoVisible ? 1 : 0,
+                pointerEvents: !hidden && musicPanelOpen && ytVideoVisible ? 'auto' : 'none',
+                background: 'rgba(0,0,0,0.85)',
+                boxShadow: !hidden && musicPanelOpen && ytVideoVisible ? '0 10px 26px rgba(20,30,40,0.28)' : 'none',
+              }}
+            >
+              <div ref={ytContainerRef} className="block h-full w-full" />
+            </div>
+          )}
+
+          <div style={{ opacity: hidden ? 0 : 1, pointerEvents: hidden ? 'none' : 'auto', transition: 'opacity 300ms ease' }}>
+            {!musicPanelOpen ? (
+              <button
+                onClick={() => setMusicPanelOpen(true)}
+                title={t('dashboard.musicMini.open')}
+                aria-label={t('dashboard.musicMini.open')}
+                className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-200 hover:!bg-white"
+                style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px rgba(58,98,126,0.14)' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18V6l10-2v12" />
+                  <circle cx="6.5" cy="18" r="2.5" />
+                  <circle cx="16.5" cy="16" r="2.5" />
+                </svg>
+                {playing && (
+                  <span
+                    className="absolute right-[3px] bottom-[3px] h-[9px] w-[9px] rounded-full"
+                    style={{ background: '#4bbf9a', boxShadow: '0 0 0 2px rgba(255,255,255,0.85)' }}
+                  />
+                )}
+              </button>
+            ) : ytActive ? (
+              <div
+                className="flex items-center gap-[4px] rounded-full py-[8px] pr-[12px] pl-[8px]"
+                style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px rgba(58,98,126,0.14)' }}
+              >
+                <button
+                  onClick={() => {
+                    setMusicPanelOpen(false)
+                    setYtVideoVisible(false)
+                  }}
+                  title={t('dashboard.musicMini.collapse')}
+                  aria-label={t('dashboard.musicMini.collapse')}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-200 hover:!bg-white"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 18V6l10-2v12" />
+                    <circle cx="6.5" cy="18" r="2.5" />
+                    <circle cx="16.5" cy="16" r="2.5" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setPlaying((p) => !p)}
+                  title={playing ? t('dashboard.musicPopup.pause') : t('dashboard.musicPopup.play')}
+                  aria-label={playing ? t('dashboard.musicPopup.pause') : t('dashboard.musicPopup.play')}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-200 hover:!bg-white"
+                >
+                  {playing ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <rect x="6" y="5" width="4" height="14" />
+                      <rect x="14" y="5" width="4" height="14" />
+                    </svg>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  )}
+                </button>
+                <button
+                  onClick={() => setYtMuted((m) => !m)}
+                  title={ytMuted ? t('dashboard.musicMini.unmute') : t('dashboard.musicMini.mute')}
+                  aria-label={ytMuted ? t('dashboard.musicMini.unmute') : t('dashboard.musicMini.mute')}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-200 hover:!bg-white"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z" />
+                    <path d={ytMuted ? 'M15.5 9.5l4 5m0-5l-4 5' : 'M15.5 9a4 4 0 010 6'} />
+                  </svg>
+                </button>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={ytVolume}
+                  onChange={(e) => setYtVolume(Number(e.target.value))}
+                  title={t('dashboard.musicPopup.volume')}
+                  aria-label={t('dashboard.musicPopup.volume')}
+                  className="ff-range"
+                  style={{ width: '64px' }}
+                />
+                <button
+                  onClick={() => setYtVideoVisible((v) => !v)}
+                  title={ytVideoVisible ? t('dashboard.musicMini.hideVideo') : t('dashboard.musicMini.showVideo')}
+                  aria-label={ytVideoVisible ? t('dashboard.musicMini.hideVideo') : t('dashboard.musicMini.showVideo')}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-200 hover:!bg-white"
+                  style={{ background: ytVideoVisible ? 'rgba(255,255,255,0.85)' : 'transparent' }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="5" width="18" height="14" rx="3" />
+                    <path d="M9.5 9v6l5-3z" fill="currentColor" stroke="none" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <div
+                className="flex w-[280px] max-w-[calc(100vw-52px)] flex-col gap-[8px] rounded-[22px] px-4 py-3"
+                style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px rgba(58,98,126,0.14)' }}
+              >
+                <span className="truncate text-[13px] font-bold text-[#2f4459]" title={tracks[track]?.name}>
+                  {tracks[track]?.name}
+                </span>
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    onClick={() => setMusicPanelOpen(false)}
+                    title={t('dashboard.musicMini.collapse')}
+                    aria-label={t('dashboard.musicMini.collapse')}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-200 hover:!bg-white"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 18V6l10-2v12" />
+                      <circle cx="6.5" cy="18" r="2.5" />
+                      <circle cx="16.5" cy="16" r="2.5" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => playRelativeTrack(-1)}
+                    title={t('dashboard.musicPopup.prevTrack')}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
+                    style={{ background: 'rgba(255,255,255,0.6)' }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                      <rect x="5" y="5" width="3" height="14" />
+                      <path d="M18 5v14l-8-7z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setPlaying((p) => !p)}
+                    title={playing ? t('dashboard.musicPopup.pause') : t('dashboard.musicPopup.play')}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#21384f] transition-transform duration-200 hover:-translate-y-0.5"
+                    style={{ background: 'rgba(140,205,196,0.45)' }}
+                  >
+                    {playing ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="5" width="4" height="14" />
+                        <rect x="14" y="5" width="4" height="14" />
+                      </svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => playRelativeTrack(1)}
+                    title={t('dashboard.musicPopup.nextTrack')}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
+                    style={{ background: 'rgba(255,255,255,0.6)' }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M6 5v14l8-7z" />
+                      <rect x="16" y="5" width="3" height="14" />
+                    </svg>
+                  </button>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={libraryVolume}
+                    onChange={(e) => setLibraryVolume(Number(e.target.value))}
+                    title={t('dashboard.musicPopup.volume')}
+                    aria-label={t('dashboard.musicPopup.volume')}
+                    className="ff-range"
+                    style={{ width: '52px' }}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-7 shrink-0 text-right text-[11px] font-semibold text-[rgba(51,71,94,0.5)] tabular-nums">
+                    {fmtTrackTime(audioCurrentTime)}
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={audioDuration || 0}
+                    step={0.1}
+                    value={Math.min(audioCurrentTime, audioDuration || 0)}
+                    onChange={(e) => seekTrackTo(Number(e.target.value))}
+                    disabled={!audioDuration}
+                    className="ff-range w-full flex-1"
+                  />
+                  <span className="w-7 shrink-0 text-[11px] font-semibold text-[rgba(51,71,94,0.5)] tabular-nums">
+                    {fmtTrackTime(audioDuration)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -1020,7 +1242,7 @@ export default function Dashboard() {
         style={{ gap: 'clamp(14px, 3vh, 24px)' }}
       >
         <div
-          className="relative flex items-center justify-center"
+          className="group relative flex items-center justify-center"
           style={{
             transform: `scale(${isFocus || hidden ? 1 : 0.78})`,
             transition: 'transform 620ms cubic-bezier(0.22,1,0.36,1)',
@@ -1075,17 +1297,19 @@ export default function Dashboard() {
                     <span className="text-[13px] font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.62)] uppercase">
                       {t('dashboard.clock.loopLabel')}
                     </span>
-                    <div className="flex items-center gap-[14px]">
-                      <button
-                        onClick={() => nudgeLoopCount(-1)}
-                        aria-label="-"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
-                        style={{ background: 'rgba(255,255,255,0.85)' }}
-                      >
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M15 6l-6 6 6 6" />
-                        </svg>
-                      </button>
+                    <div className="flex items-center">
+                      <div className="h-9 w-0 shrink-0 overflow-hidden transition-[width,margin] duration-200 ease-out group-hover:mr-[14px] group-hover:w-9 focus-within:mr-[14px] focus-within:w-9">
+                        <button
+                          onClick={() => nudgeLoopCount(-1)}
+                          aria-label="-"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
+                          style={{ background: 'rgba(255,255,255,0.85)' }}
+                        >
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M15 6l-6 6 6 6" />
+                          </svg>
+                        </button>
+                      </div>
                       {editingField === 'loop' ? (
                         <input
                           autoFocus
@@ -1109,33 +1333,37 @@ export default function Dashboard() {
                           {sessionCount}
                         </span>
                       )}
-                      <button
-                        onClick={() => nudgeLoopCount(1)}
-                        aria-label="+"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
-                        style={{ background: 'rgba(255,255,255,0.85)' }}
-                      >
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M9 6l6 6-6 6" />
-                        </svg>
-                      </button>
+                      <div className="h-9 w-0 shrink-0 overflow-hidden transition-[width,margin] duration-200 ease-out group-hover:ml-[14px] group-hover:w-9 focus-within:ml-[14px] focus-within:w-9">
+                        <button
+                          onClick={() => nudgeLoopCount(1)}
+                          aria-label="+"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
+                          style={{ background: 'rgba(255,255,255,0.85)' }}
+                        >
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 6l6 6-6 6" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-start gap-9">
-                    <div className="flex flex-col items-center gap-[6px]">
-                      <span className="text-[13px] font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.62)] uppercase">
+                    <div className="flex w-[76px] flex-col items-center">
+                      <span className="mb-[6px] text-[13px] font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.62)] uppercase">
                         {t('dashboard.clock.workLabel')}
                       </span>
-                      <button
-                        onClick={() => nudgeFocusMinutes(5)}
-                        aria-label="+"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
-                        style={{ background: 'rgba(255,255,255,0.85)' }}
-                      >
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M6 15l6-6 6 6" />
-                        </svg>
-                      </button>
+                      <div className="h-0 w-9 shrink-0 overflow-hidden transition-[height,margin] duration-200 ease-out group-hover:mb-[6px] group-hover:h-9 focus-within:mb-[6px] focus-within:h-9">
+                        <button
+                          onClick={() => nudgeFocusMinutes(5)}
+                          aria-label="+"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
+                          style={{ background: 'rgba(255,255,255,0.85)' }}
+                        >
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M6 15l6-6 6 6" />
+                          </svg>
+                        </button>
+                      </div>
                       {editingField === 'work' ? (
                         <input
                           autoFocus
@@ -1160,31 +1388,35 @@ export default function Dashboard() {
                           {focusMin}
                         </span>
                       )}
-                      <button
-                        onClick={() => nudgeFocusMinutes(-5)}
-                        aria-label="-"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
-                        style={{ background: 'rgba(255,255,255,0.85)' }}
-                      >
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M6 9l6 6 6-6" />
-                        </svg>
-                      </button>
+                      <div className="h-0 w-9 shrink-0 overflow-hidden transition-[height,margin] duration-200 ease-out group-hover:mt-[6px] group-hover:h-9 focus-within:mt-[6px] focus-within:h-9">
+                        <button
+                          onClick={() => nudgeFocusMinutes(-5)}
+                          aria-label="-"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
+                          style={{ background: 'rgba(255,255,255,0.85)' }}
+                        >
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M6 9l6 6 6-6" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex flex-col items-center gap-[6px]">
-                      <span className="text-[13px] font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.62)] uppercase">
+                    <div className="flex w-[76px] flex-col items-center">
+                      <span className="mb-[6px] text-[13px] font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.62)] uppercase">
                         {t('dashboard.clock.breakColumnLabel')}
                       </span>
-                      <button
-                        onClick={() => nudgeBreakMinutes(1)}
-                        aria-label="+"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
-                        style={{ background: 'rgba(255,255,255,0.85)' }}
-                      >
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M6 15l6-6 6 6" />
-                        </svg>
-                      </button>
+                      <div className="h-0 w-9 shrink-0 overflow-hidden transition-[height,margin] duration-200 ease-out group-hover:mb-[6px] group-hover:h-9 focus-within:mb-[6px] focus-within:h-9">
+                        <button
+                          onClick={() => nudgeBreakMinutes(1)}
+                          aria-label="+"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
+                          style={{ background: 'rgba(255,255,255,0.85)' }}
+                        >
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M6 15l6-6 6 6" />
+                          </svg>
+                        </button>
+                      </div>
                       {editingField === 'break' ? (
                         <input
                           autoFocus
@@ -1209,16 +1441,18 @@ export default function Dashboard() {
                           {breakMin}
                         </span>
                       )}
-                      <button
-                        onClick={() => nudgeBreakMinutes(-1)}
-                        aria-label="-"
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
-                        style={{ background: 'rgba(255,255,255,0.85)' }}
-                      >
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M6 9l6 6 6-6" />
-                        </svg>
-                      </button>
+                      <div className="h-0 w-9 shrink-0 overflow-hidden transition-[height,margin] duration-200 ease-out group-hover:mt-[6px] group-hover:h-9 focus-within:mt-[6px] focus-within:h-9">
+                        <button
+                          onClick={() => nudgeBreakMinutes(-1)}
+                          aria-label="-"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
+                          style={{ background: 'rgba(255,255,255,0.85)' }}
+                        >
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M6 9l6 6 6-6" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <button
@@ -1572,144 +1806,7 @@ export default function Dashboard() {
         >
           {t('dashboard.rightColumn.browseRooms')}
         </Link>
-        <button
-          type="button"
-          onClick={() => {
-            if (!user) {
-              navigate('/auth')
-              return
-            }
-            setPanel(null)
-            setStatsOpen(true)
-          }}
-          className="mt-[2px] block w-full border-none bg-transparent text-center text-[12.5px] font-extrabold text-[oklch(0.58_0.075_220)] transition-colors duration-200 hover:text-[oklch(0.5_0.08_220)]"
-        >
-          {t('dashboard.rightColumn.stats')}
-        </button>
       </div>
-
-      {/* mini player Thư viện — nổi ngay trên taskbar, giữa màn hình, để user theo dõi/điều
-          khiển (tên bài + trước/play/sau + tua) mà không cần mở popup "Nhạc nền". Chỉ hiện
-          khi Thư viện đang là nguồn active — ẩn khi đang YouTube vì widget YouTube góc
-          dưới-trái đã có điều khiển thật riêng rồi, tránh 2 cụm điều khiển nhạc cùng hiện.
-          Cũng ẩn hẳn khi có popup nào đang mở (wallpaper/music/todo căn giữa-dưới cùng khu
-          vực) — cùng pattern đã dùng cho icon Cài đặt, tránh popup đè lên/ che mất. */}
-      {musicSource === 'library' && tracks.length > 0 && (
-        <div
-          className="absolute bottom-[104px] left-1/2 flex w-[340px] max-w-[calc(100vw-24px)] flex-col gap-[8px] rounded-[22px] px-4 py-3"
-          style={{
-            ...dashStyleBase,
-            opacity: dashVisible && panel === null ? 1 : 0,
-            pointerEvents: dashVisible && panel === null ? 'auto' : 'none',
-            background: 'rgba(255,255,255,0.66)',
-            backdropFilter: 'blur(18px)',
-            boxShadow: '0 14px 34px rgba(58,98,126,0.14)',
-            transform: `translate(-50%, ${dashVisible ? '0px' : '26px'})`,
-            transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
-          }}
-        >
-          <span className="truncate text-center text-[13px] font-bold text-[#2f4459]" title={tracks[track]?.name}>
-            {tracks[track]?.name}
-          </span>
-          <div className="relative flex items-center justify-center gap-4">
-            <button
-              onClick={() => playRelativeTrack(-1)}
-              title={t('dashboard.musicPopup.prevTrack')}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
-              style={{ background: 'rgba(255,255,255,0.6)' }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="5" y="5" width="3" height="14" />
-                <path d="M18 5v14l-8-7z" />
-              </svg>
-            </button>
-            <button
-              onClick={() => setPlaying((p) => !p)}
-              title={playing ? t('dashboard.musicPopup.pause') : t('dashboard.musicPopup.play')}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-none text-[#21384f] transition-transform duration-200 hover:-translate-y-0.5"
-              style={{ background: 'rgba(140,205,196,0.45)' }}
-            >
-              {playing ? (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                  <rect x="6" y="5" width="4" height="14" />
-                  <rect x="14" y="5" width="4" height="14" />
-                </svg>
-              ) : (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              )}
-            </button>
-            <button
-              onClick={() => playRelativeTrack(1)}
-              title={t('dashboard.musicPopup.nextTrack')}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
-              style={{ background: 'rgba(255,255,255,0.6)' }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M6 5v14l8-7z" />
-                <rect x="16" y="5" width="3" height="14" />
-              </svg>
-            </button>
-            {/* nút loa — nằm riêng bên phải hàng nút (absolute, không ảnh hưởng việc căn giữa
-                3 nút trước/play/sau), bấm để mở/đóng thanh chỉnh âm lượng nổi lên phía trên
-                dạng thanh trượt dọc (kéo lên = to hơn, kéo xuống = nhỏ hơn). */}
-            <div className="absolute right-0">
-              <button
-                onClick={() => setVolumePopoverOpen((v) => !v)}
-                title={t('dashboard.musicPopup.volume')}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
-                style={{ background: volumePopoverOpen ? 'white' : 'rgba(255,255,255,0.6)' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z" />
-                  <path d={libraryVolume === 0 ? 'M15.5 9.5l4 5m0-5l-4 5' : 'M15.5 9a4 4 0 010 6'} />
-                </svg>
-              </button>
-              {volumePopoverOpen && (
-                <div
-                  className="absolute right-0 bottom-full mb-2 flex flex-col items-center gap-2 rounded-[16px] px-[9px] py-3"
-                  style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(14px)', boxShadow: '0 10px 26px rgba(58,98,126,0.18)' }}
-                >
-                  <span className="text-[11px] font-semibold text-[rgba(51,71,94,0.55)] tabular-nums">
-                    {libraryVolume}%
-                  </span>
-                  <div className="flex shrink-0 items-center justify-center" style={{ width: '26px', height: '96px' }}>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      step={1}
-                      value={libraryVolume}
-                      onChange={(e) => setLibraryVolume(Number(e.target.value))}
-                      className="ff-range"
-                      style={{ width: '96px', transform: 'rotate(-90deg)' }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-7 shrink-0 text-right text-[11px] font-semibold text-[rgba(51,71,94,0.5)] tabular-nums">
-              {fmtTrackTime(audioCurrentTime)}
-            </span>
-            <input
-              type="range"
-              min={0}
-              max={audioDuration || 0}
-              step={0.1}
-              value={Math.min(audioCurrentTime, audioDuration || 0)}
-              onChange={(e) => seekTrackTo(Number(e.target.value))}
-              disabled={!audioDuration}
-              className="ff-range w-full flex-1"
-            />
-            <span className="w-7 shrink-0 text-[11px] font-semibold text-[rgba(51,71,94,0.5)] tabular-nums">
-              {fmtTrackTime(audioDuration)}
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* taskbar */}
       <div
@@ -1843,7 +1940,40 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* settings — standalone icon-only button, bottom-left corner. Khách chưa đăng nhập
+      {/* stats — standalone icon-only button, ngay cạnh trái nút Cài đặt, cùng hàng cùng
+          kiểu (tròn, frosted glass) — thay cho link text "Stats" trước đây nằm rời trong
+          card "Study together". Cùng pattern hiện/ẩn theo dashVisible/panel với gear. */}
+      <button
+        onClick={() => {
+          if (!user) {
+            navigate('/auth')
+            return
+          }
+          setPanel(null)
+          setStatsOpen(true)
+        }}
+        title={t('dashboard.taskbar.stats')}
+        aria-label={t('dashboard.taskbar.stats')}
+        className="absolute right-[68px] bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] no-underline transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:right-[88px]"
+        style={{
+          ...dashStyleBase,
+          opacity: dashVisible && panel === null ? 1 : 0,
+          pointerEvents: dashVisible && panel === null ? 'auto' : 'none',
+          background: 'rgba(255,255,255,0.66)',
+          backdropFilter: 'blur(18px)',
+          boxShadow: '0 14px 34px rgba(58,98,126,0.14)',
+          transform: `translateY(${dashVisible ? '0px' : '26px'})`,
+          transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
+        }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 20V11" />
+          <path d="M11 20V4" />
+          <path d="M18 20v-7" />
+        </svg>
+      </button>
+
+      {/* settings — standalone icon-only button, bottom-right corner. Khách chưa đăng nhập
           bấm vào vẫn điều hướng sang /auth như hành vi cũ (route /settings trước đây tự
           redirect qua RequireAuth); đã đăng nhập thì mở overlay ngay tại chỗ, không điều
           hướng — Dashboard không unmount nên camera/nhạc đang phát không bị ngắt. */}

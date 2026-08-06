@@ -3,9 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 import ContributionGraph from '../components/ContributionGraph'
-import { computeStreaks, mixAccent } from '../lib/contributions'
-
-const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
+import { computeStreaks } from '../lib/contributions'
 
 function startOfWeekMonday(d: Date) {
   const x = new Date(d)
@@ -156,28 +154,6 @@ export default function Stats({ onClose }: { onClose: () => void }) {
     },
   ]
 
-  const WEEK = useMemo(() => {
-    const monday = startOfWeekMonday(new Date())
-    return WEEKDAY_KEYS.map((key, i) => {
-      const dayStart = new Date(monday)
-      dayStart.setDate(dayStart.getDate() + i)
-      const dayEnd = new Date(dayStart)
-      dayEnd.setDate(dayEnd.getDate() + 1)
-      const minutes = sessions
-        .filter((s) => {
-          const startedAt = new Date(s.started_at)
-          return startedAt >= dayStart && startedAt < dayEnd
-        })
-        .reduce((a, s) => a + s.minutes, 0)
-      return { name: t(`stats.weekdaysShort.${key}`), minutes, date: dayStart }
-    })
-  }, [sessions, t])
-
-  const weekTotalMinutes = WEEK.reduce((a, d) => a + d.minutes, 0)
-  const MAX_MINUTES = Math.max(1, ...WEEK.map((d) => d.minutes))
-  const BEST_DAY = weekTotalMinutes > 0 ? WEEK.reduce((a, d) => (d.minutes > a.minutes ? d : a), WEEK[0]) : null
-  const weekRangeLabel = `${fmtDdMm(WEEK[0].date)} – ${fmtDdMm(WEEK[6].date)}`
-
   const HISTORY = completedTodos.map((todo) => ({
     name: todo.name,
     meta: todo.meta || t('stats.history.noMeta'),
@@ -261,43 +237,6 @@ export default function Stats({ onClose }: { onClose: () => void }) {
                   </span>
                 </div>
               ))}
-            </div>
-
-            {/* bar chart */}
-            <div
-              className="flex flex-col gap-5 rounded-[30px] px-7 pt-[26px] pb-[22px]"
-              style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
-            >
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-[16.5px] font-extrabold text-[#2c3f55]">{t('stats.barChart.title')}</span>
-                <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">
-                  {weekRangeLabel}
-                  {BEST_DAY ? t('stats.barChart.highest', { day: BEST_DAY.name }) : ''}
-                </span>
-              </div>
-              <div className="flex h-[180px] items-end gap-3">
-                {WEEK.map((d) => {
-                  const isBest = BEST_DAY !== null && d === BEST_DAY
-                  return (
-                    <div key={d.name} className="flex h-full flex-1 flex-col items-center justify-end gap-[9px]">
-                      <span className="text-[12.5px] font-extrabold" style={{ color: isBest ? '#22483f' : 'rgba(51,71,94,0.55)' }}>
-                        {d.minutes}
-                      </span>
-                      <div
-                        className="w-full rounded-[14px_14px_8px_8px] transition-[height] duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
-                        style={{
-                          height: Math.round((d.minutes / MAX_MINUTES) * 100) + '%',
-                          background: isBest ? mixAccent(58) : mixAccent(32),
-                          boxShadow: '0 6px 14px rgba(58,98,126,0.08)',
-                        }}
-                      />
-                      <span className="text-[12.5px] font-bold" style={{ color: isBest ? '#2c3f55' : 'rgba(51,71,94,0.5)' }}>
-                        {d.name}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
             </div>
 
             <ContributionGraph sessions={sessions} />
