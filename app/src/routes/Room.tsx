@@ -12,6 +12,8 @@ import { ROOM_TYPE_RULES } from '../lib/roomTypeRules'
 import DeviceCheck from '../components/DeviceCheck'
 import SessionRating from '../components/SessionRating'
 import HostLeaveModal from '../components/HostLeaveModal'
+import InviteFriendModal from '../components/InviteFriendModal'
+import { acceptFriendRequest, listFriendRequests, sendFriendRequest, type FriendRequestRow } from '../lib/friends'
 
 type StatusKey = 'host' | 'focusing' | 'micOff' | 'camOff' | 'justJoined'
 type Member = { id: string; name: string; statusKey: StatusKey; host: boolean; me?: boolean }
@@ -112,7 +114,7 @@ function breakSecs() {
 }
 
 type Phase = 'focus' | 'break'
-type Tab = 'chat' | 'music' | 'host'
+type Tab = 'chat' | 'music' | 'members' | 'host'
 type Admit = 'auto' | 'manual'
 type Demo = 'two' | 'five'
 
@@ -184,6 +186,55 @@ export default function Room() {
     setCodeCopied(true)
     clearTimeout(codeCopyTimer.current)
     codeCopyTimer.current = setTimeout(() => setCodeCopied(false), 1800)
+  }
+
+  // Mời bạn bè đã kết bạn vào thẳng room này — bỏ qua duyệt của host (xem
+  // invite_friend_to_room/accept_room_invite, 0016_friends.sql).
+  const [inviteFriendOpen, setInviteFriendOpen] = useState(false)
+
+  // Tab "Thành viên" (mọi người xem được, khác tab "Manage" chỉ host thấy) — tải quan hệ
+  // bạn bè của chính mình với từng người trong phòng để quyết định hiện nút gì.
+  const [friendRows, setFriendRows] = useState<FriendRequestRow[]>([])
+  const [friendActionId, setFriendActionId] = useState<string | null>(null)
+
+  const refreshFriendRows = useCallback(() => {
+    if (!user) return
+    listFriendRequests().then(setFriendRows).catch(() => {})
+  }, [user])
+
+  useEffect(() => {
+    if (tab !== 'members' || !user || !isRealMode) return
+    refreshFriendRows()
+  }, [tab, user, isRealMode, refreshFriendRows])
+
+  function friendRowWith(otherId: string, myId: string) {
+    return friendRows.find(
+      (r) =>
+        (r.requester_id === myId && r.addressee_id === otherId) ||
+        (r.requester_id === otherId && r.addressee_id === myId),
+    )
+  }
+
+  async function handleSendFriendRequest(otherId: string) {
+    setFriendActionId(otherId)
+    try {
+      await sendFriendRequest(otherId)
+      refreshFriendRows()
+    } catch {
+      // im lặng — không có dòng quan hệ nào đổi nên nút vẫn hiện "Kết bạn", bấm lại được
+    } finally {
+      setFriendActionId(null)
+    }
+  }
+
+  async function handleAcceptFriendRow(rowId: string) {
+    setFriendActionId(rowId)
+    try {
+      await acceptFriendRequest(rowId)
+      refreshFriendRows()
+    } finally {
+      setFriendActionId(null)
+    }
   }
 
   // GĐ9: màn "Kiểm tra trước khi vào phòng" hiện mỗi lần vào phòng thật — xong mới
@@ -1278,6 +1329,24 @@ export default function Room() {
             </button>
           </div>
         )}
+        {/* mời bạn bè đã kết bạn vào thẳng room — chỉ hiện khi đã là member thật (cần status
+            'member' để invite_friend_to_room không bị RPC từ chối). */}
+        {isRealMode && myStatus === 'member' && (
+          <button
+            onClick={() => setInviteFriendOpen(true)}
+            title={t('friends.inviteTitle')}
+            className="flex items-center gap-2 rounded-[22px] border-none py-[9px] pr-[16px] pl-[14px] font-sans text-[13px] font-extrabold text-[#354c65] transition-colors duration-200 hover:!bg-white"
+            style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)' }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="8" cy="8" r="3" />
+              <circle cx="16.5" cy="9" r="2.4" />
+              <path d="M2.3 19c.6-3.3 2.8-5 5.7-5s5.1 1.7 5.7 5" />
+              <path d="M14.5 14.3c2.2.3 3.7 1.8 4.2 4.2" />
+            </svg>
+            {t('friends.inviteButton')}
+          </button>
+        )}
         <div className="flex items-center gap-[10px]">
           {!isRealMode && (
             <div
@@ -1529,6 +1598,20 @@ export default function Room() {
           </svg>
           <span className="hidden md:inline">{t('room.controls.music')}</span>
         </button>
+        <button
+          onClick={() => openTab('members')}
+          title={t('room.controls.members')}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)] md:px-5"
+          style={{ background: chatOpen && effectiveTab === 'members' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="8" cy="8" r="3" />
+            <circle cx="16.5" cy="9" r="2.4" />
+            <path d="M2.3 19c.6-3.3 2.8-5 5.7-5s5.1 1.7 5.7 5" />
+            <path d="M14.5 14.3c2.2.3 3.7 1.8 4.2 4.2" />
+          </svg>
+          <span className="hidden md:inline">{t('room.controls.members')}</span>
+        </button>
         {isHost && (
           <button
             onClick={() => openTab('host')}
@@ -1588,6 +1671,7 @@ export default function Room() {
               [
                 { key: 'chat' as Tab, name: t('room.controls.chat'), show: true, badge: '' },
                 { key: 'music' as Tab, name: t('room.controls.music'), show: true, badge: '' },
+                { key: 'members' as Tab, name: t('room.controls.members'), show: true, badge: '' },
                 {
                   key: 'host' as Tab,
                   name: t('room.controls.manage'),
@@ -1913,6 +1997,84 @@ export default function Room() {
         )}
 
         {/* tab: host */}
+        {/* tab: members — mọi người xem được (khác "Manage" chỉ host thấy). Có nút gửi/chấp
+            nhận lời mời kết bạn ngay tại đây nếu chưa là bạn với nhau (0016_friends.sql). */}
+        {effectiveTab === 'members' && (
+          <div className="flex min-h-0 flex-1 flex-col gap-[9px] overflow-y-auto">
+            <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+              {t('room.members.title', { count: members.length })}
+            </span>
+            {members.map((u) => {
+              const isSelf = !!u.me || (!!user && u.id === user.id)
+              const row = !isSelf && user && isRealMode ? friendRowWith(u.id, user.id) : undefined
+              return (
+                <div
+                  key={u.id}
+                  className="flex items-center gap-[10px] rounded-[20px] px-3 py-[10px]"
+                  style={{ background: 'rgba(238,246,248,0.85)' }}
+                >
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[12.5px] font-extrabold"
+                    style={{
+                      background: u.host ? 'rgba(140,205,196,0.5)' : 'rgba(160,200,225,0.5)',
+                      color: u.host ? '#22483f' : '#2b4d68',
+                    }}
+                  >
+                    {initials(u.name)}
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="flex items-center gap-[6px]">
+                      <span className="truncate text-[13.5px] font-extrabold text-[#2c3f55]">{u.name}</span>
+                      {u.host && (
+                        <span
+                          className="shrink-0 rounded-full px-2 py-[2px] text-[10.5px] font-extrabold text-[#22483f]"
+                          style={{ background: 'rgba(140,205,196,0.55)' }}
+                        >
+                          {t('room.members.hostBadge')}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.5)]">
+                      {statusLabel(u.statusKey)}
+                    </span>
+                  </div>
+                  {!isSelf && isRealMode && user && (
+                    <>
+                      {!row ? (
+                        <button
+                          onClick={() => void handleSendFriendRequest(u.id)}
+                          disabled={friendActionId === u.id}
+                          className="shrink-0 rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[#1e3549] hover:enabled:brightness-[0.97] disabled:opacity-50"
+                          style={{ background: ACCENT_SOFT }}
+                        >
+                          {t('room.members.addFriend')}
+                        </button>
+                      ) : row.status === 'accepted' ? (
+                        <span className="shrink-0 text-[12px] font-bold text-[#2c5b53]">
+                          {t('room.members.alreadyFriends')}
+                        </span>
+                      ) : row.requester_id === user.id ? (
+                        <span className="shrink-0 text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">
+                          {t('room.members.requestSent')}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => void handleAcceptFriendRow(row.id)}
+                          disabled={friendActionId === row.id}
+                          className="shrink-0 rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[#1e3549] hover:enabled:brightness-[0.97] disabled:opacity-50"
+                          style={{ background: ACCENT_SOFT }}
+                        >
+                          {t('room.members.acceptFriend')}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
         {effectiveTab === 'host' && isHost && (
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
             <div className="flex flex-col gap-[9px]">
@@ -2057,6 +2219,14 @@ export default function Room() {
           onClose={() => setHostLeaveModalOpen(false)}
           onCloseRoom={chooseCloseRoom}
           onTransfer={chooseTransfer}
+        />
+      )}
+
+      {inviteFriendOpen && realRoom && (
+        <InviteFriendModal
+          roomId={realRoom.id}
+          memberIds={members.map((m) => m.id)}
+          onClose={() => setInviteFriendOpen(false)}
         />
       )}
     </div>

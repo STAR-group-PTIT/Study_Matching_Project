@@ -8,9 +8,12 @@ import { parseYoutubeUrl, loadYoutubeApi, DEFAULT_YOUTUBE_URL, MUSIC_YOUTUBE_KEY
 import { BUILTIN_TRACKS, type LibraryTrack } from '../lib/musicLibrary'
 import { loadSavedMatchConfig, othersWaiting, useQuickMatch } from '../lib/quickMatch'
 import { isVideoWallpaper } from '../lib/wallpaper'
+import { loadStoredAutoFullscreenFocus } from '../lib/focusFullscreen'
 import MatchFound from '../components/MatchFound'
 import Settings from './Settings'
 import Stats from './Stats'
+import FriendsPanel from '../components/FriendsPanel'
+import { useFriendStore } from '../store/friendNotifications'
 
 type WallpaperOption = { id: string; kind: 'gradient' | 'image' | 'video'; value: string }
 
@@ -123,6 +126,8 @@ export default function Dashboard() {
   // phát, vì cả 2 đều sống trong state của chính component này).
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [statsOpen, setStatsOpen] = useState(false)
+  const [friendsOpen, setFriendsOpen] = useState(false)
+  const pendingFriendRequestCount = useFriendStore((s) => s.pendingRequestCount)
   // Ghép ngẫu nhiên nhanh từ Dashboard — hook dùng chung với Matching (GĐ9):
   // config từ localStorage (nhớ lần chọn cuối) hoặc defaults từ profiles.
   const quick = useQuickMatch()
@@ -154,6 +159,10 @@ export default function Dashboard() {
     [t],
   )
   const [mode, setMode] = useState<Mode>('dashboard')
+  // true khi Focus mode + fullscreen hiện tại là do startPomodoro() tự bật (setting "auto
+  // fullscreen") — dùng để ẩn luôn top bar (tên app + toggle Focus/Dashboard), khác Focus mode
+  // bật tay vẫn giữ top bar để còn đường quay lại Dashboard.
+  const [autoFocusFullscreen, setAutoFocusFullscreen] = useState(false)
   const [timerType, setTimerType] = useState<TimerType>('pomodoro')
   const [pomodoroStarted, setPomodoroStarted] = useState(false)
   const [running, setRunning] = useState(false)
@@ -217,7 +226,10 @@ export default function Dashboard() {
     return () => {
       cancelled = true
     }
-  }, [user])
+    // settingsOpen: Settings mở như overlay ĐÈ LÊN Dashboard chứ không unmount nó, nên upload/
+    // xoá nhạc trong đó xong đóng lại phải tự refetch ở đây — nếu không nhạc mới sẽ không bao
+    // giờ xuất hiện ở popup "Nhạc nền" cho tới khi F5 lại trang (bug user báo cáo).
+  }, [user, settingsOpen])
 
   const [track, setTrack] = useState(0)
   const [playing, setPlaying] = useState(true)
@@ -476,6 +488,27 @@ export default function Dashboard() {
   userRef.current = user
   const phaseStartRef = useRef(Date.now())
   const endlessStartRef = useRef(Date.now())
+  // true khi Focus mode + fullscreen hiện tại là do startPomodoro() tự bật (setting "auto
+  // fullscreen"), để cancelPomodoro/hoàn thành tự nhiên biết đường tắt lại đúng những gì đã bật.
+  const autoFocusActiveRef = useRef(false)
+
+  function exitAutoFocusFullscreen() {
+    if (!autoFocusActiveRef.current) return
+    autoFocusActiveRef.current = false
+    setAutoFocusFullscreen(false)
+    setMode('dashboard')
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => {})
+  }
+
+  // Rời khỏi Dashboard (đổi route) giữa lúc đang auto-fullscreen thì đừng để trình duyệt kẹt
+  // fullscreen luôn — chỉ cần thoát fullscreen, không cần setMode vì component đã unmount.
+  useEffect(() => {
+    return () => {
+      if (autoFocusActiveRef.current && document.fullscreenElement) {
+        void document.exitFullscreen().catch(() => {})
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (!user) return
@@ -532,7 +565,10 @@ export default function Dashboard() {
     return () => {
       cancelled = true
     }
-  }, [user])
+    // settingsOpen: cùng lý do với effect load tracks bên trên — Settings không unmount
+    // Dashboard nên phải tự refetch khi đóng lại, nếu không ảnh nền mới upload sẽ không hiện
+    // trong popup "Đổi hình nền" cho tới khi F5 lại trang.
+  }, [user, settingsOpen])
 
   // Dùng chung cho hoàn thành tự nhiên (hết giờ) lẫn bấm Skip — chỉ khác nhau ở số phút ghi
   // log (đủ vs. thực tế đã trôi qua) và có tự chạy tiếp phase kế hay không.
@@ -563,6 +599,7 @@ export default function Dashboard() {
     if (isFinalCompletion) {
       setDone(true)
       setRunning(false)
+      exitAutoFocusFullscreen()
       return prevPhase
     }
     setRunning(opts.continueRunning)
@@ -708,6 +745,14 @@ export default function Dashboard() {
     setRunning(true)
     phaseStartRef.current = Date.now()
     setPomodoroStarted(true)
+    if (loadStoredAutoFullscreenFocus()) {
+      autoFocusActiveRef.current = true
+      setAutoFocusFullscreen(true)
+      setMode('focus')
+      // Phải gọi trực tiếp trong handler click (user gesture) thì Fullscreen API mới cho phép,
+      // gọi trong .then()/setTimeout sẽ bị trình duyệt từ chối.
+      void document.documentElement.requestFullscreen?.().catch(() => {})
+    }
   }
 
   // Huỷ giữa chừng vẫn ghi lại phần thời gian học đã trôi qua (nếu đang ở phase focus) —
@@ -733,6 +778,7 @@ export default function Dashboard() {
       }
     }
     resetToIdle()
+    exitAutoFocusFullscreen()
   }
 
   function backToSetup() {
@@ -1152,7 +1198,15 @@ export default function Dashboard() {
           khỏi đây (2026-08-06): Hide UI bị coi là dư thừa (làm gần như đúng việc tab Focus đã
           làm — ẩn bớt widget), còn đổi ngôn ngữ giờ CHỈ làm trong Cài đặt (Settings.tsx đã có
           sẵn khối "language" y hệt UI cũ ở đây), tránh trùng chỗ chỉnh. */}
-      <div className="absolute top-[26px] right-8 left-8 z-40 flex flex-wrap items-center justify-between gap-4">
+      <div
+        className="absolute top-[26px] right-8 left-8 z-40 flex flex-wrap items-center justify-between gap-4"
+        style={{
+          opacity: autoFocusFullscreen ? 0 : 1,
+          pointerEvents: autoFocusFullscreen ? 'none' : 'auto',
+          transform: `translateY(${autoFocusFullscreen ? '-16px' : '0px'})`,
+          transition: 'opacity 480ms ease, transform 480ms cubic-bezier(0.22,1,0.36,1)',
+        }}
+      >
         <div
           className="flex items-center gap-[11px] rounded-[22px] py-[9px] pr-[18px] pl-[13px]"
           style={{
@@ -1866,6 +1920,48 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* bạn bè — standalone icon-only button, cạnh trái nút camera, cùng hàng cùng kiểu
+          (tròn, frosted glass) với Stats/Settings/camera. Badge đỏ hiện số lời mời kết bạn
+          đang chờ, lấy từ friendNotifications store (subscribe realtime ở App.tsx). */}
+      <button
+        onClick={() => {
+          if (!user) {
+            navigate('/auth')
+            return
+          }
+          setPanel(null)
+          setFriendsOpen(true)
+        }}
+        title={t('dashboard.taskbar.friendsTitle')}
+        aria-label={t('dashboard.taskbar.friendsTitle')}
+        className="absolute right-[180px] bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:right-[200px]"
+        style={{
+          ...dashStyleBase,
+          opacity: dashVisible && panel === null ? 1 : 0,
+          pointerEvents: dashVisible && panel === null ? 'auto' : 'none',
+          background: 'rgba(255,255,255,0.66)',
+          backdropFilter: 'blur(18px)',
+          boxShadow: '0 14px 34px rgba(58,98,126,0.14)',
+          transform: `translateY(${dashVisible ? '0px' : '26px'})`,
+          transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
+        }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="8" cy="8" r="3" />
+          <circle cx="16.5" cy="9" r="2.4" />
+          <path d="M2.3 19c.6-3.3 2.8-5 5.7-5s5.1 1.7 5.7 5" />
+          <path d="M14.5 14.3c2.2.3 3.7 1.8 4.2 4.2" />
+        </svg>
+        {pendingFriendRequestCount > 0 && (
+          <span
+            className="absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white"
+            style={{ background: '#c0524a' }}
+          >
+            {pendingFriendRequestCount > 9 ? '9+' : pendingFriendRequestCount}
+          </span>
+        )}
+      </button>
+
       {/* camera — đặt NGANG HÀNG với Stats/Settings (góc phải dưới), không gộp chung 1 khối,
           chỉ để nó có "chỗ dựa" cùng cụm icon thay vì đứng trơ trọi một mình như trước (từng
           nằm riêng ở đầu cột phải). Icon này LUÔN hiện ở đây (kể cả khi BẬT) — trước đó bị ẩn
@@ -2026,6 +2122,7 @@ export default function Dashboard() {
 
       {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} />}
       {statsOpen && <Stats onClose={() => setStatsOpen(false)} />}
+      {friendsOpen && <FriendsPanel onClose={() => setFriendsOpen(false)} />}
 
       {/* quick match chờ người — overlay nhỏ gọn trên Dashboard, không rời trang (GĐ9) */}
       {quick.stage === 'waiting' && (

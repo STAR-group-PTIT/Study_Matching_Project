@@ -106,7 +106,8 @@
       "browseRooms": "Duyệt phòng",
       "stats": "Thống kê",
       "settingsTitle": "Cài đặt",
-      "settingsLabel": "Cài đặt"
+      "settingsLabel": "Cài đặt",
+      "friendsTitle": "Bạn bè"
     },
     "wallpaperPopup": {
       "title": "Hình nền",
@@ -329,6 +330,7 @@
     },
     "profile": {
       "defaultName": "Người dùng mới",
+      "friendHandle": "Handle kết bạn: {{handle}}",
       "streak": "Streak {{days}} ngày · {{sessions}} phiên tuần này",
       "changeAvatar": "Đổi ảnh đại diện",
       "editInfo": "Sửa thông tin"
@@ -363,6 +365,8 @@
       "sessionsValue": "{{count}} phiên",
       "autoStartTitle": "Tự động bắt đầu phiên tiếp theo",
       "autoStartDesc": "Hết giờ nghỉ là vào phiên học luôn",
+      "autoFullscreenTitle": "Tự ẩn giao diện & toàn màn hình khi bắt đầu",
+      "autoFullscreenDesc": "Bấm Bắt đầu ở Pomodoro sẽ ẩn bớt widget và bật chế độ toàn màn hình cho đỡ xao nhãng",
       "saved": "Đã lưu ✓",
       "save": "Lưu thay đổi",
       "resetDefault": "Về mặc định 25/5 · 4 phiên"
@@ -424,6 +428,44 @@
       "l2": "Học viên",
       "l3": "Cao thủ"
     }
+  },
+  "friends": {
+    "headerTag": "Bạn bè",
+    "close": "Đóng",
+    "yourHandle": "Handle của bạn",
+    "copy": "Sao chép",
+    "copied": "Đã sao chép ✓",
+    "addTitle": "Thêm bạn",
+    "addPlaceholder": "hana#3364",
+    "addButton": "Gửi lời mời",
+    "sendState": {
+      "invalid": "Sai định dạng handle rồi (name#1234).",
+      "not_found": "Không tìm thấy ai có handle này.",
+      "error": "Có lỗi xảy ra — thử lại nhé.",
+      "sent": "Đã gửi lời mời kết bạn ✓",
+      "already_sent": "Bạn đã gửi lời mời cho người này rồi.",
+      "already_friends": "2 bạn đã là bạn bè của nhau rồi.",
+      "accepted": "Họ đã gửi lời mời cho bạn trước — giờ 2 bạn đã là bạn bè! ✓"
+    },
+    "incomingTitle": "Lời mời đến ({{count}})",
+    "outgoingTitle": "Lời mời đã gửi ({{count}})",
+    "listTitle": "Bạn bè ({{count}})",
+    "noFriends": "Chưa có bạn bè nào — thêm bằng name#tag ở trên.",
+    "accept": "Đồng ý",
+    "decline": "Từ chối",
+    "cancel": "Huỷ",
+    "remove": "Xoá bạn",
+    "inviteTitle": "Mời bạn bè",
+    "inviteButton": "Mời bạn bè",
+    "noInvitable": "Chưa có bạn bè nào để mời lúc này.",
+    "invite": "Mời",
+    "invited": "Đã mời"
+  },
+  "roomInvite": {
+    "title": "Lời mời học cùng!",
+    "subtitle": "{{name}} mời bạn vào phòng \"{{room}}\" của họ",
+    "accept": "Vào ngay",
+    "decline": "Từ chối"
   },
   "room": {
     "headerTag": "Phòng học chung",
@@ -493,6 +535,7 @@
       "micOff": "Mic tắt",
       "chat": "Chat",
       "music": "Nhạc",
+      "members": "Thành viên",
       "manage": "Quản lý",
       "leave": "Rời phòng",
       "locked": "Loại phòng này khoá, không tự đổi được"
@@ -543,6 +586,14 @@
       "rejectTitle": "Từ chối",
       "membersInRoom": "Trong phòng · {{count}} người",
       "kick": "Kick"
+    },
+    "members": {
+      "title": "Trong phòng này · {{count}} người",
+      "hostBadge": "Chủ phòng",
+      "addFriend": "Kết bạn",
+      "alreadyFriends": "Bạn bè ✓",
+      "requestSent": "Đã gửi lời mời",
+      "acceptFriend": "Đồng ý kết bạn"
     },
     "camOffFeed": "camera đang tắt",
     "webcamOf": "webcam · {{name}}",

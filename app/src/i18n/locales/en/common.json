@@ -106,7 +106,8 @@
       "browseRooms": "Browse rooms",
       "stats": "Stats",
       "settingsTitle": "Settings",
-      "settingsLabel": "Settings"
+      "settingsLabel": "Settings",
+      "friendsTitle": "Friends"
     },
     "wallpaperPopup": {
       "title": "Wallpaper",
@@ -329,6 +330,7 @@
     },
     "profile": {
       "defaultName": "New user",
+      "friendHandle": "Friend handle: {{handle}}",
       "streak": "{{days}}-day streak · {{sessions}} sessions this week",
       "changeAvatar": "Change avatar",
       "editInfo": "Edit info"
@@ -363,6 +365,8 @@
       "sessionsValue": "{{count}} sessions",
       "autoStartTitle": "Auto-start next session",
       "autoStartDesc": "Jump straight into studying when the break ends",
+      "autoFullscreenTitle": "Auto-hide UI & fullscreen on start",
+      "autoFullscreenDesc": "Pressing Start on a Pomodoro session hides the widgets and switches to fullscreen to cut distractions",
       "saved": "Saved ✓",
       "save": "Save changes",
       "resetDefault": "Reset to 25/5 · 4 sessions"
@@ -424,6 +428,44 @@
       "l2": "Learner",
       "l3": "Master"
     }
+  },
+  "friends": {
+    "headerTag": "Friends",
+    "close": "Close",
+    "yourHandle": "Your handle",
+    "copy": "Copy",
+    "copied": "Copied ✓",
+    "addTitle": "Add a friend",
+    "addPlaceholder": "hana#3364",
+    "addButton": "Send request",
+    "sendState": {
+      "invalid": "That doesn't look like a valid handle (name#1234).",
+      "not_found": "No one found with that handle.",
+      "error": "Something went wrong — try again.",
+      "sent": "Friend request sent ✓",
+      "already_sent": "You already sent a request to this person.",
+      "already_friends": "You're already friends with this person.",
+      "accepted": "They'd already sent you a request — you're friends now! ✓"
+    },
+    "incomingTitle": "Incoming requests ({{count}})",
+    "outgoingTitle": "Sent requests ({{count}})",
+    "listTitle": "Friends ({{count}})",
+    "noFriends": "No friends yet — add one by their name#tag above.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "cancel": "Cancel",
+    "remove": "Remove",
+    "inviteTitle": "Invite a friend",
+    "inviteButton": "Invite friend",
+    "noInvitable": "No friends available to invite right now.",
+    "invite": "Invite",
+    "invited": "Invited"
+  },
+  "roomInvite": {
+    "title": "Study invite!",
+    "subtitle": "{{name}} invited you to join their room \"{{room}}\"",
+    "accept": "Join now",
+    "decline": "Decline"
   },
   "room": {
     "headerTag": "Study room",
@@ -493,6 +535,7 @@
       "micOff": "Mic off",
       "chat": "Chat",
       "music": "Music",
+      "members": "Members",
       "manage": "Manage",
       "leave": "Leave room",
       "locked": "Locked by this room type — can't toggle"
@@ -543,6 +586,14 @@
       "rejectTitle": "Reject",
       "membersInRoom": "In the room · {{count}} people",
       "kick": "Kick"
+    },
+    "members": {
+      "title": "In this room · {{count}} people",
+      "hostBadge": "Host",
+      "addFriend": "Add friend",
+      "alreadyFriends": "Friends ✓",
+      "requestSent": "Request sent",
+      "acceptFriend": "Accept request"
     },
     "camOffFeed": "camera is off",
     "webcamOf": "webcam · {{name}}",

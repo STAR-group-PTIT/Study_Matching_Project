@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 import { parseYoutubeUrl, DEFAULT_YOUTUBE_URL } from '../lib/youtube'
 import { isVideoWallpaper } from '../lib/wallpaper'
+import { loadStoredAutoFullscreenFocus, saveStoredAutoFullscreenFocus } from '../lib/focusFullscreen'
 
 const GRADIENTS = [
   'linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)',
@@ -107,6 +108,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
   const [wallpapers, setWallpapers] = useState<Wallpaper[]>([])
   const [tracks, setTracks] = useState<Track[]>([])
   const [profileName, setProfileName] = useState('')
+  const [profileTag, setProfileTag] = useState('')
   const wallpaperInputRef = useRef<HTMLInputElement>(null)
   const trackInputRef = useRef<HTMLInputElement>(null)
 
@@ -118,6 +120,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
 
   const [accentHue, setAccentHue] = useState(195)
   const [notificationSound, setNotificationSound] = useState(true)
+  const [autoFullscreenFocus, setAutoFullscreenFocus] = useState(loadStoredAutoFullscreenFocus)
 
   // Link YouTube mặc định riêng của tài khoản, dùng làm nhạc nền solo ở Dashboard khi
   // user chưa dán link nào khác trên máy đang mở (xem 3 tầng ưu tiên trong Dashboard.tsx).
@@ -137,13 +140,14 @@ export default function Settings({ onClose }: { onClose: () => void }) {
     supabase
       .from('profiles')
       .select(
-        'name, focus_minutes, break_minutes, session_count, auto_start_next, accent_hue, preferred_camera_id, preferred_mic_id, notification_sound, default_youtube_url',
+        'name, tag, focus_minutes, break_minutes, session_count, auto_start_next, accent_hue, preferred_camera_id, preferred_mic_id, notification_sound, default_youtube_url',
       )
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
         if (!data) return
         setProfileName(data.name)
+        setProfileTag(data.tag)
         setFocus(data.focus_minutes)
         setBrk(data.break_minutes)
         setSessionCount(data.session_count)
@@ -290,6 +294,14 @@ export default function Settings({ onClose }: { onClose: () => void }) {
   function applyPreset(presetFocus: number, presetBreak: number) {
     setFocus(presetFocus)
     setBrk(presetBreak)
+  }
+
+  function toggleAutoFullscreenFocus() {
+    setAutoFullscreenFocus((prev) => {
+      const next = !prev
+      saveStoredAutoFullscreenFocus(next)
+      return next
+    })
   }
 
   function selectAccent(hue: number) {
@@ -547,6 +559,11 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                   {profileName || t('settings.profile.defaultName')}
                 </span>
                 <span className="text-sm font-semibold break-words text-[rgba(51,71,94,0.55)]">{user?.email}</span>
+                {profileTag && (
+                  <span className="text-[12.5px] font-bold tabular-nums text-[rgba(51,71,94,0.5)]">
+                    {t('settings.profile.friendHandle', { handle: `${profileName}#${profileTag}` })}
+                  </span>
+                )}
                 <span className="text-[13px] font-bold text-[#2c5b53]">
                   {t('settings.profile.streak', { days: streak, sessions: sessionsThisWeek })}
                 </span>
@@ -858,6 +875,29 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                   <span
                     className="absolute top-1 h-6 w-6 rounded-full bg-white transition-[left] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
                     style={{ left: auto ? '30px' : '4px', boxShadow: '0 3px 8px rgba(58,98,126,0.22)' }}
+                  />
+                </button>
+              </div>
+              <div
+                className="flex flex-wrap items-center justify-between gap-[14px] rounded-[22px] px-[18px] py-[15px]"
+                style={{ background: 'rgba(238,246,248,0.72)' }}
+              >
+                <div className="flex flex-col gap-[2px]">
+                  <span className="text-[14.5px] font-bold text-[#2c3f55]">
+                    {t('settings.pomodoro.autoFullscreenTitle')}
+                  </span>
+                  <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.48)]">
+                    {t('settings.pomodoro.autoFullscreenDesc')}
+                  </span>
+                </div>
+                <button
+                  onClick={toggleAutoFullscreenFocus}
+                  className="relative h-8 w-[58px] shrink-0 rounded-full border-none transition-colors duration-[240ms]"
+                  style={{ background: autoFullscreenFocus ? 'var(--ff-accent-chip-active)' : 'rgba(51,71,94,0.18)' }}
+                >
+                  <span
+                    className="absolute top-1 h-6 w-6 rounded-full bg-white transition-[left] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+                    style={{ left: autoFullscreenFocus ? '30px' : '4px', boxShadow: '0 3px 8px rgba(58,98,126,0.22)' }}
                   />
                 </button>
               </div>
