@@ -98,6 +98,14 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Polish đồng hồ Pomodoro (ẩn nút mũi tên khi không hover, sửa lệch tâm Work/Break), bỏ bar chart tuần ở Stats (trùng `ContributionGraph`), nút "Thống kê" thành icon cạnh Cài đặt, khung video YouTube co giãn theo màn hình, gộp player Thư viện + YouTube thành 1 widget thu gọn/mở rộng có điều khiển thật (play/pause/mute/volume) — xong 2026-08-06, xem CONTEXT.md "Giai đoạn 9 (phần 11)"
 - [x] Sửa lại panel nhạc nền: không tự đóng về icon khi đổi nguồn (hiểu nhầm yêu cầu ở phần 11) + thêm tự mở panel khi đổi nguồn lúc đang thu gọn — xong 2026-08-06, xem CONTEXT.md "Giai đoạn 9 (phần 12)"
 - [x] Polish Dashboard theo loạt góp ý user: gom rồi bỏ hẳn Hide UI/VI-EN khỏi top bar, camera chuyển vị trí 2 lần (cột phải riêng → icon ngang hàng Stats/Settings → không tự ẩn/mất khi bật), nổi bật link "Duyệt phòng thủ công"; sửa bug nhạc YouTube bị chặn autoplay im lặng; wallpaper hỗ trợ GIF động + video MP4 (kèm tự resize ảnh tĩnh khi upload, sửa bug video giải mã trùng lặp/đứng hình) — xong 2026-08-06, xem CONTEXT.md "Giai đoạn 9 (phần 13)"
+- [x] Pomodoro tự ẩn UI + fullscreen khi bấm Bắt đầu (toggle mới ở Settings), sửa bug wallpaper/nhạc mới upload ở Settings không hiện ngay ở Dashboard (thiếu refetch khi đóng overlay) — xong 2026-08-07, xem CONTEXT.md "Giai đoạn 9 (phần 14)"
+
+## Giai đoạn 10 — Hệ thống kết bạn (ngoài kế hoạch gốc, bắt đầu 2026-08-07)
+- [x] Handle `username#tag` cố định mỗi tài khoản (cột `profiles.tag`, unique theo cặp `(name, tag)`) — code xong 2026-08-07, **user cần chạy migration `0016_friends.sql`**
+- [x] Kết bạn 2 chiều: tìm theo đúng handle, gửi/chấp nhận/từ chối/huỷ lời mời, danh sách bạn bè (panel "Bạn bè" mở từ icon taskbar mới) — xem CONTEXT.md "Giai đoạn 10"
+- [x] Mời bạn bè vào thẳng room đang học, bỏ qua duyệt của host khi bạn đó đồng ý (vẫn check sức chứa phòng) — xem CONTEXT.md "Giai đoạn 10"
+- [x] Tab "Thành viên" trong Room (mọi người xem được, khác tab "Quản lý" chỉ host) — badge chủ phòng + nút kết bạn ngay tại đó — xem CONTEXT.md "Giai đoạn 10"
+- [ ] User chạy migration `0016_friends.sql` + tự test luồng 2 chiều thật với ≥2 tài khoản
 
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).
