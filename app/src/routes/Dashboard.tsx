@@ -6,7 +6,7 @@ import { useAuthStore } from '../store/auth'
 import { playChime } from '../lib/sound'
 import { parseYoutubeUrl, loadYoutubeApi, DEFAULT_YOUTUBE_URL, MUSIC_YOUTUBE_KEY, loadStoredYoutubeUrlOverride, type YTPlayer } from '../lib/youtube'
 import { BUILTIN_TRACKS, type LibraryTrack } from '../lib/musicLibrary'
-import { loadSavedMatchConfig, useQuickMatch } from '../lib/quickMatch'
+import { RANDOM_MATCH_CONFIG, useQuickMatch } from '../lib/quickMatch'
 import { isVideoWallpaper } from '../lib/wallpaper'
 import { loadStoredAutoFullscreenFocus } from '../lib/focusFullscreen'
 import MatchFound from '../components/MatchFound'
@@ -147,25 +147,19 @@ export default function Dashboard() {
   const pendingFriendRequestCount = useFriendStore((s) => s.pendingRequestCount) + useFriendStore((s) => s.pendingInviteCount)
   // Ghép ngẫu nhiên nhóm 5 người từ Dashboard (GĐ10 tiếp, thay bản ghép cặp cũ) — hook dùng
   // chung file với Matching.tsx (nút random ở đó đã bỏ, room list dùng filter+join là chính).
-  // Config rút gọn nhớ qua localStorage giống các lựa chọn khác (loadSavedMatchConfig).
+  // Không còn cho tuỳ chỉnh thời lượng/ngôn ngữ ở đây nữa (RANDOM_MATCH_CONFIG cố định) — ai
+  // cần tuỳ chỉnh thật thì dùng "Duyệt phòng đang mở" bên dưới, vốn đã có đủ bộ lọc.
   const quick = useQuickMatch()
-  const [matchFocusMinutes, setMatchFocusMinutes] = useState(() => loadSavedMatchConfig()?.focus_minutes ?? 25)
-  const [matchLanguage, setMatchLanguage] = useState<'vi' | 'en'>(
-    () => loadSavedMatchConfig()?.language ?? (i18n.resolvedLanguage === 'en' ? 'en' : 'vi'),
-  )
-  // Cài đặt thời lượng/ngôn ngữ gập lại mặc định (hướng B) — chỉ bung ra khi bấm "Đổi".
-  const [studySettingsOpen, setStudySettingsOpen] = useState(false)
   function openStudyPanel() {
     if (!user) {
       navigate('/auth')
       return
     }
-    setStudySettingsOpen(false)
     setPanel('study')
   }
   function startGroupMatch() {
     setPanel(null)
-    void quick.start({ focus_minutes: matchFocusMinutes, language: matchLanguage })
+    void quick.start()
   }
   const initialTasks = useMemo<Task[]>(
     () =>
@@ -1874,75 +1868,11 @@ export default function Dashboard() {
                   {t('dashboard.studyPopup.title')}
                 </span>
 
-                {!studySettingsOpen ? (
-                  <button
-                    onClick={() => setStudySettingsOpen(true)}
-                    className="flex items-center justify-between gap-3 rounded-[16px] border-none px-5 py-[12px] text-left transition-colors duration-200 hover:!bg-white"
-                    style={{ background: 'rgba(238,246,248,0.9)' }}
-                  >
-                    <span className="text-[13.5px] font-bold text-[#2c3f55]">
-                      {matchFocusMinutes} / {matchFocusMinutes === 25 ? 5 : 10} ·{' '}
-                      {matchLanguage === 'vi' ? 'Tiếng Việt' : 'English'}
-                    </span>
-                    <span
-                      className="shrink-0 rounded-[12px] px-3 py-[6px] font-sans text-[12px] font-extrabold text-[#1e3549]"
-                      style={{ background: 'rgba(255,255,255,0.85)' }}
-                    >
-                      {t('dashboard.studyPopup.change')}
-                    </span>
-                  </button>
-                ) : (
-                  <div className="flex flex-col gap-[12px] rounded-[16px] px-5 py-[14px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
-                    <div className="flex flex-col gap-[6px]">
-                      <span className="text-[11px] font-extrabold tracking-[0.6px] text-[rgba(51,71,94,0.5)] uppercase">
-                        {t('dashboard.studyPopup.durationLabel')}
-                      </span>
-                      <div className="flex gap-2">
-                        {[25, 50].map((mins) => (
-                          <button
-                            key={mins}
-                            onClick={() => setMatchFocusMinutes(mins)}
-                            className="flex-1 rounded-[13px] border-[1.5px] py-[8px] font-sans text-[13px] font-bold transition-all duration-[220ms]"
-                            style={{
-                              background: matchFocusMinutes === mins ? 'rgba(140,205,196,0.28)' : '#ffffff',
-                              borderColor: matchFocusMinutes === mins ? 'rgba(126,201,198,0.65)' : 'rgba(51,71,94,0.12)',
-                              color: matchFocusMinutes === mins ? '#22483f' : 'rgba(51,71,94,0.68)',
-                            }}
-                          >
-                            {mins === 25 ? '25 : 5' : '50 : 10'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-[6px]">
-                      <span className="text-[11px] font-extrabold tracking-[0.6px] text-[rgba(51,71,94,0.5)] uppercase">
-                        {t('dashboard.studyPopup.languageLabel')}
-                      </span>
-                      <div className="flex gap-2">
-                        {(['vi', 'en'] as const).map((lng) => (
-                          <button
-                            key={lng}
-                            onClick={() => setMatchLanguage(lng)}
-                            className="flex-1 rounded-[13px] border-[1.5px] py-[8px] font-sans text-[13px] font-bold transition-all duration-[220ms]"
-                            style={{
-                              background: matchLanguage === lng ? 'rgba(140,205,196,0.28)' : '#ffffff',
-                              borderColor: matchLanguage === lng ? 'rgba(126,201,198,0.65)' : 'rgba(51,71,94,0.12)',
-                              color: matchLanguage === lng ? '#22483f' : 'rgba(51,71,94,0.68)',
-                            }}
-                          >
-                            {lng === 'vi' ? 'Tiếng Việt' : 'English'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setStudySettingsOpen(false)}
-                      className="self-end border-none bg-transparent px-1 font-sans text-[12.5px] font-extrabold text-[#1e6b5c]"
-                    >
-                      {t('dashboard.studyPopup.done')}
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center gap-3 rounded-[16px] px-5 py-[12px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
+                  <span className="text-[13.5px] font-bold text-[#2c3f55]">
+                    {RANDOM_MATCH_CONFIG.focus_minutes} / {RANDOM_MATCH_CONFIG.focus_minutes === 25 ? 5 : 10} · Tiếng Việt
+                  </span>
+                </div>
 
                 <div className="flex flex-col gap-[8px]">
                   <button
@@ -2313,7 +2243,7 @@ export default function Dashboard() {
           expired={quick.stage === 'expired'}
           matchError={quick.matchError}
           onCancel={() => quick.cancel()}
-          onRetry={() => void quick.start({ focus_minutes: matchFocusMinutes, language: matchLanguage })}
+          onRetry={() => void quick.start()}
         />
       )}
 
