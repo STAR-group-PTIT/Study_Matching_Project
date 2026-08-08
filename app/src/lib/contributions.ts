@@ -27,7 +27,9 @@ export type ContributionDay = {
   level: 0 | 1 | 2 | 3 | 4
 }
 
-export type ContributionRange = { mode: 'trailing365' } | { mode: 'year'; year: number }
+// Lọc theo đúng 1 tháng-năm cụ thể (GĐ10 tiếp) — thay 2 chế độ trailing365/year cũ. `month`
+// 0-indexed (0=Jan) giống Date native, để khỏi phải +1/-1 khi truyền qua lại với new Date(...).
+export type ContributionRange = { year: number; month: number }
 
 function startOfDay(d: Date): Date {
   const x = new Date(d)
@@ -51,13 +53,9 @@ function levelFromMinutes(minutes: number): 0 | 1 | 2 | 3 | 4 {
 }
 
 function rangeBounds(range: ContributionRange): { start: Date; end: Date } {
-  if (range.mode === 'trailing365') {
-    const end = startOfDay(new Date())
-    const start = new Date(end)
-    start.setDate(start.getDate() - 364)
-    return { start, end }
-  }
-  return { start: new Date(range.year, 0, 1), end: new Date(range.year, 11, 31) }
+  const start = new Date(range.year, range.month, 1)
+  const end = new Date(range.year, range.month + 1, 0) // ngày 0 của tháng sau = ngày cuối tháng này
+  return { start, end }
 }
 
 // Gom sessions theo ngày (giờ địa phương) trong khung `range`. `totalMinutes` cộng mọi phiên

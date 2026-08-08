@@ -54,8 +54,9 @@ describe('buildContributionDays', () => {
       session({ started_at: localNoonIso(2025, 3, 11), minutes: 50, completed: false }), // dở dang đúng bằng 50 phút nhưng KHÔNG hoàn thành
       session({ started_at: localNoonIso(2025, 3, 15), minutes: 90, completed: true, phase: 'break' }), // break không tính vào contribution
     ]
-    const days = buildContributionDays(sessions, { mode: 'year', year: 2025 })
-    expect(days).toHaveLength(365)
+    // month 0-indexed giống Date native → tháng 3 = month: 2
+    const days = buildContributionDays(sessions, { year: 2025, month: 2 })
+    expect(days).toHaveLength(31) // tháng 3 có 31 ngày
 
     const day10 = days.find((d) => d.key === '2025-03-10')!
     expect(day10.totalMinutes).toBe(105) // 25 + 50 + 30
@@ -73,38 +74,29 @@ describe('buildContributionDays', () => {
     expect(day15.totalMinutes).toBe(0) // phase='break' bị loại khỏi contribution
     expect(day15.level).toBe(0)
 
-    const emptyDay = days.find((d) => d.key === '2025-01-01')!
+    const emptyDay = days.find((d) => d.key === '2025-03-01')!
     expect(emptyDay.totalMinutes).toBe(0)
     expect(emptyDay.level).toBe(0)
   })
 
-  it('lọc đúng theo range: year cụ thể loại session ngoài năm đó', () => {
+  it('lọc đúng theo range: 1 tháng cụ thể loại session ngoài tháng đó', () => {
     const sessions: ContributionSession[] = [
-      session({ started_at: localNoonIso(2024, 12, 31), minutes: 25 }),
+      session({ started_at: localNoonIso(2025, 5, 31), minutes: 25 }), // tháng trước, phải bị loại
       session({ started_at: localNoonIso(2025, 6, 1), minutes: 25 }),
-      session({ started_at: localNoonIso(2026, 1, 1), minutes: 25 }),
+      session({ started_at: localNoonIso(2025, 6, 30), minutes: 25 }),
+      session({ started_at: localNoonIso(2025, 7, 1), minutes: 25 }), // tháng sau, phải bị loại
     ]
-    const days = buildContributionDays(sessions, { mode: 'year', year: 2025 })
+    // tháng 6 = month: 5
+    const days = buildContributionDays(sessions, { year: 2025, month: 5 })
+    expect(days).toHaveLength(30) // tháng 6 có 30 ngày
     const totalMinutesAll = days.reduce((a, d) => a + d.totalMinutes, 0)
-    expect(totalMinutesAll).toBe(25)
+    expect(totalMinutesAll).toBe(50) // chỉ 2 session trong tháng 6
   })
 
-  it('trailing365 gồm đúng 365 ngày tính tới hôm nay, loại session quá cũ', () => {
-    const today = new Date()
-    const iso = (daysAgo: number) => {
-      const d = new Date(today)
-      d.setDate(d.getDate() - daysAgo)
-      d.setHours(12, 0, 0, 0)
-      return d.toISOString()
-    }
-    const sessions: ContributionSession[] = [
-      session({ started_at: iso(0), minutes: 25 }),
-      session({ started_at: iso(400), minutes: 25 }), // quá 365 ngày, phải bị loại
-    ]
-    const days = buildContributionDays(sessions, { mode: 'trailing365' })
-    expect(days).toHaveLength(365)
-    const totalMinutesAll = days.reduce((a, d) => a + d.totalMinutes, 0)
-    expect(totalMinutesAll).toBe(25)
+  it('số ngày trả về khớp đúng số ngày thật của tháng, kể cả năm nhuận', () => {
+    expect(buildContributionDays([], { year: 2024, month: 1 })).toHaveLength(29) // 2024 nhuận: T2 có 29 ngày
+    expect(buildContributionDays([], { year: 2025, month: 1 })).toHaveLength(28) // 2025 không nhuận: T2 có 28 ngày
+    expect(buildContributionDays([], { year: 2025, month: 3 })).toHaveLength(30) // T4 có 30 ngày
   })
 })
 

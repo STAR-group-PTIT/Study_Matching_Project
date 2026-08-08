@@ -91,20 +91,15 @@
       "studyTogether": "Học cùng nhau",
       "findStudyBuddy": "Tìm bạn học online"
     },
-    "quickMatch": {
-      "hint": "Đang tìm bạn học cho bạn…"
-    },
     "studyPopup": {
-      "title": "Học cùng nhau",
+      "title": "Bắt đầu phiên học",
       "tabRandom": "Ghép ngẫu nhiên",
-      "tabBrowse": "Duyệt phòng",
+      "tabBrowse": "Duyệt phòng đang mở",
       "durationLabel": "Thời lượng phiên",
       "languageLabel": "Ngôn ngữ",
-      "startButton": "Bắt đầu ghép",
-      "randomHint": "Ghép nhóm 5 người ngẫu nhiên để giao lưu — chờ đủ 5 người mới vào phòng, mọi người cùng bắt đầu một lúc.",
-      "groupProgress": "{{count}}/5 đã vào hàng chờ",
-      "browseHint": "Tự lọc theo tiêu chí và vào thẳng phòng đang mở, hoặc tạo phòng riêng của bạn.",
-      "browseButton": "Xem danh sách phòng"
+      "change": "Đổi",
+      "done": "Xong",
+      "randomHint": "Vào nhóm cùng những người đang tới"
     },
     "taskbar": {
       "wallpaperTitle": "Đổi hình nền",
@@ -207,10 +202,6 @@
       "public": "Công khai",
       "private": "Riêng tư"
     },
-    "searching": {
-      "title": "Đang tìm người phù hợp…",
-      "cancel": "Huỷ tìm"
-    },
     "errors": {
       "matchServiceDown": "Không kết nối được dịch vụ ghép cặp, thử lại sau.",
       "matchGeneric": "Có lỗi xảy ra, thử lại sau.",
@@ -263,11 +254,8 @@
   "stats": {
     "headerTag": "Thống kê cá nhân",
     "close": "Đóng",
-    "ranges": {
-      "week": "Tuần này",
-      "month": "Tháng này",
-      "all": "Tất cả"
-    },
+    "selectYear": "Chọn năm",
+    "selectMonth": "Chọn tháng",
     "weekdaysShort": {
       "mon": "T2",
       "tue": "T3",
@@ -279,14 +267,10 @@
     },
     "kpi": {
       "focusMinutes": "Phút tập trung",
-      "focusMinutesThisWeek": "Phút tập trung tuần này",
-      "focusMinutesThisMonth": "Phút tập trung tháng này",
       "minutesUnit": "phút",
-      "noDataLastWeek": "Chưa có dữ liệu tuần trước để so sánh",
-      "noSessionsThisWeek": "Chưa có phiên nào tuần này",
-      "deltaVsLastWeek": "{{sign}}{{pct}}% so với tuần trước",
-      "totalMinutesMonth": "Tổng phút trong tháng",
-      "totalMinutesAll": "Tổng phút từ trước tới nay",
+      "noDataLastMonth": "Chưa có dữ liệu tháng trước để so sánh",
+      "noSessionsThisMonth": "Chưa có phiên nào trong tháng này",
+      "deltaVsLastMonth": "{{sign}}{{pct}}% so với tháng trước",
       "completedSessions": "Phiên hoàn thành",
       "sessionsUnit": "phiên",
       "groupSessions": "{{count}} phiên học cùng bạn",
@@ -308,14 +292,9 @@
     },
     "contributions": {
       "title": "Biểu đồ tiến độ học tập",
-      "trailingLabel": "365 ngày qua",
-      "summaryTrailing": "{{count}} ngày có học trong 365 ngày qua",
-      "summaryYear": "{{count}} ngày có học trong năm {{year}}",
+      "summaryMonth": "{{count}} ngày có học trong {{month}}",
       "tooltipStudied": "{{date}} · {{minutes}} phút · Pomodoro 25:5: {{p25}} · 50:10: {{p50}}",
       "tooltipEmpty": "{{date}} · Không học",
-      "activeDaysLabel": "Ngày có học",
-      "pomo25Label": "Pomodoro 25:5 hoàn thành",
-      "pomo50Label": "Pomodoro 50:10 hoàn thành",
       "last7Title": "7 ngày gần đây",
       "last7Highest": " · cao nhất {{day}}"
     }
@@ -409,6 +388,16 @@
       "hint": "Đăng xuất sẽ giữ lại wallpaper và nhạc trên tài khoản; máy này chuyển về chế độ khách.",
       "action": "Đăng xuất"
     }
+  },
+  "lobby": {
+    "title": "Đang tìm nhóm…",
+    "progress": "{{count}}/{{capacity}} người đã vào",
+    "countdown": "Bắt đầu sau {{seconds}}s nếu không có ai vào thêm",
+    "cancel": "Huỷ",
+    "errorTitle": "Không ghép được lúc này",
+    "expiredTitle": "Chưa tìm được ai lần này",
+    "expiredHint": "Thử lại nhé — có khi chỉ cần thêm chút thời gian",
+    "retry": "Thử lại"
   },
   "matchFound": {
     "title": "Đã ghép nhóm! 🎉",
@@ -510,6 +499,11 @@
       "title": "Bạn chưa vào phòng này",
       "desc": "Hãy tham gia bằng mã phòng hoặc từ danh sách phòng công khai trước.",
       "goToMatching": "Đi tới Matching"
+    },
+    "notStarted": {
+      "title": "Phòng này chưa bắt đầu",
+      "desc": "Nhóm đang hình thành — quay lại Dashboard, phòng sẽ tự mở khi sẵn sàng.",
+      "back": "Về Dashboard"
     },
     "waitingApproval": {
       "title": "Đang chờ host duyệt…",

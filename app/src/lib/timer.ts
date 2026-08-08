@@ -18,6 +18,8 @@ export type RoomRow = {
   timer_done: boolean
   timer_remaining_seconds: number | null
   timer_updated_at: string
+  status: 'lobby' | 'active' | 'expired'
+  lobby_expires_at: string | null
 }
 
 export function phaseTotalSeconds(r: RoomRow, phase: 'focus' | 'break') {

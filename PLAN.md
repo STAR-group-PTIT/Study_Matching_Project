@@ -115,5 +115,17 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Ghép ngẫu nhiên đổi từ ghép cặp 2 người sang ghép NHÓM 5 người (chờ đủ 5 mới tạo phòng, loại phòng cố định 'chill') — migration `0018`, gộp nút "Học cùng nhau"/"Duyệt phòng" trên Dashboard thành 1 popup 2 tab, bỏ hẳn nút "Ghép ngẫu nhiên" ở trang Matching — xong 2026-08-08, xem CONTEXT.md "Giai đoạn 10 (phần 2)"
 - [ ] User chạy migration `0017`/`0018` + `supabase functions deploy match-room` lại + tự test ghép 5 người thật với ≥5 tài khoản
 
+## Giai đoạn 10 (phần 3) — Redesign popup "Học cùng nhau" + tab Tiến độ (ngoài kế hoạch gốc, 2026-08-08)
+- [x] Popup "Học cùng nhau": đổi khung nhỏ neo cạnh nút → popup overlay cùng khuôn Friends/Settings/Stats, gộp 2 tab Random/Browse thành 2 nút hành động — xong 2026-08-08
+- [x] Redesign lần 2 theo mockup "Hướng B — quyết định trước" user gửi: card gọn 380px, cài đặt thời lượng/ngôn ngữ gập lại 1 dòng tóm tắt + nút "Đổi", 1 CTA chính nổi bật, "Duyệt phòng" hạ thành text link phụ — xong 2026-08-08, xem CONTEXT.md "Giai đoạn 10 (phần 3)"
+- [x] Tab Tiến độ trong Stats: gộp bộ lọc tuần/tháng/tất cả + chọn năm rời rạc trong graph thành 1 cặp dropdown tháng/năm duy nhất chi phối cả KPI lẫn graph — xong 2026-08-08
+- [x] ContributionGraph đổi từ dải-năm cuộn ngang kiểu GitHub sang lưới lịch theo từng tháng (Mon-first, 7×≤6), bỏ tile Pomodoro 25:5/50:10 + tile Streak trùng lặp, fix cỡ ô bị kéo giãn quá to theo phản hồi user — xong 2026-08-08, xem CONTEXT.md "Giai đoạn 10 (phần 3)"
+- Không có việc gì cần user làm thêm — thuần UI/logic client, không đụng schema.
+
+## Giai đoạn 10 (phần 4) — Polish thêm Stats + xây lại ghép ngẫu nhiên thành mô hình LOBBY (ngoài kế hoạch gốc, 2026-08-08)
+- [x] Stats: gộp 3 thẻ KPI thành 1 thanh chia cột + icon (đỡ trống bên phải/nặng nề), gộp thẻ "Last 7 days" lên cùng hàng lưới lịch trong `ContributionGraph` (lấp đúng khoảng trống thật) — xong 2026-08-08, xem CONTEXT.md
+- [x] Ghép ngẫu nhiên: bỏ mô hình "chờ đủ 5 mới tạo phòng" (0018) — thay bằng mô hình LOBBY hiện hình (tạo/join 1 phòng thật ngay từ đầu, thấy người vào live qua Realtime, tự chốt khi đủ 5 hoặc hết giờ ân hạn 75s mà ≥2 người), migration `0019` (2 RPC mới `find_or_create_lobby`/`finalize_lobby`, xoá `matching_queue`), viết lại `quickMatch.ts` + component mới `LobbyWaiting.tsx` — lên plan chi tiết qua `EnterPlanMode` trước khi code — xong 2026-08-08, xem CONTEXT.md "Giai đoạn 10 (phần 4)"
+- [ ] User chạy `0019_lobby_match.sql` (sau `0017`/`0018` nếu chưa chạy từ phần 2) + `supabase functions deploy match-room` lại + tự test luồng lobby với ≥2 tài khoản (thay cho mục cần "≥5 tài khoản" cũ ở phần 2 — giờ chỉ cần 2 người là thấy được cơ chế join-live)
+
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).

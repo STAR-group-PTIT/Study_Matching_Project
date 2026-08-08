@@ -1,10 +1,11 @@
 // FocusFlow — Edge Function: "Ghép ngẫu nhiên" entry point.
-// Forwards the caller's JWT to match_or_queue() (a security-definer Postgres function
-// that does the actual atomic group matching via `for update skip locked`), so this
-// function itself holds no elevated privileges — it's a thin, server-side gatekeeper for
-// the matching RPC rather than exposing it directly to the client.
-// room_type is intentionally NOT accepted here anymore (0018) — random match is now always
-// group-of-5 'chill', fixed server-side inside match_or_queue, not client-supplied.
+// Forwards the caller's JWT to find_or_create_lobby() (a security-definer Postgres function
+// that atomically joins an open lobby or creates one, via `for update skip locked` + a
+// partial unique index), so this function itself holds no elevated privileges — it's a
+// thin, server-side gatekeeper for the matching RPC rather than exposing it directly to
+// the client.
+// room_type is intentionally NOT accepted here (0018) — random match is always 'chill',
+// fixed server-side, not client-supplied.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -66,7 +67,7 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  const { data, error } = await userClient.rpc('match_or_queue', {
+  const { data, error } = await userClient.rpc('find_or_create_lobby', {
     p_duration_minutes: duration_minutes,
     p_language: language,
   })

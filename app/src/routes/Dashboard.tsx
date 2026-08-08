@@ -10,6 +10,7 @@ import { loadSavedMatchConfig, useQuickMatch } from '../lib/quickMatch'
 import { isVideoWallpaper } from '../lib/wallpaper'
 import { loadStoredAutoFullscreenFocus } from '../lib/focusFullscreen'
 import MatchFound from '../components/MatchFound'
+import LobbyWaiting from '../components/LobbyWaiting'
 import Settings from './Settings'
 import Stats from './Stats'
 import FriendsPanel from '../components/FriendsPanel'
@@ -148,17 +149,18 @@ export default function Dashboard() {
   // chung file với Matching.tsx (nút random ở đó đã bỏ, room list dùng filter+join là chính).
   // Config rút gọn nhớ qua localStorage giống các lựa chọn khác (loadSavedMatchConfig).
   const quick = useQuickMatch()
-  const [studyTab, setStudyTab] = useState<'random' | 'browse'>('random')
   const [matchFocusMinutes, setMatchFocusMinutes] = useState(() => loadSavedMatchConfig()?.focus_minutes ?? 25)
   const [matchLanguage, setMatchLanguage] = useState<'vi' | 'en'>(
     () => loadSavedMatchConfig()?.language ?? (i18n.resolvedLanguage === 'en' ? 'en' : 'vi'),
   )
+  // Cài đặt thời lượng/ngôn ngữ gập lại mặc định (hướng B) — chỉ bung ra khi bấm "Đổi".
+  const [studySettingsOpen, setStudySettingsOpen] = useState(false)
   function openStudyPanel() {
     if (!user) {
       navigate('/auth')
       return
     }
-    setStudyTab('random')
+    setStudySettingsOpen(false)
     setPanel('study')
   }
   function startGroupMatch() {
@@ -1826,130 +1828,151 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* study together popup — gộp "Học cùng nhau"/"Duyệt phòng thủ công" cũ thành 1 nút
-          mở panel 2 tab (GĐ10 tiếp). Mở được từ cả nút right-column (desktop) lẫn icon
-          taskbar (mobile), nên dùng chung khuôn bottom-center với wallpaper/music/todo
-          (không giới hạn `md:` như bản cũ neo theo right-column). */}
-      <div
-        className="absolute bottom-[108px] left-1/2 w-[300px] rounded-[26px] p-5"
-        style={{
-          background: 'rgba(255,255,255,0.85)',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 18px 44px rgba(58,98,126,0.16)',
-          opacity: panel === 'study' ? 1 : 0,
-          transform: `translate(-50%, ${panel === 'study' ? '0px' : '14px'})`,
-          pointerEvents: panel === 'study' ? 'auto' : 'none',
-          transition: 'opacity 320ms ease, transform 320ms cubic-bezier(0.22,1,0.36,1)',
-        }}
-      >
-        <div className="mb-[14px] flex items-center justify-between">
-          <span className="text-[15px] font-extrabold text-[#2c3f55]">
-            {t('dashboard.studyPopup.title')}
-          </span>
-          <button
-            onClick={() => setPanel(null)}
-            className="border-none bg-transparent font-sans text-[13px] font-bold text-[rgba(51,71,94,0.5)]"
-          >
-            {t('dashboard.wallpaperPopup.close')}
-          </button>
-        </div>
-
-        <div className="mb-[14px] flex gap-1 rounded-[18px] p-[5px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
-          <button
-            onClick={() => setStudyTab('random')}
-            className="flex-1 rounded-[13px] border-none py-2 font-sans text-[12.5px] font-extrabold transition-all duration-[220ms]"
+      {/* study together popup — cùng khuôn backdrop+card tròn-32px với FriendsPanel/Settings/Stats
+          (thay vì khung nhỏ neo cạnh nút như wallpaper/music/todo). Gọn theo "hướng B — quyết định
+          trước" (GĐ10 tiếp): cài đặt thời lượng/ngôn ngữ gập lại 1 dòng tóm tắt (bấm "Đổi" mới bung
+          ra), 1 nút chính "Ghép ngẫu nhiên" nổi bật, "Duyệt phòng" hạ xuống thành link phụ — vì đa
+          số người dùng chỉ bấm ghép ngẫu nhiên rồi đi. */}
+      {panel === 'study' && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(20,32,42,0.42)', backdropFilter: 'blur(2px)' }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPanel(null)
+          }}
+        >
+          <div
+            className="relative flex w-full max-w-[380px] flex-col overflow-hidden rounded-[28px] font-sans text-[#33475e] antialiased"
             style={{
-              background: studyTab === 'random' ? '#ffffff' : 'transparent',
-              color: studyTab === 'random' ? '#22483f' : 'rgba(51,71,94,0.55)',
-              boxShadow: studyTab === 'random' ? '0 4px 12px rgba(58,98,126,0.12)' : 'none',
+              maxHeight: '88vh',
+              background: 'linear-gradient(170deg, #e4f1f4 0%, #dbeaf2 50%, #e6f4ee 100%)',
+              boxShadow: '0 30px 80px rgba(20,32,42,0.35)',
             }}
           >
-            {t('dashboard.studyPopup.tabRandom')}
-          </button>
-          <button
-            onClick={() => setStudyTab('browse')}
-            className="flex-1 rounded-[13px] border-none py-2 font-sans text-[12.5px] font-extrabold transition-all duration-[220ms]"
-            style={{
-              background: studyTab === 'browse' ? '#ffffff' : 'transparent',
-              color: studyTab === 'browse' ? '#22483f' : 'rgba(51,71,94,0.55)',
-              boxShadow: studyTab === 'browse' ? '0 4px 12px rgba(58,98,126,0.12)' : 'none',
-            }}
-          >
-            {t('dashboard.studyPopup.tabBrowse')}
-          </button>
-        </div>
+            <div className="flex-1 overflow-y-auto">
+              <div className="flex flex-col gap-[16px] px-6 pt-7 pb-7">
+                <div className="flex items-center gap-[11px]">
+                  <div
+                    className="h-[20px] w-[20px] rounded-[8px]"
+                    style={{ background: 'linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235))' }}
+                  />
+                  <span className="text-[16px] font-extrabold tracking-[-0.2px] text-[#2f4459]">{t('app.name')}</span>
+                  <button
+                    onClick={() => setPanel(null)}
+                    title={t('dashboard.wallpaperPopup.close')}
+                    aria-label={t('dashboard.wallpaperPopup.close')}
+                    className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
+                    style={{ background: 'rgba(255,255,255,0.7)' }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                  </button>
+                </div>
 
-        {studyTab === 'random' ? (
-          <div className="flex flex-col gap-[12px]">
-            <div className="flex flex-col gap-[8px]">
-              <span className="text-[11.5px] font-extrabold tracking-[0.6px] text-[rgba(51,71,94,0.5)] uppercase">
-                {t('dashboard.studyPopup.durationLabel')}
-              </span>
-              <div className="flex gap-2">
-                {[25, 50].map((mins) => (
+                <span className="text-[19px] font-extrabold tracking-[-0.3px] text-[#1e3549]">
+                  {t('dashboard.studyPopup.title')}
+                </span>
+
+                {!studySettingsOpen ? (
                   <button
-                    key={mins}
-                    onClick={() => setMatchFocusMinutes(mins)}
-                    className="flex-1 rounded-[15px] border-[1.5px] py-[9px] font-sans text-[13px] font-bold transition-all duration-[220ms]"
+                    onClick={() => setStudySettingsOpen(true)}
+                    className="flex items-center justify-between gap-3 rounded-[16px] border-none px-5 py-[12px] text-left transition-colors duration-200 hover:!bg-white"
+                    style={{ background: 'rgba(238,246,248,0.9)' }}
+                  >
+                    <span className="text-[13.5px] font-bold text-[#2c3f55]">
+                      {matchFocusMinutes} / {matchFocusMinutes === 25 ? 5 : 10} ·{' '}
+                      {matchLanguage === 'vi' ? 'Tiếng Việt' : 'English'}
+                    </span>
+                    <span
+                      className="shrink-0 rounded-[12px] px-3 py-[6px] font-sans text-[12px] font-extrabold text-[#1e3549]"
+                      style={{ background: 'rgba(255,255,255,0.85)' }}
+                    >
+                      {t('dashboard.studyPopup.change')}
+                    </span>
+                  </button>
+                ) : (
+                  <div className="flex flex-col gap-[12px] rounded-[16px] px-5 py-[14px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
+                    <div className="flex flex-col gap-[6px]">
+                      <span className="text-[11px] font-extrabold tracking-[0.6px] text-[rgba(51,71,94,0.5)] uppercase">
+                        {t('dashboard.studyPopup.durationLabel')}
+                      </span>
+                      <div className="flex gap-2">
+                        {[25, 50].map((mins) => (
+                          <button
+                            key={mins}
+                            onClick={() => setMatchFocusMinutes(mins)}
+                            className="flex-1 rounded-[13px] border-[1.5px] py-[8px] font-sans text-[13px] font-bold transition-all duration-[220ms]"
+                            style={{
+                              background: matchFocusMinutes === mins ? 'rgba(140,205,196,0.28)' : '#ffffff',
+                              borderColor: matchFocusMinutes === mins ? 'rgba(126,201,198,0.65)' : 'rgba(51,71,94,0.12)',
+                              color: matchFocusMinutes === mins ? '#22483f' : 'rgba(51,71,94,0.68)',
+                            }}
+                          >
+                            {mins === 25 ? '25 : 5' : '50 : 10'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-[6px]">
+                      <span className="text-[11px] font-extrabold tracking-[0.6px] text-[rgba(51,71,94,0.5)] uppercase">
+                        {t('dashboard.studyPopup.languageLabel')}
+                      </span>
+                      <div className="flex gap-2">
+                        {(['vi', 'en'] as const).map((lng) => (
+                          <button
+                            key={lng}
+                            onClick={() => setMatchLanguage(lng)}
+                            className="flex-1 rounded-[13px] border-[1.5px] py-[8px] font-sans text-[13px] font-bold transition-all duration-[220ms]"
+                            style={{
+                              background: matchLanguage === lng ? 'rgba(140,205,196,0.28)' : '#ffffff',
+                              borderColor: matchLanguage === lng ? 'rgba(126,201,198,0.65)' : 'rgba(51,71,94,0.12)',
+                              color: matchLanguage === lng ? '#22483f' : 'rgba(51,71,94,0.68)',
+                            }}
+                          >
+                            {lng === 'vi' ? 'Tiếng Việt' : 'English'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setStudySettingsOpen(false)}
+                      className="self-end border-none bg-transparent px-1 font-sans text-[12.5px] font-extrabold text-[#1e6b5c]"
+                    >
+                      {t('dashboard.studyPopup.done')}
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-[8px]">
+                  <button
+                    onClick={startGroupMatch}
+                    className="w-full rounded-[18px] border-none py-[15px] text-center font-sans text-[15px] font-extrabold text-white transition-transform duration-200 hover:-translate-y-0.5"
                     style={{
-                      background: matchFocusMinutes === mins ? 'rgba(140,205,196,0.28)' : 'rgba(255,255,255,0.72)',
-                      borderColor: matchFocusMinutes === mins ? 'rgba(126,201,198,0.65)' : 'rgba(51,71,94,0.12)',
-                      color: matchFocusMinutes === mins ? '#22483f' : 'rgba(51,71,94,0.68)',
+                      background: 'linear-gradient(135deg, oklch(0.6 0.1 175), oklch(0.53 0.1 235))',
+                      boxShadow: '0 14px 30px rgba(30,80,72,0.3)',
                     }}
                   >
-                    {mins === 25 ? '25 : 5' : '50 : 10'}
+                    {t('dashboard.studyPopup.tabRandom')}
                   </button>
-                ))}
+                  <span className="text-center text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">
+                    {t('dashboard.studyPopup.randomHint')}
+                  </span>
+                </div>
+
+                <Link
+                  to="/matching"
+                  onClick={() => setPanel(null)}
+                  className="text-center font-sans text-[13.5px] font-extrabold no-underline"
+                  style={{ color: '#1e6b5c' }}
+                >
+                  {t('dashboard.studyPopup.tabBrowse')} →
+                </Link>
               </div>
             </div>
-            <div className="flex flex-col gap-[8px]">
-              <span className="text-[11.5px] font-extrabold tracking-[0.6px] text-[rgba(51,71,94,0.5)] uppercase">
-                {t('dashboard.studyPopup.languageLabel')}
-              </span>
-              <div className="flex gap-2">
-                {(['vi', 'en'] as const).map((lng) => (
-                  <button
-                    key={lng}
-                    onClick={() => setMatchLanguage(lng)}
-                    className="flex-1 rounded-[15px] border-[1.5px] py-[9px] font-sans text-[13px] font-bold transition-all duration-[220ms]"
-                    style={{
-                      background: matchLanguage === lng ? 'rgba(140,205,196,0.28)' : 'rgba(255,255,255,0.72)',
-                      borderColor: matchLanguage === lng ? 'rgba(126,201,198,0.65)' : 'rgba(51,71,94,0.12)',
-                      color: matchLanguage === lng ? '#22483f' : 'rgba(51,71,94,0.68)',
-                    }}
-                  >
-                    {lng === 'vi' ? 'Tiếng Việt' : 'English'}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <button
-              onClick={startGroupMatch}
-              className="mt-[2px] w-full rounded-[18px] border-none py-[12px] font-sans text-[14px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
-              style={{ background: 'var(--ff-accent-soft)', boxShadow: '0 10px 22px rgba(58,98,126,0.14)' }}
-            >
-              {t('dashboard.studyPopup.startButton')}
-            </button>
-            <span className="text-[11.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.5)]">
-              {t('dashboard.studyPopup.randomHint')}
-            </span>
           </div>
-        ) : (
-          <div className="flex flex-col gap-[12px]">
-            <span className="text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.58)]">
-              {t('dashboard.studyPopup.browseHint')}
-            </span>
-            <Link
-              to="/matching"
-              onClick={() => setPanel(null)}
-              className="w-full rounded-[18px] border-none py-[12px] text-center font-sans text-[14px] font-extrabold text-[#1e3549] no-underline transition-transform duration-200 hover:-translate-y-0.5"
-              style={{ background: 'var(--ff-accent-soft)', boxShadow: '0 10px 22px rgba(58,98,126,0.14)' }}
-            >
-              {t('dashboard.studyPopup.browseButton')}
-            </Link>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* taskbar */}
       <div
@@ -2279,56 +2302,19 @@ export default function Dashboard() {
       {statsOpen && <Stats onClose={() => setStatsOpen(false)} />}
       {friendsOpen && <FriendsPanel onClose={() => setFriendsOpen(false)} />}
 
-      {/* quick match chờ người — overlay nhỏ gọn trên Dashboard, không rời trang (GĐ9) */}
-      {quick.stage === 'waiting' && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center p-6"
-          style={{ background: 'rgba(38,66,86,0.32)', backdropFilter: 'blur(7px)' }}
-        >
-          <div className="absolute inset-0" onClick={() => quick.cancel()} />
-          <div
-            className="relative flex w-full max-w-[340px] flex-col items-center gap-[18px] rounded-[30px] bg-white px-7 pt-8 pb-6 text-center"
-            style={{ boxShadow: '0 30px 70px rgba(38,66,86,0.3)', animation: 'ffPop 380ms cubic-bezier(0.22,1,0.36,1)' }}
-          >
-            <div className="relative flex h-[120px] w-[120px] items-center justify-center">
-              <div
-                className="absolute h-[120px] w-[120px] rounded-full"
-                style={{ border: '2px solid rgba(126,201,198,0.55)', animation: 'ffRipple 3.4s cubic-bezier(0.24,0.6,0.3,1) infinite' }}
-              />
-              <div
-                className="absolute h-[120px] w-[120px] rounded-full"
-                style={{ border: '2px solid rgba(150,190,220,0.5)', animation: 'ffRipple 3.4s cubic-bezier(0.24,0.6,0.3,1) infinite', animationDelay: '1.13s' }}
-              />
-              <div
-                className="absolute h-[76px] w-[76px] rounded-full"
-                style={{ background: 'rgba(255,255,255,0.72)', boxShadow: '0 10px 26px rgba(58,98,126,0.13)', animation: 'ffBreathe 3.4s ease-in-out infinite' }}
-              />
-              <span className="relative text-2xl font-extrabold text-[#2c3f55] tabular-nums">{quick.waited}</span>
-            </div>
-            <div className="flex flex-col gap-[6px]">
-              <span className="text-[17px] font-extrabold tracking-[-0.2px] text-[#2c3f55]">
-                {t('matching.searching.title')}
-              </span>
-              <span className="text-[13px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.55)]">
-                {quick.matchError
-                  ? t('matching.errors.' + quick.matchError)
-                  : t('dashboard.quickMatch.hint')}
-              </span>
-              {quick.stage === 'waiting' && !quick.matchError && quick.waitingCount !== null && (
-                <span className="text-[12px] font-bold text-[rgba(51,71,94,0.42)]">
-                  {t('dashboard.studyPopup.groupProgress', { count: Math.min(quick.waitingCount, 5) })}
-                </span>
-              )}
-            </div>
-            <button
-              onClick={() => quick.cancel()}
-              className="rounded-[20px] border-none px-[26px] py-[12px] font-sans text-[14px] font-extrabold text-[#43596f] hover:!bg-[rgba(240,248,250,0.95)]"
-              style={{ background: 'rgba(240,248,250,0.9)' }}
-            >
-              {t('matching.searching.cancel')}
-            </button>
-          </div>
-        </div>
+      {/* quick match — lobby thật (GĐ10 tiếp): thấy ngay ai đã vào qua Realtime thay vì
+          spinner trắng + số đếm ước lượng cũ */}
+      {(quick.stage === 'lobby' || quick.stage === 'expired') && (
+        <LobbyWaiting
+          members={quick.lobbyMembers}
+          memberCount={quick.memberCount}
+          capacity={quick.capacity}
+          secondsRemaining={quick.secondsRemaining}
+          expired={quick.stage === 'expired'}
+          matchError={quick.matchError}
+          onCancel={() => quick.cancel()}
+          onRetry={() => void quick.start({ focus_minutes: matchFocusMinutes, language: matchLanguage })}
+        />
       )}
 
       {/* match thành công — card hồ sơ người cùng học (GĐ9) */}
