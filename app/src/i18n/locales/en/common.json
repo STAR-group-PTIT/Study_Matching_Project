@@ -89,11 +89,22 @@
       "turnOffCamera": "Turn off camera",
       "turnOnCamera": "Turn on camera",
       "studyTogether": "Study together",
-      "findStudyBuddy": "Find a study buddy online",
-      "browseRooms": "Browse rooms manually"
+      "findStudyBuddy": "Find a study buddy online"
     },
     "quickMatch": {
       "hint": "Looking for a study buddy for you…"
+    },
+    "studyPopup": {
+      "title": "Study together",
+      "tabRandom": "Random match",
+      "tabBrowse": "Browse rooms",
+      "durationLabel": "Session length",
+      "languageLabel": "Language",
+      "startButton": "Start matching",
+      "randomHint": "Randomly grouped with 4 others to socialize — waits until 5 people are in before creating the room, so everyone starts together.",
+      "groupProgress": "{{count}}/5 in the queue",
+      "browseHint": "Filter by what you want and join an open room directly, or create your own.",
+      "browseButton": "Browse room list"
     },
     "taskbar": {
       "wallpaperTitle": "Change wallpaper",
@@ -103,7 +114,6 @@
       "todoTitle": "To-do list",
       "todoLabel": "To-do",
       "studyTogetherTitle": "Study together",
-      "browseRooms": "Browse rooms",
       "stats": "Stats",
       "settingsTitle": "Settings",
       "settingsLabel": "Settings",
@@ -181,9 +191,7 @@
       "subtitle": "Pick a room type and a few preferences — we'll match you with someone on the same rhythm.",
       "roomTypeLabel": "Room type",
       "durationLabel": "Session length",
-      "minutesValue": "{{count}} min",
       "languageLabel": "Language",
-      "randomMatch": "Random match",
       "createRoom": "Create a room",
       "roomList": "Browse rooms",
       "joinByCodeLabel": "Or enter an existing room code",
@@ -200,17 +208,8 @@
       "private": "Private"
     },
     "searching": {
-      "seconds": "sec",
       "title": "Looking for a match…",
-      "othersWaiting": "{{count}} people waiting too",
-      "cancel": "Cancel search",
-      "editFilters": "Edit filters",
-      "hints": {
-        "h1": "Checking who else has a room like yours open…",
-        "h2": "Prioritizing people with the same session length.",
-        "h3": "Almost there, hang tight.",
-        "h4": "Taking a while? Try a different room type for a faster match."
-      }
+      "cancel": "Cancel search"
     },
     "errors": {
       "matchServiceDown": "Couldn't reach the matching service — try again later.",
@@ -412,16 +411,12 @@
     }
   },
   "matchFound": {
-    "title": "Match found! 🎉",
-    "subtitle": "Matched with {{name}}",
+    "title": "Group matched! 🎉",
+    "subtitleGroup": "Matched with {{count}} others — head in together",
     "close": "Leave",
     "enter": "Join room together",
     "unknownName": "Anonymous study buddy",
-    "stats": {
-      "weekly": "{{count}} min this week",
-      "level": "Level {{level}}",
-      "likes": "{{count}} likes"
-    },
+    "noPartnersYet": "Loading…",
     "levels": {
       "l0": "Just started",
       "l1": "Rookie",
@@ -459,7 +454,11 @@
     "inviteButton": "Invite friend",
     "noInvitable": "No friends available to invite right now.",
     "invite": "Invite",
-    "invited": "Invited"
+    "invited": "Invited",
+    "roomInvitesTitle": "Room invites ({{count}})",
+    "roomInviteSubtitle": "invited you to \"{{room}}\"",
+    "roomInviteFull": "That room is full now.",
+    "roomInviteClosed": "That room is closed now."
   },
   "roomInvite": {
     "title": "Study invite!",

@@ -5,16 +5,16 @@ import { levelFromTotalMinutes } from './levels'
 import { othersWaiting } from './queueStats'
 
 // ============================================================
-// Cấu hình ghép ngẫu nhiên — dùng chung cho cả nút "Ghép ngay"
-// (Dashboard) lẫn màn Matching đầy đủ. Lưu localStorage để lần sau
-// vào lại không phải chọn lại từ đầu (Giai đoạn 9).
+// Cấu hình ghép ngẫu nhiên — dùng cho tab "Ghép ngẫu nhiên" gộp mới ở Dashboard (GĐ10 tiếp).
+// Lưu localStorage để lần sau vào lại không phải chọn lại từ đầu (Giai đoạn 9).
+//
+// Rút gọn còn đúng 2 trường (0018): loại phòng giờ luôn cố định 'chill' phía server, không
+// còn cho chọn — random match là để giao lưu chứ không phải học nghiêm túc kiểu hardcore/
+// silent, ai muốn phòng kiểu đó thì tự tạo/join qua danh sách phòng công khai ở Matching.tsx.
 // ============================================================
 
 export type MatchConfig = {
-  room_type: string
   focus_minutes: number
-  break_minutes: number
-  session_count: number
   language: 'vi' | 'en'
 }
 
@@ -25,13 +25,7 @@ export function loadSavedMatchConfig(): MatchConfig | null {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<MatchConfig>
-    if (
-      !parsed.room_type ||
-      typeof parsed.focus_minutes !== 'number' ||
-      typeof parsed.break_minutes !== 'number' ||
-      typeof parsed.session_count !== 'number' ||
-      !parsed.language
-    ) {
+    if (typeof parsed.focus_minutes !== 'number' || !parsed.language) {
       return null
     }
     return parsed as MatchConfig
@@ -65,17 +59,18 @@ export type QuickMatchStage = 'idle' | 'waiting' | 'matched'
 export { levelFromTotalMinutes }
 export { othersWaiting }
 
-// Hook ghép ngẫu nhiên dùng chung: gọi edge function match-room, theo dõi hàng chờ qua
-// Realtime, và tải stats của người cùng học khi khớp thành công — đúng logic đã proven
-// trong Matching.tsx từ GĐ4, tách ra để Dashboard cũng dùng được mà không nhân đôi code.
+// Hook ghép ngẫu nhiên: gọi edge function match-room, theo dõi hàng chờ qua Realtime, tải
+// stats của cả nhóm khi khớp thành công. Từ 0018, ghép theo NHÓM 5 người (chờ đủ 5 mới tạo
+// phòng — không ai bị ghép xong rồi ngồi 1 mình), nên `partners` giờ là mảng tối đa 4 người
+// thay vì 1 partner như bản ghép cặp cũ.
 export function useQuickMatch() {
   const [stage, setStage] = useState<QuickMatchStage>('idle')
   const [waited, setWaited] = useState(0)
   const [matchError, setMatchError] = useState('')
   const [roomCode, setRoomCode] = useState<string | null>(null)
-  const [partner, setPartner] = useState<PublicProfileStats | null>(null)
-  // Số người đang chờ cùng bộ lọc — poll matching_queue_stats (0010) mỗi 5s trong
-  // lúc tìm. Để trong hook để Dashboard lẫn Matching đều hiện "N người cũng đang chờ".
+  const [partners, setPartners] = useState<PublicProfileStats[]>([])
+  // Số người đang chờ cùng bộ lọc (bao gồm chính mình) — poll matching_queue_stats (0010)
+  // mỗi 5s trong lúc tìm, dùng làm tiến trình "X người đang chờ, cần 5 để bắt đầu".
   const [waitingCount, setWaitingCount] = useState<number | null>(null)
   const cfgRef = useRef<MatchConfig | null>(null)
 
@@ -99,7 +94,7 @@ export function useQuickMatch() {
       const { data } = await supabase
         .from('matching_queue_stats')
         .select('waiting_count')
-        .eq('room_type', cfg.room_type)
+        .eq('room_type', 'chill')
         .eq('duration_minutes', cfg.focus_minutes)
         .eq('language', cfg.language)
         .limit(1)
@@ -115,16 +110,18 @@ export function useQuickMatch() {
 
   useEffect(() => () => void channelRef.current?.unsubscribe(), [])
 
-  async function loadPartner(roomId: string, uid: string): Promise<PublicProfileStats | null> {
+  async function loadPartners(roomId: string, uid: string): Promise<PublicProfileStats[]> {
     const { data: members } = await supabase
       .from('room_members_view')
       .select('user_id')
       .eq('room_id', roomId)
       .neq('user_id', uid)
-    const partnerId = members?.[0]?.user_id
-    if (!partnerId) return null
-    const { data } = await supabase.rpc('public_profile_stats', { p_user_id: partnerId })
-    return (data?.[0] as PublicProfileStats) ?? null
+    const partnerIds = (members ?? []).map((m) => m.user_id)
+    if (partnerIds.length === 0) return []
+    const results = await Promise.all(
+      partnerIds.map((id) => supabase.rpc('public_profile_stats', { p_user_id: id })),
+    )
+    return results.map((r) => r.data?.[0] as PublicProfileStats).filter((s): s is PublicProfileStats => !!s)
   }
 
   function subscribeQueue(userId: string) {
@@ -140,8 +137,8 @@ export function useQuickMatch() {
           channel.unsubscribe()
           channelRef.current = null
           supabase.from('matching_queue').delete().eq('user_id', userId).then(() => {})
-          void loadPartner(row.matched_room_id ?? '', userId).then((partnerStats) => {
-            setPartner(partnerStats)
+          void loadPartners(row.matched_room_id ?? '', userId).then((partnerStats) => {
+            setPartners(partnerStats)
             setRoomCode(code)
             setStage('matched')
           })
@@ -161,13 +158,13 @@ export function useQuickMatch() {
     cfgRef.current = cfg
     setMatchError('')
     setRoomCode(null)
-    setPartner(null)
+    setPartners([])
     setWaited(0)
     setWaitingCount(null)
     setStage('waiting')
 
     const { data, error } = await supabase.functions.invoke('match-room', {
-      body: { room_type: cfg.room_type, duration_minutes: cfg.focus_minutes, language: cfg.language },
+      body: { duration_minutes: cfg.focus_minutes, language: cfg.language },
     })
 
     if (error) {
@@ -176,8 +173,8 @@ export function useQuickMatch() {
     }
     const result = data?.result as { status: string; room_id: string; room_code: string } | null
     if (result?.status === 'matched' && result.room_code) {
-      const partnerStats = await loadPartner(result.room_id, user.id)
-      setPartner(partnerStats)
+      const partnerStats = await loadPartners(result.room_id, user.id)
+      setPartners(partnerStats)
       setRoomCode(result.room_code)
       setStage('matched')
     } else if (result?.status === 'queued') {
@@ -203,15 +200,15 @@ export function useQuickMatch() {
     setMatchError('')
     setWaited(0)
     setRoomCode(null)
-    setPartner(null)
+    setPartners([])
     setWaitingCount(null)
     setStage('idle')
   }
 
   function dismissMatch() {
     setStage('idle')
-    setPartner(null)
+    setPartners([])
   }
 
-  return { stage, waited, matchError, roomCode, partner, waitingCount, start, cancel, reset, dismissMatch }
+  return { stage, waited, matchError, roomCode, partners, waitingCount, start, cancel, reset, dismissMatch }
 }

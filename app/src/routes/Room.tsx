@@ -173,6 +173,15 @@ export default function Room() {
   const [mic, setMic] = useState(false)
   const [chatOpen, setChatOpen] = useState(true)
   const [tab, setTab] = useState<Tab>('chat')
+  // Chấm đỏ trên icon Chat khi có tin nhắn mới của người khác lúc tab Chat không hiện —
+  // chatVisibleRef đọc trực tiếp trong callback Realtime (không đưa vào dependency để khỏi
+  // resubscribe channel mỗi lần đổi tab), tự tắt lại ngay khi tab Chat được mở ra xem.
+  const [hasUnreadChat, setHasUnreadChat] = useState(false)
+  const chatVisibleRef = useRef(false)
+  chatVisibleRef.current = chatOpen && tab === 'chat'
+  useEffect(() => {
+    if (chatOpen && tab === 'chat') setHasUnreadChat(false)
+  }, [chatOpen, tab])
 
   // Mã phòng — trước đây không hiện ở đâu trong Room dù đã dùng để nối LiveKit/query
   // (chỉ có lúc tạo/join phòng ở Matching.tsx), user báo không có chỗ xem lại mã để mời
@@ -895,6 +904,7 @@ export default function Room() {
           if (row.user_id === user.id) return
           const senderName = membersRef.current.find((m) => m.id === row.user_id)?.name || t('room.unknownUser')
           setMessages((ms) => [...ms, { who: senderName, me: false, text: row.text }])
+          if (!chatVisibleRef.current) setHasUnreadChat(true)
         },
       )
       .subscribe()
@@ -1580,9 +1590,14 @@ export default function Room() {
           className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)] md:px-5"
           style={{ background: chatOpen && effectiveTab === 'chat' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)' }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
-            <path d="M20 12.5c0 3.6-3.6 6.5-8 6.5-1 0-2-.15-2.9-.42L4.5 20l1.1-3.3A6.7 6.7 0 014 12.5C4 8.9 7.6 6 12 6s8 2.9 8 6.5z" />
-          </svg>
+          <span className="relative flex h-[18px] w-[18px] shrink-0 items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+              <path d="M20 12.5c0 3.6-3.6 6.5-8 6.5-1 0-2-.15-2.9-.42L4.5 20l1.1-3.3A6.7 6.7 0 014 12.5C4 8.9 7.6 6 12 6s8 2.9 8 6.5z" />
+            </svg>
+            {hasUnreadChat && (
+              <span className="absolute -top-[3px] -right-[3px] h-[9px] w-[9px] rounded-full ring-2 ring-white" style={{ background: '#c0524a' }} />
+            )}
+          </span>
           <span className="hidden md:inline">{t('room.controls.chat')}</span>
         </button>
         <button
@@ -2050,8 +2065,16 @@ export default function Room() {
                           {t('room.members.addFriend')}
                         </button>
                       ) : row.status === 'accepted' ? (
-                        <span className="shrink-0 text-[12px] font-bold text-[#2c5b53]">
-                          {t('room.members.alreadyFriends')}
+                        <span
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#2c5b53]"
+                          style={{ background: 'rgba(140,205,196,0.4)' }}
+                          title={t('room.members.alreadyFriends')}
+                          aria-label={t('room.members.alreadyFriends')}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="8" r="4" />
+                            <path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+                          </svg>
                         </span>
                       ) : row.requester_id === user.id ? (
                         <span className="shrink-0 text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">

@@ -3,8 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
-import { othersWaiting, useQuickMatch, saveMatchConfig } from '../lib/quickMatch'
-import MatchFound from '../components/MatchFound'
 import type { RoomTypeKey } from '../lib/roomTypeRules'
 
 type RoomType = {
@@ -71,7 +69,6 @@ const ACCENT_BORDER = 'var(--ff-accent-border)'
 const ROOMS_PER_PAGE = 8
 const DURATION_TOLERANCE_MINUTES = 5
 
-type Stage = 'browse' | 'searching'
 type Language = 'Tiếng Việt' | 'English'
 type Visibility = 'public' | 'private'
 
@@ -102,26 +99,12 @@ export default function Matching() {
   const roomTypeLabel = (key: RoomTypeKey) => t(`matching.roomTypes.${key}.name`)
   const roomTypeRule = (key: RoomTypeKey) => t(`matching.roomTypes.${key}.rule`)
   const visibilityLabel = (v: Visibility) => t(`matching.visibility.${v}`)
-  const hints = useMemo(
-    () => [
-      t('matching.searching.hints.h1'),
-      t('matching.searching.hints.h2'),
-      t('matching.searching.hints.h3'),
-      t('matching.searching.hints.h4'),
-    ],
-    [t],
-  )
 
-  const [stage, setStage] = useState<Stage>('browse')
-  const [fade, setFade] = useState(1)
   const [roomType, setRoomType] = useState<RoomTypeKey>('chill')
   const [roomTypePopupOpen, setRoomTypePopupOpen] = useState(false)
   const [focusMinutes, setFocusMinutes] = useState(25)
   const [breakMinutes, setBreakMinutes] = useState(5)
   const [language, setLanguage] = useState<Language>('Tiếng Việt')
-
-  const quick = useQuickMatch()
-  const languageCode = language === 'Tiếng Việt' ? 'vi' : 'en'
 
   const [modal, setModal] = useState(false)
   const [created, setCreated] = useState(false)
@@ -190,36 +173,6 @@ export default function Matching() {
     return true
   }
 
-  function go(next: Stage) {
-    setFade(0)
-    setTimeout(() => {
-      setStage(next)
-      setFade(1)
-    }, 200)
-  }
-
-  function cancelSearch() {
-    quick.cancel()
-    go('browse')
-  }
-
-  function resetAfterMatch() {
-    quick.dismissMatch()
-    go('browse')
-  }
-
-  async function startRandomMatch() {
-    if (!requireAuth()) return
-    go('searching')
-    await quick.start({
-      room_type: roomType,
-      focus_minutes: focusMinutes,
-      break_minutes: breakMinutes,
-      session_count: 4,
-      language: languageCode,
-    })
-  }
-
   async function submitJoinCode() {
     if (!requireAuth()) return
     const code = joinCode.trim().toUpperCase()
@@ -280,11 +233,6 @@ export default function Matching() {
   const pagedRooms = filteredRooms?.slice((currentRoomPage - 1) * ROOMS_PER_PAGE, currentRoomPage * ROOMS_PER_PAGE)
 
   const current = ROOM_TYPES.find((r) => r.key === roomType)!
-  const fadeStyle = {
-    opacity: fade,
-    transform: `translateY(${fade ? '0px' : '8px'})`,
-    transition: 'opacity 420ms ease, transform 420ms cubic-bezier(0.22,1,0.36,1)',
-  }
 
   function openCreate() {
     if (!requireAuth()) return
@@ -346,15 +294,6 @@ export default function Matching() {
     setRoomId(inserted.code)
     setCreated(true)
     setCreating(false)
-
-    // Lưu config ghép lần này để nút "Ghép ngay" ở Dashboard dùng lại được.
-    saveMatchConfig({
-      room_type: roomType,
-      focus_minutes: focusMinutes,
-      break_minutes: breakMinutes,
-      session_count: 4,
-      language: language === 'Tiếng Việt' ? 'vi' : 'en',
-    })
   }
 
   function copyId() {
@@ -567,14 +506,12 @@ export default function Matching() {
             )}
           </div>
 
-          {/* RIGHT: filters panel, replaced by the searching panel while a random match is in progress.
+          {/* RIGHT: filters panel — dùng để lọc room list bên trái VÀ làm config khi "Tạo phòng".
               Sticky on desktop so it stays in view while the (usually much longer) room list scrolls. */}
           <div className="flex w-full flex-col gap-5 lg:sticky lg:top-6 lg:w-[400px] lg:shrink-0 lg:self-start">
-            {stage === 'browse' && (
               <div
                 className="flex w-full flex-col gap-6 rounded-[34px] px-[30px] pt-8 pb-[30px] lg:max-h-[calc(100svh-3rem)] lg:overflow-y-auto"
                 style={{
-                  ...fadeStyle,
                   background: 'rgba(255,255,255,0.8)',
                   backdropFilter: 'blur(22px)',
                   boxShadow: '0 22px 56px rgba(58,98,126,0.13)',
@@ -715,22 +652,13 @@ export default function Matching() {
                   )}
                 </div>
 
-                <div className="flex flex-wrap gap-[10px]">
-                  <button
-                    onClick={startRandomMatch}
-                    className="flex-[1_1_160px] rounded-[22px] border-[1.5px] border-transparent px-3 py-[15px] font-sans text-[15.5px] font-extrabold text-[#1e3549] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(58,98,126,0.22)]"
-                    style={{ background: ACCENT_SOFT, boxShadow: '0 12px 26px rgba(58,98,126,0.16)' }}
-                  >
-                    {t('matching.filters.randomMatch')}
-                  </button>
-                  <button
-                    onClick={openCreate}
-                    className="flex-[1_1_160px] rounded-[22px] border-[1.5px] bg-white px-3 py-[15px] font-sans text-[15.5px] font-extrabold text-[#22483f] transition-[transform,background] duration-200 hover:-translate-y-0.5 hover:!bg-[rgba(255,255,255,0.86)]"
-                    style={{ borderColor: ACCENT_BORDER }}
-                  >
-                    {t('matching.filters.createRoom')}
-                  </button>
-                </div>
+                <button
+                  onClick={openCreate}
+                  className="w-full rounded-[22px] border-[1.5px] bg-white px-3 py-[15px] font-sans text-[15.5px] font-extrabold text-[#22483f] transition-[transform,background] duration-200 hover:-translate-y-0.5 hover:!bg-[rgba(255,255,255,0.86)]"
+                  style={{ borderColor: ACCENT_BORDER }}
+                >
+                  {t('matching.filters.createRoom')}
+                </button>
 
                 <div className="flex flex-col gap-2 border-t border-[rgba(51,71,94,0.1)] pt-5">
                   <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
@@ -763,112 +691,6 @@ export default function Matching() {
                   {joinError && <span className="text-[12.5px] font-semibold text-[#7a3f2c]">{joinError}</span>}
                 </div>
               </div>
-            )}
-
-            {stage === 'searching' && (
-              <div
-                className="flex w-full flex-col items-center gap-[26px] rounded-[34px] p-[30px] lg:max-h-[calc(100svh-3rem)] lg:overflow-y-auto"
-                style={{
-                  ...fadeStyle,
-                  background: 'rgba(255,255,255,0.72)',
-                  backdropFilter: 'blur(22px)',
-                  boxShadow: '0 22px 56px rgba(58,98,126,0.12)',
-                }}
-              >
-                <div className="flex flex-wrap justify-center gap-[7px]">
-                  {[
-                    roomTypeLabel(current.key),
-                    t('matching.filters.minutesValue', { count: focusMinutes }),
-                    language,
-                  ].map((text) => (
-                    <span
-                      key={text}
-                      className="rounded-full px-[14px] py-[7px] text-[12.5px] font-bold text-[#35566b]"
-                      style={{ background: 'rgba(255,255,255,0.8)', boxShadow: '0 3px 10px rgba(58,98,126,0.07)' }}
-                    >
-                      {text}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="relative flex h-[200px] w-[200px] items-center justify-center">
-                  <div
-                    className="absolute h-[200px] w-[200px] rounded-full"
-                    style={{
-                      border: '2px solid rgba(126,201,198,0.55)',
-                      animation: 'ffRipple 3.4s cubic-bezier(0.24,0.6,0.3,1) infinite',
-                    }}
-                  />
-                  <div
-                    className="absolute h-[200px] w-[200px] rounded-full"
-                    style={{
-                      border: '2px solid rgba(150,190,220,0.5)',
-                      animation: 'ffRipple 3.4s cubic-bezier(0.24,0.6,0.3,1) infinite',
-                      animationDelay: '1.13s',
-                    }}
-                  />
-                  <div
-                    className="absolute h-[200px] w-[200px] rounded-full"
-                    style={{
-                      border: '2px solid rgba(126,201,198,0.4)',
-                      animation: 'ffRipple 3.4s cubic-bezier(0.24,0.6,0.3,1) infinite',
-                      animationDelay: '2.26s',
-                    }}
-                  />
-                  <div
-                    className="absolute h-[125px] w-[125px] rounded-full"
-                    style={{
-                      background: 'rgba(255,255,255,0.72)',
-                      boxShadow: '0 12px 34px rgba(58,98,126,0.13)',
-                      animation: 'ffBreathe 3.4s ease-in-out infinite',
-                    }}
-                  />
-                  <div
-                    className="relative flex flex-col items-center gap-[2px]"
-                    style={{ animation: 'ffDrift 3.4s ease-in-out infinite' }}
-                  >
-                    <span className="text-[30px] leading-none font-extrabold text-[#2c3f55] tabular-nums">
-                      {quick.waited}
-                    </span>
-                    <span className="text-[12.5px] font-bold text-[rgba(51,71,94,0.5)]">
-                      {t('matching.searching.seconds')}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-[7px] text-center">
-                  <span className="text-[17px] font-extrabold tracking-[-0.2px] text-[#2c3f55]">
-                    {t('matching.searching.title')}
-                  </span>
-                  <span className="text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
-                    {quick.matchError
-                      ? t('matching.errors.' + quick.matchError)
-                      : hints[Math.min(hints.length - 1, Math.floor(quick.waited / 8))]}
-                  </span>
-                  {quick.stage === 'waiting' && !quick.matchError && quick.waitingCount !== null && (
-                    <span className="text-[12px] font-bold text-[rgba(51,71,94,0.42)]">
-                      {t('matching.searching.othersWaiting', { count: othersWaiting(quick.waitingCount) })}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap items-center justify-center gap-[10px]">
-                  <button
-                    onClick={cancelSearch}
-                    className="rounded-[22px] border-none px-[26px] py-[13px] font-sans text-[14.5px] font-extrabold text-[#43596f] transition-colors duration-200 hover:!bg-white"
-                    style={{ background: 'rgba(255,255,255,0.85)', boxShadow: '0 8px 20px rgba(58,98,126,0.1)' }}
-                  >
-                    {t('matching.searching.cancel')}
-                  </button>
-                  <button
-                    onClick={cancelSearch}
-                    className="rounded-[22px] border-none bg-transparent px-[18px] py-[13px] font-sans text-[14.5px] font-bold text-[rgba(51,71,94,0.6)] transition-colors duration-200 hover:!text-[#2c3f55]"
-                  >
-                    {t('matching.searching.editFilters')}
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
@@ -1084,15 +906,6 @@ export default function Matching() {
         </div>
       )}
 
-      {quick.stage === 'matched' && (
-        <MatchFound
-          partner={quick.partner}
-          roomCode={quick.roomCode ?? ''}
-          roomLabel={roomTypeLabel(roomType)}
-          onClose={resetAfterMatch}
-          onEnter={() => quick.roomCode && navigate('/room/' + quick.roomCode)}
-        />
-      )}
     </div>
   )
 }

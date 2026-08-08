@@ -1,8 +1,10 @@
 // FocusFlow — Edge Function: "Ghép ngẫu nhiên" entry point.
 // Forwards the caller's JWT to match_or_queue() (a security-definer Postgres function
-// that does the actual atomic pairing via `for update skip locked`), so this function
-// itself holds no elevated privileges — it's a thin, server-side gatekeeper for the
-// matching RPC rather than exposing it directly to the client.
+// that does the actual atomic group matching via `for update skip locked`), so this
+// function itself holds no elevated privileges — it's a thin, server-side gatekeeper for
+// the matching RPC rather than exposing it directly to the client.
+// room_type is intentionally NOT accepted here anymore (0018) — random match is now always
+// group-of-5 'chill', fixed server-side inside match_or_queue, not client-supplied.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -29,7 +31,7 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  let body: { room_type?: string; duration_minutes?: number; language?: string }
+  let body: { duration_minutes?: number; language?: string }
   try {
     body = await req.json()
   } catch {
@@ -39,9 +41,9 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  const { room_type, duration_minutes, language } = body
-  if (!room_type || !duration_minutes || !language) {
-    return new Response(JSON.stringify({ error: 'Missing room_type/duration_minutes/language' }), {
+  const { duration_minutes, language } = body
+  if (!duration_minutes || !language) {
+    return new Response(JSON.stringify({ error: 'Missing duration_minutes/language' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -65,7 +67,6 @@ Deno.serve(async (req: Request) => {
   }
 
   const { data, error } = await userClient.rpc('match_or_queue', {
-    p_room_type: room_type,
     p_duration_minutes: duration_minutes,
     p_language: language,
   })

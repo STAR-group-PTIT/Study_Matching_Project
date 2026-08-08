@@ -1,17 +1,22 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 import { useFriendStore } from '../store/friendNotifications'
 import {
   acceptFriendRequest,
+  acceptRoomInvite,
+  declineRoomInvite,
   findProfileByTag,
   formatFriendHandle,
   listFriendRequests,
+  listMyRoomInvites,
   parseFriendHandle,
   removeFriendRequest,
   sendFriendRequest,
   type FriendRequestRow,
+  type RoomInviteRow,
 } from '../lib/friends'
 
 type SendState = 'idle' | 'sending' | 'invalid' | 'not_found' | 'error' | 'sent' | 'already_sent' | 'already_friends' | 'accepted'
@@ -27,8 +32,10 @@ function otherSideOf(row: FriendRequestRow, myId: string) {
 // name#tag, lời mời đến/đã gửi, và danh sách bạn bè.
 export default function FriendsPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const pendingRequestCount = useFriendStore((s) => s.pendingRequestCount)
+  const pendingInviteCount = useFriendStore((s) => s.pendingInviteCount)
 
   const [myHandle, setMyHandle] = useState<{ name: string; tag: string } | null>(null)
   const [copied, setCopied] = useState(false)
@@ -36,9 +43,20 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
   const [handleInput, setHandleInput] = useState('')
   const [sendState, setSendState] = useState<SendState>('idle')
 
+  // Lời mời vào room đang chờ — xem lại được ở đây (trước đó chỉ hiện đúng 1 lần qua popup
+  // gián đoạn lúc mới tới, dễ bị lỡ nếu không có app mở đúng lúc hoặc lỡ tay bấm ra ngoài).
+  const [invites, setInvites] = useState<RoomInviteRow[]>([])
+  const [inviteActionId, setInviteActionId] = useState<string | null>(null)
+  const [inviteResultMsg, setInviteResultMsg] = useState<{ id: string; key: string } | null>(null)
+
   const refresh = useCallback(() => {
     if (!user) return
     listFriendRequests().then(setRows).catch(() => {})
+  }, [user])
+
+  const refreshInvites = useCallback(() => {
+    if (!user) return
+    listMyRoomInvites().then(setInvites).catch(() => {})
   }, [user])
 
   useEffect(() => {
@@ -57,7 +75,42 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
     refresh()
   }, [refresh, pendingRequestCount])
 
+  useEffect(() => {
+    refreshInvites()
+  }, [refreshInvites, pendingInviteCount])
+
   if (!user) return null
+
+  async function handleAcceptInvite(inv: RoomInviteRow) {
+    setInviteActionId(inv.id)
+    setInviteResultMsg(null)
+    try {
+      const result = await acceptRoomInvite(inv.id)
+      if (result.status === 'joined' && result.room_code) {
+        onClose()
+        navigate('/room/' + result.room_code)
+        return
+      }
+      setInviteResultMsg({ id: inv.id, key: result.status === 'full' ? 'roomInviteFull' : 'roomInviteClosed' })
+      refreshInvites()
+    } catch {
+      setInviteResultMsg({ id: inv.id, key: 'roomInviteFull' })
+    } finally {
+      setInviteActionId(null)
+    }
+  }
+
+  async function handleDeclineInvite(id: string) {
+    setInviteActionId(id)
+    try {
+      await declineRoomInvite(id)
+      refreshInvites()
+    } catch {
+      // ignore
+    } finally {
+      setInviteActionId(null)
+    }
+  }
 
   function copyHandle() {
     if (!myHandle) return
@@ -101,6 +154,7 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
   const incoming = rows.filter((r) => r.status === 'pending' && r.addressee_id === user.id)
   const outgoing = rows.filter((r) => r.status === 'pending' && r.requester_id === user.id)
   const friends = rows.filter((r) => r.status === 'accepted')
+  const incomingRoomInvites = invites.filter((i) => i.invitee_id === user.id)
 
   return (
     <div
@@ -201,6 +255,57 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
                 </span>
               )}
             </div>
+
+            {/* lời mời vào room — trước đây KHÔNG có chỗ nào xem lại, chỉ hiện đúng 1 lần qua
+                popup gián đoạn (RoomInvitePopup) lúc Realtime bắn INSERT; lỡ không có app mở
+                đúng lúc đó, hoặc lỡ tay bấm ra ngoài popup (= tự động từ chối), là mất luôn
+                không dấu vết. Giờ liệt kê lại ở đây, đếm vào cùng badge với lời mời kết bạn. */}
+            {incomingRoomInvites.length > 0 && (
+              <div className="flex flex-col gap-[10px]">
+                <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                  {t('friends.roomInvitesTitle', { count: incomingRoomInvites.length })}
+                </span>
+                {incomingRoomInvites.map((inv) => (
+                  <div
+                    key={inv.id}
+                    className="flex flex-wrap items-center justify-between gap-[10px] rounded-[20px] px-5 py-[13px]"
+                    style={{ background: 'rgba(255,255,255,0.8)' }}
+                  >
+                    <div className="flex flex-col gap-[2px]">
+                      <span className="text-sm font-bold text-[#2c3f55]">
+                        {formatFriendHandle(inv.inviter_name, inv.inviter_tag)}
+                      </span>
+                      <span className="text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">
+                        {t('friends.roomInviteSubtitle', { room: inv.room_name })}
+                      </span>
+                      {inviteResultMsg?.id === inv.id && (
+                        <span className="text-[12px] font-bold text-[#a13f2c]">
+                          {t(`friends.${inviteResultMsg.key}`)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-[7px]">
+                      <button
+                        onClick={() => void handleDeclineInvite(inv.id)}
+                        disabled={inviteActionId === inv.id}
+                        className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-bold text-[#7a3f2c] disabled:opacity-50"
+                        style={{ background: 'oklch(0.93 0.03 45)' }}
+                      >
+                        {t('roomInvite.decline')}
+                      </button>
+                      <button
+                        onClick={() => void handleAcceptInvite(inv)}
+                        disabled={inviteActionId === inv.id}
+                        className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-extrabold text-[#1e3549] disabled:opacity-50"
+                        style={{ background: 'var(--ff-accent-soft)' }}
+                      >
+                        {t('roomInvite.accept')}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* lời mời đến */}
             {incoming.length > 0 && (
