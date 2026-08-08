@@ -6,7 +6,7 @@ import { useAuthStore } from '../store/auth'
 import { playChime } from '../lib/sound'
 import { parseYoutubeUrl, loadYoutubeApi, DEFAULT_YOUTUBE_URL, MUSIC_YOUTUBE_KEY, loadStoredYoutubeUrlOverride, type YTPlayer } from '../lib/youtube'
 import { BUILTIN_TRACKS, type LibraryTrack } from '../lib/musicLibrary'
-import { loadSavedMatchConfig, othersWaiting, useQuickMatch } from '../lib/quickMatch'
+import { loadSavedMatchConfig, useQuickMatch } from '../lib/quickMatch'
 import { isVideoWallpaper } from '../lib/wallpaper'
 import { loadStoredAutoFullscreenFocus } from '../lib/focusFullscreen'
 import MatchFound from '../components/MatchFound'
@@ -70,6 +70,19 @@ function loadStoredCameraOn() {
   }
 }
 
+// Bật/tắt nhạc (playing) cũng phải nhớ qua localStorage cùng lý do với cameraOn ở trên —
+// nếu không thì mỗi lần route Dashboard bị unmount/remount (F5, hoặc điều hướng đi rồi
+// quay lại), state playing reset về mặc định true, tự phát nhạc trở lại dù user vừa tắt.
+const MUSIC_PLAYING_KEY = 'ff-music-playing'
+function loadStoredMusicPlaying() {
+  try {
+    const v = localStorage.getItem(MUSIC_PLAYING_KEY)
+    return v === null ? true : v === '1'
+  } catch {
+    return true
+  }
+}
+
 // Nguồn nhạc (musicSource) cố tình không lưu localStorage — mỗi lần mở app luôn mặc định
 // vào thẳng YouTube (auto-play link đã lưu, hoặc DEFAULT_YOUTUBE_URL nếu chưa từng đổi);
 // chọn Thư viện chỉ có tác dụng tạm trong phiên đang mở, không "dính" sang lần mở app kế
@@ -84,7 +97,7 @@ const ACCENT = 'var(--ff-accent)'
 
 type Phase = 'focus' | 'break'
 type Mode = 'dashboard' | 'focus'
-type Panel = 'wp' | 'music' | 'todo' | null
+type Panel = 'wp' | 'music' | 'todo' | 'study' | null
 type TimerType = 'pomodoro' | 'endless'
 type EditField = 'loop' | 'work' | 'break' | null
 
@@ -127,26 +140,30 @@ export default function Dashboard() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [statsOpen, setStatsOpen] = useState(false)
   const [friendsOpen, setFriendsOpen] = useState(false)
-  const pendingFriendRequestCount = useFriendStore((s) => s.pendingRequestCount)
-  // Ghép ngẫu nhiên nhanh từ Dashboard — hook dùng chung với Matching (GĐ9):
-  // config từ localStorage (nhớ lần chọn cuối) hoặc defaults từ profiles.
+  // Badge trên icon "Bạn bè" gộp cả lời mời kết bạn LẪN lời mời vào room đang chờ — trước đó
+  // lời mời vào room không có chỗ nào hiện lại ngoài popup gián đoạn 1 lần lúc mới tới (dễ bị
+  // lỡ), giờ cũng đếm vào đây và liệt kê lại được trong FriendsPanel.
+  const pendingFriendRequestCount = useFriendStore((s) => s.pendingRequestCount) + useFriendStore((s) => s.pendingInviteCount)
+  // Ghép ngẫu nhiên nhóm 5 người từ Dashboard (GĐ10 tiếp, thay bản ghép cặp cũ) — hook dùng
+  // chung file với Matching.tsx (nút random ở đó đã bỏ, room list dùng filter+join là chính).
+  // Config rút gọn nhớ qua localStorage giống các lựa chọn khác (loadSavedMatchConfig).
   const quick = useQuickMatch()
-  function quickStart() {
+  const [studyTab, setStudyTab] = useState<'random' | 'browse'>('random')
+  const [matchFocusMinutes, setMatchFocusMinutes] = useState(() => loadSavedMatchConfig()?.focus_minutes ?? 25)
+  const [matchLanguage, setMatchLanguage] = useState<'vi' | 'en'>(
+    () => loadSavedMatchConfig()?.language ?? (i18n.resolvedLanguage === 'en' ? 'en' : 'vi'),
+  )
+  function openStudyPanel() {
     if (!user) {
       navigate('/auth')
       return
     }
+    setStudyTab('random')
+    setPanel('study')
+  }
+  function startGroupMatch() {
     setPanel(null)
-    const saved = loadSavedMatchConfig()
-    void quick.start(
-      saved ?? {
-        room_type: 'chill',
-        focus_minutes: focusMin,
-        break_minutes: breakMin,
-        session_count: sessionCount,
-        language: i18n.resolvedLanguage === 'en' ? 'en' : 'vi',
-      },
-    )
+    void quick.start({ focus_minutes: matchFocusMinutes, language: matchLanguage })
   }
   const initialTasks = useMemo<Task[]>(
     () =>
@@ -232,7 +249,14 @@ export default function Dashboard() {
   }, [user, settingsOpen])
 
   const [track, setTrack] = useState(0)
-  const [playing, setPlaying] = useState(true)
+  const [playing, setPlaying] = useState(loadStoredMusicPlaying)
+  useEffect(() => {
+    try {
+      localStorage.setItem(MUSIC_PLAYING_KEY, playing ? '1' : '0')
+    } catch {
+      // localStorage không khả dụng — chỉ mất tính năng nhớ lựa chọn, không lỗi.
+    }
+  }, [playing])
   const [audioSrc, setAudioSrc] = useState<string | null>(null)
   useEffect(() => {
     const current = tracks[track]
@@ -510,6 +534,22 @@ export default function Dashboard() {
     }
   }, [])
 
+  // User tự thoát fullscreen bằng phím Esc (hoặc control gốc của trình duyệt/OS) thay vì bấm
+  // Huỷ trong app — trước đây app không hay biết gì cả, top bar/widget vẫn kẹt ở trạng thái ẩn
+  // (opacity 0, pointer-events none) dù trình duyệt đã thật sự thoát fullscreen rồi (bug user
+  // báo cáo: "thoát" không tự trả UI về Dashboard). Lắng nghe fullscreenchange để đồng bộ lại.
+  useEffect(() => {
+    function onFullscreenChange() {
+      if (!document.fullscreenElement && autoFocusActiveRef.current) {
+        autoFocusActiveRef.current = false
+        setAutoFocusFullscreen(false)
+        setMode('dashboard')
+      }
+    }
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange)
+  }, [])
+
   useEffect(() => {
     if (!user) return
     supabase
@@ -724,6 +764,11 @@ export default function Dashboard() {
   const active = tasks.find((task) => !task.done)
 
   function toggleRun() {
+    // Bấm Tạm dừng (đang running -> dừng) cũng thoát auto-fullscreen/trả UI về Dashboard luôn,
+    // giống Huỷ/hoàn thành phiên/Esc — không đợi bấm Huỷ mới thoát. Bấm Tiếp tục lại (đang
+    // dừng -> running) thì KHÔNG tự bật lại fullscreen, chỉ "Bắt đầu" mới bật (đúng thiết kế
+    // gốc của toggle này).
+    if (running) exitAutoFocusFullscreen()
     setRunning((r) => !r)
   }
 
@@ -1743,10 +1788,10 @@ export default function Dashboard() {
         }}
       >
         <button
-          onClick={quickStart}
+          onClick={openStudyPanel}
           className="flex w-full items-center gap-3 rounded-[24px] px-[18px] py-[15px] text-left text-inherit transition-[transform,background] duration-[220ms] hover:!bg-white hover:!-translate-y-0.5"
           style={{
-            background: 'rgba(255,255,255,0.72)',
+            background: panel === 'study' ? '#ffffff' : 'rgba(255,255,255,0.72)',
             backdropFilter: 'blur(16px)',
             boxShadow: '0 12px 30px rgba(58,98,126,0.14)',
           }}
@@ -1779,13 +1824,131 @@ export default function Dashboard() {
             </span>
           </span>
         </button>
-        <Link
-          to="/matching"
-          className="mt-[2px] block rounded-[16px] px-3 py-[9px] text-center text-[12.5px] font-extrabold text-[#354c65] no-underline transition-colors duration-[220ms] hover:!bg-[rgba(255,255,255,0.85)]"
-          style={{ background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(14px)' }}
-        >
-          {t('dashboard.rightColumn.browseRooms')}
-        </Link>
+      </div>
+
+      {/* study together popup — gộp "Học cùng nhau"/"Duyệt phòng thủ công" cũ thành 1 nút
+          mở panel 2 tab (GĐ10 tiếp). Mở được từ cả nút right-column (desktop) lẫn icon
+          taskbar (mobile), nên dùng chung khuôn bottom-center với wallpaper/music/todo
+          (không giới hạn `md:` như bản cũ neo theo right-column). */}
+      <div
+        className="absolute bottom-[108px] left-1/2 w-[300px] rounded-[26px] p-5"
+        style={{
+          background: 'rgba(255,255,255,0.85)',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 18px 44px rgba(58,98,126,0.16)',
+          opacity: panel === 'study' ? 1 : 0,
+          transform: `translate(-50%, ${panel === 'study' ? '0px' : '14px'})`,
+          pointerEvents: panel === 'study' ? 'auto' : 'none',
+          transition: 'opacity 320ms ease, transform 320ms cubic-bezier(0.22,1,0.36,1)',
+        }}
+      >
+        <div className="mb-[14px] flex items-center justify-between">
+          <span className="text-[15px] font-extrabold text-[#2c3f55]">
+            {t('dashboard.studyPopup.title')}
+          </span>
+          <button
+            onClick={() => setPanel(null)}
+            className="border-none bg-transparent font-sans text-[13px] font-bold text-[rgba(51,71,94,0.5)]"
+          >
+            {t('dashboard.wallpaperPopup.close')}
+          </button>
+        </div>
+
+        <div className="mb-[14px] flex gap-1 rounded-[18px] p-[5px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
+          <button
+            onClick={() => setStudyTab('random')}
+            className="flex-1 rounded-[13px] border-none py-2 font-sans text-[12.5px] font-extrabold transition-all duration-[220ms]"
+            style={{
+              background: studyTab === 'random' ? '#ffffff' : 'transparent',
+              color: studyTab === 'random' ? '#22483f' : 'rgba(51,71,94,0.55)',
+              boxShadow: studyTab === 'random' ? '0 4px 12px rgba(58,98,126,0.12)' : 'none',
+            }}
+          >
+            {t('dashboard.studyPopup.tabRandom')}
+          </button>
+          <button
+            onClick={() => setStudyTab('browse')}
+            className="flex-1 rounded-[13px] border-none py-2 font-sans text-[12.5px] font-extrabold transition-all duration-[220ms]"
+            style={{
+              background: studyTab === 'browse' ? '#ffffff' : 'transparent',
+              color: studyTab === 'browse' ? '#22483f' : 'rgba(51,71,94,0.55)',
+              boxShadow: studyTab === 'browse' ? '0 4px 12px rgba(58,98,126,0.12)' : 'none',
+            }}
+          >
+            {t('dashboard.studyPopup.tabBrowse')}
+          </button>
+        </div>
+
+        {studyTab === 'random' ? (
+          <div className="flex flex-col gap-[12px]">
+            <div className="flex flex-col gap-[8px]">
+              <span className="text-[11.5px] font-extrabold tracking-[0.6px] text-[rgba(51,71,94,0.5)] uppercase">
+                {t('dashboard.studyPopup.durationLabel')}
+              </span>
+              <div className="flex gap-2">
+                {[25, 50].map((mins) => (
+                  <button
+                    key={mins}
+                    onClick={() => setMatchFocusMinutes(mins)}
+                    className="flex-1 rounded-[15px] border-[1.5px] py-[9px] font-sans text-[13px] font-bold transition-all duration-[220ms]"
+                    style={{
+                      background: matchFocusMinutes === mins ? 'rgba(140,205,196,0.28)' : 'rgba(255,255,255,0.72)',
+                      borderColor: matchFocusMinutes === mins ? 'rgba(126,201,198,0.65)' : 'rgba(51,71,94,0.12)',
+                      color: matchFocusMinutes === mins ? '#22483f' : 'rgba(51,71,94,0.68)',
+                    }}
+                  >
+                    {mins === 25 ? '25 : 5' : '50 : 10'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col gap-[8px]">
+              <span className="text-[11.5px] font-extrabold tracking-[0.6px] text-[rgba(51,71,94,0.5)] uppercase">
+                {t('dashboard.studyPopup.languageLabel')}
+              </span>
+              <div className="flex gap-2">
+                {(['vi', 'en'] as const).map((lng) => (
+                  <button
+                    key={lng}
+                    onClick={() => setMatchLanguage(lng)}
+                    className="flex-1 rounded-[15px] border-[1.5px] py-[9px] font-sans text-[13px] font-bold transition-all duration-[220ms]"
+                    style={{
+                      background: matchLanguage === lng ? 'rgba(140,205,196,0.28)' : 'rgba(255,255,255,0.72)',
+                      borderColor: matchLanguage === lng ? 'rgba(126,201,198,0.65)' : 'rgba(51,71,94,0.12)',
+                      color: matchLanguage === lng ? '#22483f' : 'rgba(51,71,94,0.68)',
+                    }}
+                  >
+                    {lng === 'vi' ? 'Tiếng Việt' : 'English'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={startGroupMatch}
+              className="mt-[2px] w-full rounded-[18px] border-none py-[12px] font-sans text-[14px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
+              style={{ background: 'var(--ff-accent-soft)', boxShadow: '0 10px 22px rgba(58,98,126,0.14)' }}
+            >
+              {t('dashboard.studyPopup.startButton')}
+            </button>
+            <span className="text-[11.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.5)]">
+              {t('dashboard.studyPopup.randomHint')}
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-[12px]">
+            <span className="text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.58)]">
+              {t('dashboard.studyPopup.browseHint')}
+            </span>
+            <Link
+              to="/matching"
+              onClick={() => setPanel(null)}
+              className="w-full rounded-[18px] border-none py-[12px] text-center font-sans text-[14px] font-extrabold text-[#1e3549] no-underline transition-transform duration-200 hover:-translate-y-0.5"
+              style={{ background: 'var(--ff-accent-soft)', boxShadow: '0 10px 22px rgba(58,98,126,0.14)' }}
+            >
+              {t('dashboard.studyPopup.browseButton')}
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* taskbar */}
@@ -1873,11 +2036,11 @@ export default function Dashboard() {
           </span>
         </button>
         <button
-          onClick={quickStart}
+          onClick={openStudyPanel}
           title={t('dashboard.taskbar.studyTogetherTitle')}
           aria-label={t('dashboard.taskbar.studyTogetherTitle')}
           className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:hidden"
-          style={{ background: 'rgba(255,255,255,0.35)' }}
+          style={{ background: panel === 'study' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)' }}
         >
           <svg
             width="18"
@@ -1894,14 +2057,6 @@ export default function Dashboard() {
             <path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1" />
           </svg>
         </button>
-        <Link
-          to="/matching"
-          title={t('dashboard.taskbar.browseRooms')}
-          className="flex shrink-0 items-center rounded-[19px] px-3 py-3 font-sans text-[12px] font-extrabold text-[#354c65] no-underline transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:hidden"
-          style={{ background: 'rgba(255,255,255,0.35)' }}
-        >
-          {t('dashboard.taskbar.browseRooms')}
-        </Link>
         <button
           type="button"
           onClick={() => {
@@ -2161,7 +2316,7 @@ export default function Dashboard() {
               </span>
               {quick.stage === 'waiting' && !quick.matchError && quick.waitingCount !== null && (
                 <span className="text-[12px] font-bold text-[rgba(51,71,94,0.42)]">
-                  {t('matching.searching.othersWaiting', { count: othersWaiting(quick.waitingCount) })}
+                  {t('dashboard.studyPopup.groupProgress', { count: Math.min(quick.waitingCount, 5) })}
                 </span>
               )}
             </div>
@@ -2179,9 +2334,9 @@ export default function Dashboard() {
       {/* match thành công — card hồ sơ người cùng học (GĐ9) */}
       {quick.stage === 'matched' && quick.roomCode && (
         <MatchFound
-          partner={quick.partner}
+          partners={quick.partners}
           roomCode={quick.roomCode}
-          roomLabel={t('matching.roomTypes.' + (loadSavedMatchConfig()?.room_type ?? 'chill') + '.name')}
+          roomLabel={t('matching.roomTypes.chill.name')}
           onEnter={() => navigate('/room/' + quick.roomCode)}
           onClose={() => quick.reset()}
         />

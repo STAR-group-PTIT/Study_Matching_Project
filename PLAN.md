@@ -74,7 +74,7 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 ## Giai đoạn 8 — Responsive, polish, deploy
 - [x] Bottom sheet cho panel phải trên mobile — xong 2026-07-30
 - [x] QA toàn luồng: Auth → Dashboard → Matching → Room → Rời phòng → Stats/Settings — xong 2026-07-30 (phát hiện + fix thêm vài lỗi tràn màn hình mobile ngoài kế hoạch, xem CONTEXT.md)
-- [ ] Deploy frontend (Vercel/Netlify) + Supabase production — **frontend đã chuẩn bị xong** (`vercel.json`, `main` đồng bộ, 2026-07-31), còn thiếu: user tự tạo project Vercel + set env vars, và quyết định Supabase production
+- [x] Deploy frontend (Vercel) + Supabase production — **đã deploy xong** (`study-matching-project.vercel.app`, 2026-08-08), Google OAuth cũng đã bật (Site URL/Redirect URLs whitelist đúng cổng local + domain production)
 - [x] Kiểm tra i18n vi/en đầy đủ — xong 2026-07-30 (chi tiết CONTEXT.md)
 - [x] (thêm ngoài kế hoạch) Settings 2 tab (Hồ sơ/Cài đặt), accent color preset, camera/mic mặc định, âm thanh hết giờ — xong 2026-07-31
 - [x] (thêm ngoài kế hoạch) Hình nền built-in gộp với thư viện riêng — xong 2026-07-31
@@ -106,6 +106,14 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Mời bạn bè vào thẳng room đang học, bỏ qua duyệt của host khi bạn đó đồng ý (vẫn check sức chứa phòng) — xem CONTEXT.md "Giai đoạn 10"
 - [x] Tab "Thành viên" trong Room (mọi người xem được, khác tab "Quản lý" chỉ host) — badge chủ phòng + nút kết bạn ngay tại đó — xem CONTEXT.md "Giai đoạn 10"
 - [ ] User chạy migration `0016_friends.sql` + tự test luồng 2 chiều thật với ≥2 tài khoản
+
+## Giai đoạn 10 (phần 2) — Fix sau deploy + đổi ghép ngẫu nhiên thành nhóm 5 (ngoài kế hoạch gốc, 2026-08-08)
+- [x] Fix phòng công khai "ma" hiện dù rỗng thành viên (migration `0017`) — xong 2026-08-08, xem CONTEXT.md "Giai đoạn 10 (phần 2)"
+- [x] Chấm đỏ thông báo tin nhắn mới ở icon Chat, icon thay chữ "Bạn bè ✓" ở tab Thành viên, nhạc Dashboard không tự bật lại sau F5 — xong 2026-08-08
+- [x] Lời mời vào room có badge + list xem lại được trong panel Bạn bè (trước chỉ hiện 1 lần qua popup, dễ mất) — xong 2026-08-08
+- [x] Auto-fullscreen Pomodoro tự thoát khi bấm Esc (fullscreenchange listener) hoặc Tạm dừng — xong 2026-08-08
+- [x] Ghép ngẫu nhiên đổi từ ghép cặp 2 người sang ghép NHÓM 5 người (chờ đủ 5 mới tạo phòng, loại phòng cố định 'chill') — migration `0018`, gộp nút "Học cùng nhau"/"Duyệt phòng" trên Dashboard thành 1 popup 2 tab, bỏ hẳn nút "Ghép ngẫu nhiên" ở trang Matching — xong 2026-08-08, xem CONTEXT.md "Giai đoạn 10 (phần 2)"
+- [ ] User chạy migration `0017`/`0018` + `supabase functions deploy match-room` lại + tự test ghép 5 người thật với ≥5 tài khoản
 
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).

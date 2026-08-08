@@ -109,6 +109,19 @@ export async function inviteFriendToRoom(roomId: string, friendId: string): Prom
   return data?.[0]?.status as InviteFriendToRoomResult
 }
 
+// Mọi lời mời phòng đang pending liên quan tới mình (cả 2 chiều, giống listFriendRequests) —
+// dùng cho FriendsPanel để xem lại lời mời đã lỡ bỏ qua popup gián đoạn (RoomInvitePopup chỉ
+// hiện đúng 1 lần lúc realtime INSERT bắn ra, không có nơi nào khác liệt kê lại trước đây).
+export async function listMyRoomInvites(): Promise<RoomInviteRow[]> {
+  const { data, error } = await supabase
+    .from('room_invites_view')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data as RoomInviteRow[]) ?? []
+}
+
 export async function listRoomInvitesForRoom(roomId: string): Promise<RoomInviteRow[]> {
   const { data, error } = await supabase
     .from('room_invites_view')

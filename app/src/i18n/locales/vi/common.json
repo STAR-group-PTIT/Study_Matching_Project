@@ -89,11 +89,22 @@
       "turnOffCamera": "Tắt camera",
       "turnOnCamera": "Bật camera",
       "studyTogether": "Học cùng nhau",
-      "findStudyBuddy": "Tìm bạn học online",
-      "browseRooms": "Duyệt phòng thủ công"
+      "findStudyBuddy": "Tìm bạn học online"
     },
     "quickMatch": {
       "hint": "Đang tìm bạn học cho bạn…"
+    },
+    "studyPopup": {
+      "title": "Học cùng nhau",
+      "tabRandom": "Ghép ngẫu nhiên",
+      "tabBrowse": "Duyệt phòng",
+      "durationLabel": "Thời lượng phiên",
+      "languageLabel": "Ngôn ngữ",
+      "startButton": "Bắt đầu ghép",
+      "randomHint": "Ghép nhóm 5 người ngẫu nhiên để giao lưu — chờ đủ 5 người mới vào phòng, mọi người cùng bắt đầu một lúc.",
+      "groupProgress": "{{count}}/5 đã vào hàng chờ",
+      "browseHint": "Tự lọc theo tiêu chí và vào thẳng phòng đang mở, hoặc tạo phòng riêng của bạn.",
+      "browseButton": "Xem danh sách phòng"
     },
     "taskbar": {
       "wallpaperTitle": "Đổi hình nền",
@@ -103,7 +114,6 @@
       "todoTitle": "Danh sách việc",
       "todoLabel": "To-do",
       "studyTogetherTitle": "Học cùng nhau",
-      "browseRooms": "Duyệt phòng",
       "stats": "Thống kê",
       "settingsTitle": "Cài đặt",
       "settingsLabel": "Cài đặt",
@@ -181,9 +191,7 @@
       "subtitle": "Chọn loại phòng và vài tiêu chí, chúng mình ghép bạn với người đang học cùng nhịp.",
       "roomTypeLabel": "Loại phòng",
       "durationLabel": "Thời lượng phiên",
-      "minutesValue": "{{count}} phút",
       "languageLabel": "Ngôn ngữ",
-      "randomMatch": "Ghép ngẫu nhiên",
       "createRoom": "Tạo phòng mới",
       "roomList": "Danh sách phòng",
       "joinByCodeLabel": "Hoặc nhập mã phòng có sẵn",
@@ -200,17 +208,8 @@
       "private": "Riêng tư"
     },
     "searching": {
-      "seconds": "giây",
       "title": "Đang tìm người phù hợp…",
-      "othersWaiting": "{{count}} người cũng đang chờ",
-      "cancel": "Huỷ tìm",
-      "editFilters": "Sửa bộ lọc",
-      "hints": {
-        "h1": "Đang xem ai đang mở phòng cùng loại với bạn…",
-        "h2": "Ưu tiên người chọn cùng thời lượng phiên.",
-        "h3": "Sắp xong rồi, giữ máy giúp mình nhé.",
-        "h4": "Nếu lâu quá, thử đổi sang loại phòng khác cho dễ ghép."
-      }
+      "cancel": "Huỷ tìm"
     },
     "errors": {
       "matchServiceDown": "Không kết nối được dịch vụ ghép cặp, thử lại sau.",
@@ -412,16 +411,12 @@
     }
   },
   "matchFound": {
-    "title": "Tìm thấy bạn học! 🎉",
-    "subtitle": "Ghép với {{name}}",
+    "title": "Đã ghép nhóm! 🎉",
+    "subtitleGroup": "Ghép cùng {{count}} người khác — cùng vào phòng nhé",
     "close": "Thoát",
     "enter": "Vào phòng cùng nhau",
     "unknownName": "Bạn học ẩn danh",
-    "stats": {
-      "weekly": "{{count}} phút tuần này",
-      "level": "Cấp {{level}}",
-      "likes": "{{count}} lượt thích"
-    },
+    "noPartnersYet": "Đang tải danh sách…",
     "levels": {
       "l0": "Mới bắt đầu",
       "l1": "Tân binh",
@@ -459,7 +454,11 @@
     "inviteButton": "Mời bạn bè",
     "noInvitable": "Chưa có bạn bè nào để mời lúc này.",
     "invite": "Mời",
-    "invited": "Đã mời"
+    "invited": "Đã mời",
+    "roomInvitesTitle": "Lời mời vào phòng ({{count}})",
+    "roomInviteSubtitle": "mời bạn vào phòng \"{{room}}\"",
+    "roomInviteFull": "Phòng đã đầy, không vào được nữa.",
+    "roomInviteClosed": "Phòng này đã đóng."
   },
   "roomInvite": {
     "title": "Lời mời học cùng!",
