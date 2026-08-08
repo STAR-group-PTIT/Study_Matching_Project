@@ -95,10 +95,6 @@
       "title": "Start a study session",
       "tabRandom": "Random match",
       "tabBrowse": "Browse open rooms",
-      "durationLabel": "Session length",
-      "languageLabel": "Language",
-      "change": "Change",
-      "done": "Done",
       "randomHint": "Join a small group as people arrive"
     },
     "taskbar": {

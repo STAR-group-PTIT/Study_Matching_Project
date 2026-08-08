@@ -4,12 +4,14 @@ import { useAuthStore } from '../store/auth'
 import { levelFromTotalMinutes } from './levels'
 
 // ============================================================
-// Cấu hình ghép ngẫu nhiên — dùng cho tab "Ghép ngẫu nhiên" gộp mới ở Dashboard (GĐ10 tiếp).
-// Lưu localStorage để lần sau vào lại không phải chọn lại từ đầu (Giai đoạn 9).
+// Cấu hình ghép ngẫu nhiên — dùng cho nút "Ghép ngẫu nhiên" ở Dashboard.
 //
-// Rút gọn còn đúng 2 trường (0018): loại phòng giờ luôn cố định 'chill' phía server, không
-// còn cho chọn — random match là để giao lưu chứ không phải học nghiêm túc kiểu hardcore/
-// silent, ai muốn phòng kiểu đó thì tự tạo/join qua danh sách phòng công khai ở Matching.tsx.
+// Cố định cứng 'vi' + 25 phút (GĐ10 tiếp) — trước đó cho chọn ngôn ngữ/thời lượng nhưng đó
+// chính là nguồn phân mảnh khiến pool ghép bị chia nhỏ (2 người "giống ý định" vẫn không gặp
+// nhau chỉ vì khác lựa chọn, hoặc khác ngôn ngữ trình duyệt suy ra mặc định khác nhau), làm
+// giảm tỉ lệ ghép thành công. Ai cần tuỳ chỉnh thật (thời lượng khác, loại phòng khác, ngôn
+// ngữ khác) thì dùng "Duyệt phòng đang mở" (Matching.tsx) — vốn đã có đủ bộ lọc + tạo phòng
+// tuỳ ý, không cần lặp lại ở đây.
 // ============================================================
 
 export type MatchConfig = {
@@ -17,29 +19,7 @@ export type MatchConfig = {
   language: 'vi' | 'en'
 }
 
-const STORAGE_KEY = 'ff-quickmatch-config'
-
-export function loadSavedMatchConfig(): MatchConfig | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as Partial<MatchConfig>
-    if (typeof parsed.focus_minutes !== 'number' || !parsed.language) {
-      return null
-    }
-    return parsed as MatchConfig
-  } catch {
-    return null
-  }
-}
-
-export function saveMatchConfig(cfg: MatchConfig) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg))
-  } catch {
-    // localStorage không khả dụng — chỉ mất tính năng nhớ lựa chọn, không lỗi.
-  }
-}
+export const RANDOM_MATCH_CONFIG: MatchConfig = { focus_minutes: 25, language: 'vi' }
 
 // Stats công khai của người vừa match — lấy từ RPC public_profile_stats (0010),
 // chỉ chứa aggregate, không lộ dữ liệu phiên thô.
@@ -103,11 +83,34 @@ export function useQuickMatch() {
   // việc này (không ai "được phân công"), nên gọi trùng nhau giữa nhiều client là bình
   // thường; finalize_lobby dùng `for update` (không skip locked) để đảm bảo lệnh gọi sau
   // luôn thấy trạng thái đã chốt bởi lệnh trước, không bỏ sót.
-  function scheduleFinalize(targetRoomId: string, expiresAt: Date) {
+  //
+  // Đọc THẲNG kết quả RPC trả về để tự áp dụng/lên lịch tiếp, KHÔNG chỉ trông cậy Realtime
+  // "vọng" lại UPDATE cho chính mình — trước đây bug: bỏ qua kết quả (`void rpc(...)`), nếu
+  // event Realtime bị trễ/miss đúng lúc đó thì client không biết deadline mới (VD sau khi
+  // được gia hạn ân hạn), không hẹn giờ lại được, kẹt ở "lobby" mãi dù server đã chốt đúng.
+  function scheduleFinalize(targetRoomId: string, expiresAt: Date, uid: string) {
     clearFinalizeTimer()
     const delay = Math.max(0, expiresAt.getTime() - Date.now())
     finalizeTimeoutRef.current = setTimeout(() => {
-      void supabase.rpc('finalize_lobby', { p_room_id: targetRoomId })
+      void supabase.rpc('finalize_lobby', { p_room_id: targetRoomId }).then(({ data }) => {
+        const result = data?.[0] as LobbyResult | undefined
+        if (!result) return
+        if (result.status === 'active') {
+          unsubscribeAll()
+          void loadOthers(targetRoomId, uid).then((stats) => {
+            setPartners(stats)
+            setRoomCode(result.room_code)
+            setStage('matched')
+          })
+        } else if (result.status === 'expired') {
+          unsubscribeAll()
+          setStage('expired')
+        } else if (result.lobby_expires_at) {
+          const next = new Date(result.lobby_expires_at)
+          setLobbyExpiresAt(next)
+          scheduleFinalize(targetRoomId, next, uid)
+        }
+      })
     }, delay)
   }
 
@@ -169,7 +172,7 @@ export function useQuickMatch() {
           } else if (row.lobby_expires_at) {
             const next = new Date(row.lobby_expires_at)
             setLobbyExpiresAt(next)
-            scheduleFinalize(targetRoomId, next)
+            scheduleFinalize(targetRoomId, next, uid)
           }
         },
       )
@@ -197,10 +200,9 @@ export function useQuickMatch() {
   // trước (hiếm — VD tự bấm lại đúng lúc lobby cũ của mình vừa hết ân hạn lần 2), thử tạo
   // lobby mới đúng 1 lần thay vì hiện ngay trạng thái "hết hạn" gây khó hiểu ngay sau khi
   // user vừa bấm bắt đầu.
-  async function start(cfg: MatchConfig, isRetry = false): Promise<boolean> {
+  async function start(isRetry = false): Promise<boolean> {
     const user = useAuthStore.getState().user
     if (!user) return false
-    saveMatchConfig(cfg)
     setMatchError('')
     if (!isRetry) {
       setRoomId(null)
@@ -214,7 +216,7 @@ export function useQuickMatch() {
     }
 
     const { data, error } = await supabase.functions.invoke('match-room', {
-      body: { duration_minutes: cfg.focus_minutes, language: cfg.language },
+      body: { duration_minutes: RANDOM_MATCH_CONFIG.focus_minutes, language: RANDOM_MATCH_CONFIG.language },
     })
 
     if (error) {
@@ -244,9 +246,9 @@ export function useQuickMatch() {
       const memberStats = await loadOthers(result.room_id, user.id)
       setLobbyMembers(memberStats)
       subscribeLobby(result.room_id, user.id)
-      if (result.lobby_expires_at) scheduleFinalize(result.room_id, new Date(result.lobby_expires_at))
+      if (result.lobby_expires_at) scheduleFinalize(result.room_id, new Date(result.lobby_expires_at), user.id)
     } else if (!isRetry) {
-      return start(cfg, true)
+      return start(true)
     } else {
       setStage('expired')
     }
