@@ -5,19 +5,6 @@ import { useAuthStore } from '../store/auth'
 import ContributionGraph from '../components/ContributionGraph'
 import { computeStreaks } from '../lib/contributions'
 
-function startOfWeekMonday(d: Date) {
-  const x = new Date(d)
-  x.setHours(0, 0, 0, 0)
-  const shift = (x.getDay() + 6) % 7 // Monday = 0
-  x.setDate(x.getDate() - shift)
-  return x
-}
-function startOfMonth(d: Date) {
-  const x = new Date(d)
-  x.setHours(0, 0, 0, 0)
-  x.setDate(1)
-  return x
-}
 function fmtDdMm(d: Date) {
   return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0')
 }
@@ -32,7 +19,7 @@ function formatHistoryDate(iso: string, t: (key: string, options?: Record<string
   return `${fmtDdMm(d)} · ${hhmm}`
 }
 
-type Range = 'week' | 'month' | 'all'
+const MONTHS = Array.from({ length: 12 }, (_, i) => i) // 0-indexed, giống Date native
 
 type SessionRow = {
   id: string
@@ -45,9 +32,14 @@ type SessionRow = {
 type TodoRow = { id: string; name: string; meta: string | null; completed_at: string | null; created_at: string }
 
 export default function Stats({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const user = useAuthStore((s) => s.user)
-  const [range, setRange] = useState<Range>('week')
+  // Lọc theo đúng 1 tháng-năm (GĐ10 tiếp) — thay 3 tab "Tuần này/Tháng này/Tất cả" cũ, đồng thời
+  // gộp luôn với bộ chọn năm từng nằm riêng trong ContributionGraph. 1 bộ lọc duy nhất chi phối
+  // cả 3 KPI lẫn lưới lịch bên dưới, thay vì 2 bộ filter tách biệt như trước.
+  const now = new Date()
+  const [filterYear, setFilterYear] = useState(() => now.getFullYear())
+  const [filterMonth, setFilterMonth] = useState(() => now.getMonth())
   const [sessions, setSessions] = useState<SessionRow[]>([])
   const [completedTodos, setCompletedTodos] = useState<TodoRow[]>([])
 
@@ -78,48 +70,61 @@ export default function Stats({ onClose }: { onClose: () => void }) {
     }
   }, [user])
 
-  const rangeStart = useMemo(() => {
-    const today = new Date()
-    if (range === 'week') return startOfWeekMonday(today)
-    if (range === 'month') return startOfMonth(today)
-    return null
-  }, [range])
+  const years = useMemo(() => {
+    const currentYear = now.getFullYear()
+    let earliest = currentYear
+    for (const s of sessions) {
+      const y = new Date(s.started_at).getFullYear()
+      if (y < earliest) earliest = y
+    }
+    const list: number[] = []
+    for (let y = currentYear; y >= earliest; y--) list.push(y)
+    return list
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessions])
+
+  const monthLabel = useMemo(() => {
+    const fmt = new Intl.DateTimeFormat(i18n.language, { month: 'long' })
+    return (m: number) => fmt.format(new Date(2020, m, 1))
+  }, [i18n.language])
+
+  const rangeStart = useMemo(() => new Date(filterYear, filterMonth, 1), [filterYear, filterMonth])
+  const rangeEnd = useMemo(() => new Date(filterYear, filterMonth + 1, 0, 23, 59, 59, 999), [filterYear, filterMonth])
 
   const sessionsInRange = useMemo(
-    () => (rangeStart ? sessions.filter((s) => new Date(s.started_at) >= rangeStart) : sessions),
-    [sessions, rangeStart],
+    () => sessions.filter((s) => {
+      const d = new Date(s.started_at)
+      return d >= rangeStart && d <= rangeEnd
+    }),
+    [sessions, rangeStart, rangeEnd],
   )
   const totalMinutesRange = sessionsInRange.reduce((a, s) => a + s.minutes, 0)
   const sessionsCountRange = sessionsInRange.length
   const groupSessionsCountRange = sessionsInRange.filter((s) => s.room_id).length
 
-  const prevWeekMinutes = useMemo(() => {
-    const thisWeekStart = startOfWeekMonday(new Date())
-    const prevWeekStart = new Date(thisWeekStart)
-    prevWeekStart.setDate(prevWeekStart.getDate() - 7)
+  const prevMonthMinutes = useMemo(() => {
+    const prevStart = new Date(filterYear, filterMonth - 1, 1)
+    const prevEnd = new Date(rangeStart.getTime() - 1)
     return sessions
       .filter((s) => {
-        const startedAt = new Date(s.started_at)
-        return startedAt >= prevWeekStart && startedAt < thisWeekStart
+        const d = new Date(s.started_at)
+        return d >= prevStart && d <= prevEnd
       })
       .reduce((a, s) => a + s.minutes, 0)
-  }, [sessions])
+  }, [sessions, filterYear, filterMonth, rangeStart])
 
   let kpi1Delta: string
   let kpi1DeltaColor = 'rgba(51,71,94,0.55)'
-  if (range === 'week') {
-    if (prevWeekMinutes === 0) {
-      kpi1Delta =
-        totalMinutesRange > 0 ? t('stats.kpi.noDataLastWeek') : t('stats.kpi.noSessionsThisWeek')
-    } else {
-      const pct = Math.round(((totalMinutesRange - prevWeekMinutes) / prevWeekMinutes) * 100)
-      kpi1Delta = t('stats.kpi.deltaVsLastWeek', { sign: pct >= 0 ? '+' : '', pct })
-      kpi1DeltaColor = pct >= 0 ? '#2c5b53' : '#7a3f2c'
-    }
+  if (prevMonthMinutes === 0) {
+    kpi1Delta = totalMinutesRange > 0 ? t('stats.kpi.noDataLastMonth') : t('stats.kpi.noSessionsThisMonth')
   } else {
-    kpi1Delta = range === 'month' ? t('stats.kpi.totalMinutesMonth') : t('stats.kpi.totalMinutesAll')
+    const pct = Math.round(((totalMinutesRange - prevMonthMinutes) / prevMonthMinutes) * 100)
+    kpi1Delta = t('stats.kpi.deltaVsLastMonth', { sign: pct >= 0 ? '+' : '', pct })
+    kpi1DeltaColor = pct >= 0 ? '#2c5b53' : '#7a3f2c'
   }
 
+  // Streak luôn tính trên toàn bộ lịch sử, không bị bó theo tháng/năm đang lọc — 1 khái niệm
+  // xuyên suốt chứ không theo khung xem (giữ nguyên hành vi gốc).
   const { currentStreak, bestStreak } = useMemo(
     () => computeStreaks(sessions.map((s) => s.started_at)),
     [sessions],
@@ -127,16 +132,16 @@ export default function Stats({ onClose }: { onClose: () => void }) {
 
   const KPIS = [
     {
-      label:
-        range === 'week'
-          ? t('stats.kpi.focusMinutesThisWeek')
-          : range === 'month'
-            ? t('stats.kpi.focusMinutesThisMonth')
-            : t('stats.kpi.focusMinutes'),
+      label: t('stats.kpi.focusMinutes'),
       value: totalMinutesRange,
       unit: t('stats.kpi.minutesUnit'),
       delta: kpi1Delta,
       deltaColor: kpi1DeltaColor,
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 6v6h4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
     },
     {
       label: t('stats.kpi.completedSessions'),
@@ -144,6 +149,11 @@ export default function Stats({ onClose }: { onClose: () => void }) {
       unit: t('stats.kpi.sessionsUnit'),
       delta: t('stats.kpi.groupSessions', { count: groupSessionsCountRange }),
       deltaColor: 'rgba(51,71,94,0.55)',
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 12.5l2.25 2.25L15.5 9.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
     },
     {
       label: t('stats.kpi.streak'),
@@ -151,6 +161,15 @@ export default function Stats({ onClose }: { onClose: () => void }) {
       unit: t('stats.kpi.daysUnit'),
       delta: t('stats.kpi.bestStreak', { count: bestStreak }),
       deltaColor: 'rgba(51,71,94,0.55)',
+      icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#ffffff">
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M12.963 2.286a.75.75 0 00-1.071-.136 9.742 9.742 0 00-3.539 6.176 7.547 7.547 0 01-1.705-1.715.75.75 0 00-1.152-.082A9 9 0 1015.68 4.534a7.46 7.46 0 01-2.717-2.248zM15.75 14.25a3.75 3.75 0 11-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 011.925-3.545 3.75 3.75 0 013.255 3.717z"
+          />
+        </svg>
+      ),
     },
   ]
 
@@ -198,48 +217,71 @@ export default function Stats({ onClose }: { onClose: () => void }) {
               </button>
             </div>
 
+            {/* bộ lọc tháng + năm — chi phối cả 3 KPI lẫn ContributionGraph bên dưới (1 bộ filter
+                duy nhất, thay 3 tab tuần/tháng/tất cả + nút năm riêng trong graph trước đây). */}
             <div
-              className="flex w-fit gap-1 rounded-[20px] p-[5px]"
+              className="flex w-fit items-center gap-1 rounded-[20px] p-[5px]"
               style={{ background: 'rgba(255,255,255,0.6)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)', backdropFilter: 'blur(14px)' }}
             >
-              {(['week', 'month', 'all'] as Range[]).map((r) => {
-                const on = range === r
-                return (
-                  <button
-                    key={r}
-                    onClick={() => setRange(r)}
-                    className="rounded-[15px] border-none px-5 py-[10px] font-sans text-sm font-bold transition-all duration-[240ms]"
-                    style={{
-                      background: on ? 'rgba(255,255,255,0.95)' : 'transparent',
-                      color: on ? '#25415c' : 'rgba(51,71,94,0.55)',
-                    }}
-                  >
-                    {t(`stats.ranges.${r}`)}
-                  </button>
-                )
-              })}
+              <select
+                value={filterMonth}
+                onChange={(e) => setFilterMonth(Number(e.target.value))}
+                aria-label={t('stats.selectMonth')}
+                className="cursor-pointer rounded-[15px] border-none bg-transparent px-4 py-[10px] font-sans text-sm font-bold text-[#25415c] capitalize outline-none"
+              >
+                {MONTHS.map((m) => (
+                  <option key={m} value={m}>
+                    {monthLabel(m)}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={filterYear}
+                onChange={(e) => setFilterYear(Number(e.target.value))}
+                aria-label={t('stats.selectYear')}
+                className="cursor-pointer rounded-[15px] border-none bg-transparent px-4 py-[10px] font-sans text-sm font-bold text-[#25415c] outline-none"
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-              {KPIS.map((k) => (
+            <div
+              className="flex items-stretch overflow-hidden rounded-[26px]"
+              style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
+            >
+              {KPIS.map((k, i) => (
                 <div
                   key={k.label}
-                  className="flex flex-col gap-[10px] rounded-[30px] px-7 py-[26px]"
-                  style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
+                  className="flex min-w-0 flex-1 items-center gap-3 px-6 py-5"
+                  style={i > 0 ? { borderLeft: '1px solid rgba(51,71,94,0.08)' } : undefined}
                 >
-                  <span className="text-xs font-extrabold tracking-[1.1px] text-[rgba(51,71,94,0.5)] uppercase">{k.label}</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[40px] leading-none font-extrabold tracking-[-1.5px] text-[#2c3f55]">{k.value}</span>
-                    <span className="text-[14.5px] font-bold text-[rgba(51,71,94,0.55)]">{k.unit}</span>
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px]"
+                    style={{ background: 'var(--ff-accent-soft)' }}
+                  >
+                    {k.icon}
                   </div>
-                  <span className="text-[13px] font-bold" style={{ color: k.deltaColor }}>
-                    {k.delta}
-                  </span>
+                  <div className="flex min-w-0 flex-col gap-[2px]">
+                    <span className="truncate text-[10.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                      {k.label}
+                    </span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-[22px] leading-none font-extrabold tracking-[-0.5px] text-[#2c3f55]">{k.value}</span>
+                      <span className="text-[12px] font-bold text-[rgba(51,71,94,0.55)]">{k.unit}</span>
+                    </div>
+                    <span className="text-[11.5px] leading-[1.3] font-bold" style={{ color: k.deltaColor }}>
+                      {k.delta}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
 
-            <ContributionGraph sessions={sessions} />
+            <ContributionGraph sessions={sessions} year={filterYear} month={filterMonth} />
 
             {/* history */}
             <div

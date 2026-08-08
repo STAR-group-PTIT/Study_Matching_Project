@@ -21,6 +21,8 @@ function makeRow(overrides: Partial<RoomRow> = {}): RoomRow {
     timer_done: false,
     timer_remaining_seconds: null,
     timer_updated_at: now.toISOString(),
+    status: 'active',
+    lobby_expires_at: null,
     ...overrides,
   }
 }

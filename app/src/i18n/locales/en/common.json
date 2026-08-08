@@ -91,20 +91,15 @@
       "studyTogether": "Study together",
       "findStudyBuddy": "Find a study buddy online"
     },
-    "quickMatch": {
-      "hint": "Looking for a study buddy for you…"
-    },
     "studyPopup": {
-      "title": "Study together",
+      "title": "Start a study session",
       "tabRandom": "Random match",
-      "tabBrowse": "Browse rooms",
+      "tabBrowse": "Browse open rooms",
       "durationLabel": "Session length",
       "languageLabel": "Language",
-      "startButton": "Start matching",
-      "randomHint": "Randomly grouped with 4 others to socialize — waits until 5 people are in before creating the room, so everyone starts together.",
-      "groupProgress": "{{count}}/5 in the queue",
-      "browseHint": "Filter by what you want and join an open room directly, or create your own.",
-      "browseButton": "Browse room list"
+      "change": "Change",
+      "done": "Done",
+      "randomHint": "Join a small group as people arrive"
     },
     "taskbar": {
       "wallpaperTitle": "Change wallpaper",
@@ -207,10 +202,6 @@
       "public": "Public",
       "private": "Private"
     },
-    "searching": {
-      "title": "Looking for a match…",
-      "cancel": "Cancel search"
-    },
     "errors": {
       "matchServiceDown": "Couldn't reach the matching service — try again later.",
       "matchGeneric": "Something went wrong — try again later.",
@@ -263,11 +254,8 @@
   "stats": {
     "headerTag": "Your stats",
     "close": "Close",
-    "ranges": {
-      "week": "This week",
-      "month": "This month",
-      "all": "All time"
-    },
+    "selectYear": "Select year",
+    "selectMonth": "Select month",
     "weekdaysShort": {
       "mon": "Mon",
       "tue": "Tue",
@@ -279,14 +267,10 @@
     },
     "kpi": {
       "focusMinutes": "Minutes focused",
-      "focusMinutesThisWeek": "Minutes focused this week",
-      "focusMinutesThisMonth": "Minutes focused this month",
       "minutesUnit": "min",
-      "noDataLastWeek": "No data from last week to compare yet",
-      "noSessionsThisWeek": "No sessions yet this week",
-      "deltaVsLastWeek": "{{sign}}{{pct}}% vs last week",
-      "totalMinutesMonth": "Total minutes this month",
-      "totalMinutesAll": "Total minutes all time",
+      "noDataLastMonth": "No data from last month to compare yet",
+      "noSessionsThisMonth": "No sessions yet this month",
+      "deltaVsLastMonth": "{{sign}}{{pct}}% vs last month",
       "completedSessions": "Sessions completed",
       "sessionsUnit": "sessions",
       "groupSessions": "{{count}} sessions studied with others",
@@ -308,14 +292,9 @@
     },
     "contributions": {
       "title": "Study progress graph",
-      "trailingLabel": "Last 365 days",
-      "summaryTrailing": "{{count}} active days in the last 365 days",
-      "summaryYear": "{{count}} active days in {{year}}",
+      "summaryMonth": "{{count}} active days in {{month}}",
       "tooltipStudied": "{{date}} · {{minutes}} min · Pomodoro 25:5: {{p25}} · 50:10: {{p50}}",
       "tooltipEmpty": "{{date}} · No study",
-      "activeDaysLabel": "Active days",
-      "pomo25Label": "25:5 Pomodoros completed",
-      "pomo50Label": "50:10 Pomodoros completed",
       "last7Title": "Last 7 days",
       "last7Highest": " · highest on {{day}}"
     }
@@ -409,6 +388,16 @@
       "hint": "Signing out keeps your wallpapers and music on your account; this device switches to guest mode.",
       "action": "Log out"
     }
+  },
+  "lobby": {
+    "title": "Finding your group…",
+    "progress": "{{count}}/{{capacity}} joined",
+    "countdown": "Starts in {{seconds}}s if no one else joins",
+    "cancel": "Cancel",
+    "errorTitle": "Couldn't start matching",
+    "expiredTitle": "No one joined this time",
+    "expiredHint": "Try again — sometimes it just takes another moment",
+    "retry": "Try again"
   },
   "matchFound": {
     "title": "Group matched! 🎉",
@@ -510,6 +499,11 @@
       "title": "You haven't joined this room",
       "desc": "Join with a room code or from the public room list first.",
       "goToMatching": "Go to Matching"
+    },
+    "notStarted": {
+      "title": "This room hasn't started yet",
+      "desc": "The group is still forming — head back to Dashboard and it'll open automatically once ready.",
+      "back": "Back to Dashboard"
     },
     "waitingApproval": {
       "title": "Waiting for the host to approve…",

@@ -580,7 +580,7 @@ export default function Room() {
     supabase
       .from('rooms')
       .select(
-        'id, code, name, host_id, admit_mode, capacity, room_type, created_at, duration_minutes, break_minutes, session_count, timer_phase, timer_round, timer_running, timer_done, timer_remaining_seconds, timer_updated_at',
+        'id, code, name, host_id, admit_mode, capacity, room_type, created_at, duration_minutes, break_minutes, session_count, timer_phase, timer_round, timer_running, timer_done, timer_remaining_seconds, timer_updated_at, status, lobby_expires_at',
       )
       .eq('code', code.toUpperCase())
       .maybeSingle()
@@ -774,8 +774,8 @@ export default function Room() {
     if (isRealMode && user && realRoom) {
       const action = exitActionRef.current
       if (action.kind === 'close') {
-        // Không xoá hẳn hàng `rooms` — `session_ratings`/`matching_queue` tham chiếu nó
-        // `on delete cascade`, xoá cứng sẽ mất luôn rating vừa cho ở màn hình trước đó.
+        // Không xoá hẳn hàng `rooms` — `session_ratings` tham chiếu nó `on delete cascade`,
+        // xoá cứng sẽ mất luôn rating vừa cho ở màn hình trước đó.
         // Đóng bằng cách đánh dấu `closed_at` + kick hết `room_members` (RLS/view trong
         // migration 0014 tự ẩn khỏi room_public_list và chặn join mới).
         await supabase.from('rooms').update({ closed_at: new Date().toISOString() }).eq('id', realRoom.id)
@@ -1196,6 +1196,35 @@ export default function Room() {
         style={{ background: 'var(--ff-page-gradient)' }}
       >
         {t('room.loadingRoom')}
+      </div>
+    )
+  }
+
+  {/* Phòng lobby (0019) chưa chốt 'active' — bình thường không ai tới đây trước khi
+      MatchFound.onEnter điều hướng sang (lúc đó status đã 'active'), nhưng phòng thủ cho
+      trường hợp mở link trực tiếp/F5 giữa lúc lobby còn đang hình thành. */}
+  if (isRealMode && realRoom.status === 'lobby') {
+    return (
+      <div
+        className="relative flex h-svh w-full items-center justify-center overflow-hidden px-6 font-sans text-[#33475e] antialiased"
+        style={{ background: 'var(--ff-page-gradient)' }}
+      >
+        <div
+          className="flex w-full max-w-[420px] flex-col items-center gap-4 rounded-[30px] px-8 py-9 text-center"
+          style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(22px)', boxShadow: '0 22px 56px rgba(58,98,126,0.15)' }}
+        >
+          <h2 className="m-0 text-xl font-extrabold text-[#2c3f55]">{t('room.notStarted.title')}</h2>
+          <p className="mt-2 mb-0 text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
+            {t('room.notStarted.desc')}
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="rounded-[20px] border-none px-6 py-[13px] font-sans text-[14.5px] font-extrabold text-[#1e3549]"
+            style={{ background: 'var(--ff-accent-soft)' }}
+          >
+            {t('room.notStarted.back')}
+          </button>
+        </div>
       </div>
     )
   }
