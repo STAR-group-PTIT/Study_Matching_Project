@@ -78,9 +78,9 @@ type Visibility = 'public' | 'private'
 
 function chipStyle(on: boolean) {
   return {
-    background: on ? ACCENT_CHIP_ACTIVE : 'rgba(255,255,255,0.72)',
-    borderColor: on ? ACCENT_BORDER : 'rgba(51,71,94,0.12)',
-    color: on ? '#22483f' : 'rgba(51,71,94,0.68)',
+    background: on ? ACCENT_CHIP_ACTIVE : 'var(--c-6rf17l)',
+    borderColor: on ? ACCENT_BORDER : 'var(--c-1kei5ag)',
+    color: on ? 'var(--c-2kucx8)' : 'var(--c-1kei953)',
   }
 }
 
@@ -121,7 +121,6 @@ export default function Matching() {
   const [createError, setCreateError] = useState('')
 
   const [profileName, setProfileName] = useState('')
-  const [authNotice, setAuthNotice] = useState(false)
 
   const [publicRooms, setPublicRooms] = useState<PublicRoomRow[] | null>(null)
   const [loadingRooms, setLoadingRooms] = useState(false)
@@ -169,17 +168,7 @@ export default function Matching() {
     }
   }, [])
 
-  function requireAuth() {
-    if (!user) {
-      setAuthNotice(true)
-      return false
-    }
-    setAuthNotice(false)
-    return true
-  }
-
   async function submitJoinCode() {
-    if (!requireAuth()) return
     const code = joinCode.trim().toUpperCase()
     if (code.length < 6) return
     setJoining(true)
@@ -203,7 +192,6 @@ export default function Matching() {
   }
 
   async function joinPublicRoom(code: string) {
-    if (!requireAuth()) return
     setJoinError('')
     const { data, error } = await supabase.rpc('join_room_by_code', { p_code: code })
     if (error) return
@@ -240,7 +228,6 @@ export default function Matching() {
   const current = ROOM_TYPES.find((r) => r.key === roomType)!
 
   function openCreate() {
-    if (!requireAuth()) return
     setModal(true)
     setCreated(false)
     setCopied(false)
@@ -312,60 +299,42 @@ export default function Matching() {
 
   return (
     <div
-      className="relative min-h-svh w-full font-sans text-[#33475e] antialiased"
+      className="relative min-h-svh w-full font-sans text-[var(--c-32fr7s)] antialiased"
       style={{ background: 'var(--ff-page-gradient)' }}
     >
       <div
         className="absolute inset-0"
-        style={{ backdropFilter: 'blur(3px)', background: 'rgba(255,255,255,0.16)' }}
+        style={{ backdropFilter: 'blur(3px)', background: 'var(--c-6rewuv)' }}
       />
 
       <div className="relative flex min-h-svh w-full flex-col items-center gap-5 px-6 py-[46px]">
         <div className="flex items-center gap-[11px]">
           <div
             className="h-[22px] w-[22px] rounded-[9px]"
-            style={{ background: 'linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235))' }}
+            style={{ background: 'linear-gradient(135deg, var(--c-1feyjhs), var(--c-yr829))' }}
           />
-          <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[#2f4459]">{t('app.name')}</span>
-          <span className="text-sm font-semibold text-[rgba(51,71,94,0.5)]">
+          <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[var(--c-3dfktp)]">{t('app.name')}</span>
+          <span className="text-sm font-semibold text-[var(--c-mfvyic)]">
             · {t('matching.headerTag')}
           </span>
         </div>
-
-        {authNotice && (
-          <div
-            className="flex w-full max-w-[1180px] items-center justify-between gap-3 rounded-[18px] px-5 py-[13px]"
-            style={{ background: 'rgba(255,246,238,0.9)', boxShadow: 'inset 0 0 0 1.5px rgba(196,142,96,0.25)' }}
-          >
-            <span className="text-[13.5px] font-semibold text-[#7a4a2c]">
-              {t('matching.authNotice.text')}
-            </span>
-            <Link
-              to="/auth"
-              className="shrink-0 rounded-[14px] px-4 py-2 text-[13px] font-extrabold text-[#7a4a2c] no-underline"
-              style={{ background: 'rgba(226,190,150,0.5)' }}
-            >
-              {t('matching.authNotice.login')}
-            </Link>
-          </div>
-        )}
 
         <div className="flex w-full max-w-[1180px] flex-col items-start gap-5 lg:flex-row">
           {/* LEFT: public room list — always visible */}
           <div
             className="flex w-full flex-col gap-5 rounded-[34px] px-8 pt-[30px] pb-7 lg:min-w-0 lg:flex-1"
             style={{
-              background: 'rgba(255,255,255,0.8)',
+              background: 'var(--c-ijr2vy)',
               backdropFilter: 'blur(22px)',
-              boxShadow: '0 22px 56px rgba(58,98,126,0.13)',
+              boxShadow: '0 22px 56px var(--c-1k1wm25)',
             }}
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="m-0 text-[23px] font-extrabold tracking-[-0.4px] text-[#2c3f55]">
+                <h2 className="m-0 text-[23px] font-extrabold tracking-[-0.4px] text-[var(--c-3bsl4p)]">
                   {t('matching.rooms.title')}
                 </h2>
-                <p className="mt-[7px] mb-0 text-sm font-semibold text-[rgba(51,71,94,0.55)]">
+                <p className="mt-[7px] mb-0 text-sm font-semibold text-[var(--c-1kei8bt)]">
                   {filteredRooms
                     ? t('matching.rooms.countOpen', { count: filteredRooms.length })
                     : loadingRooms
@@ -378,40 +347,40 @@ export default function Matching() {
               {roomFilter && (
                 <button
                   onClick={clearRoomFilter}
-                  className="shrink-0 rounded-[18px] border-none px-[16px] py-[9px] font-sans text-[13px] font-extrabold text-[#43596f] transition-colors duration-200 hover:!bg-white"
-                  style={{ background: 'rgba(255,255,255,0.8)', boxShadow: '0 6px 16px rgba(58,98,126,0.09)' }}
+                  className="shrink-0 rounded-[18px] border-none px-[16px] py-[9px] font-sans text-[13px] font-extrabold text-[var(--c-3ji23s)] transition-colors duration-200 hover:!bg-white"
+                  style={{ background: 'var(--c-ijr2vy)', boxShadow: '0 6px 16px var(--c-1k1wlgm)' }}
                 >
                   {t('matching.filters.clearFilter')}
                 </button>
               )}
             </div>
 
-            {joinError && <span className="text-[12.5px] font-semibold text-[#7a3f2c]">{joinError}</span>}
+            {joinError && <span className="text-[12.5px] font-semibold text-[var(--c-5nx3vn)]">{joinError}</span>}
 
             <div className="flex flex-col gap-[10px]">
               {loadingRooms && (
-                <span className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[rgba(51,71,94,0.45)]" style={{ background: 'rgba(255,255,255,0.6)' }}>
+                <span className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[var(--c-1kei7l4)]" style={{ background: 'var(--c-ijr2u8)' }}>
                   {t('matching.rooms.loadingList')}
                 </span>
               )}
               {!loadingRooms && publicRooms?.length === 0 && (
-                <span className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[rgba(51,71,94,0.45)]" style={{ background: 'rgba(255,255,255,0.6)' }}>
+                <span className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[var(--c-1kei7l4)]" style={{ background: 'var(--c-ijr2u8)' }}>
                   {t('matching.rooms.empty')}
                 </span>
               )}
               {!loadingRooms && publicRooms === null && (
-                <span className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[rgba(51,71,94,0.45)]" style={{ background: 'rgba(255,255,255,0.6)' }}>
+                <span className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[var(--c-1kei7l4)]" style={{ background: 'var(--c-ijr2u8)' }}>
                   {t('matching.rooms.loadListFailed')}
                 </span>
               )}
               {!loadingRooms && publicRooms && publicRooms.length > 0 && roomFilter && filteredRooms?.length === 0 && (
-                <div className="flex flex-col items-center gap-2 rounded-[18px] p-[14px] text-center" style={{ background: 'rgba(255,255,255,0.6)' }}>
-                  <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.45)]">
+                <div className="flex flex-col items-center gap-2 rounded-[18px] p-[14px] text-center" style={{ background: 'var(--c-ijr2u8)' }}>
+                  <span className="text-[13px] font-semibold text-[var(--c-1kei7l4)]">
                     {t('matching.rooms.noFilterMatch')}
                   </span>
                   <button
                     onClick={clearRoomFilter}
-                    className="text-[12.5px] font-extrabold text-[#2c5b53] underline"
+                    className="text-[12.5px] font-extrabold text-[var(--c-3bts4x)] underline"
                   >
                     {t('matching.filters.clearFilter')}
                   </button>
@@ -424,11 +393,11 @@ export default function Matching() {
                   <div
                     key={p.id}
                     className="flex flex-wrap items-center gap-3 rounded-[24px] px-[18px] py-[15px]"
-                    style={{ background: 'rgba(255,255,255,0.74)', boxShadow: '0 8px 20px rgba(58,98,126,0.08)' }}
+                    style={{ background: 'var(--c-6rf19b)', boxShadow: '0 8px 20px var(--c-1k1wlfr)' }}
                   >
                     <div className="flex min-w-0 flex-[1_1_230px] flex-col gap-[7px]">
                       <div className="flex flex-wrap items-center gap-[9px]">
-                        <span className="text-[15.5px] font-extrabold text-[#2c3f55]">{p.name}</span>
+                        <span className="text-[15.5px] font-extrabold text-[var(--c-3bsl4p)]">{p.name}</span>
                         <span
                           className="rounded-full px-[11px] py-1 text-[11.5px] font-extrabold tracking-[0.3px]"
                           style={{
@@ -439,14 +408,14 @@ export default function Matching() {
                           {roomTypeLabel(roomTypeMeta.key)}
                         </span>
                       </div>
-                      <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.55)]">
+                      <span className="text-[13px] font-semibold text-[var(--c-1kei8bt)]">
                         {t('matching.rooms.host', { name: p.host_name, minutes: p.duration_minutes })}
                       </span>
                     </div>
                     <div className="flex items-center gap-3">
                       <div
                         className="flex items-center gap-[6px] text-[13.5px] font-extrabold"
-                        style={{ color: full ? 'rgba(51,71,94,0.42)' : '#2c5b53' }}
+                        style={{ color: full ? 'var(--c-1kei7ij)' : 'var(--c-3bts4x)' }}
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
                           <circle cx="9" cy="8.5" r="3.2" />
@@ -462,8 +431,8 @@ export default function Matching() {
                         className="rounded-[18px] border-none px-[22px] py-[11px] font-sans text-sm font-extrabold transition-transform duration-200 hover:enabled:-translate-y-px"
                         style={{
                           cursor: full ? 'not-allowed' : 'pointer',
-                          color: full ? 'rgba(51,71,94,0.42)' : '#1e3549',
-                          background: full ? 'rgba(51,71,94,0.08)' : ACCENT_SOFT,
+                          color: full ? 'var(--c-1kei7ij)' : 'var(--c-2vtjkg)',
+                          background: full ? 'var(--c-dhk645)' : ACCENT_SOFT,
                         }}
                       >
                         {full ? t('matching.rooms.full') : t('matching.rooms.joinAction')}
@@ -480,8 +449,8 @@ export default function Matching() {
                   onClick={() => setRoomPage((p) => Math.max(1, p - 1))}
                   disabled={currentRoomPage === 1}
                   aria-label={t('matching.rooms.prevPage')}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border-none text-[13px] font-extrabold text-[#43596f] disabled:opacity-35"
-                  style={{ background: 'rgba(255,255,255,0.8)' }}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border-none text-[13px] font-extrabold text-[var(--c-3ji23s)] disabled:opacity-35"
+                  style={{ background: 'var(--c-ijr2vy)' }}
                 >
                   ‹
                 </button>
@@ -491,8 +460,8 @@ export default function Matching() {
                     onClick={() => setRoomPage(n)}
                     className="flex h-9 w-9 items-center justify-center rounded-full border-none text-[13px] font-extrabold"
                     style={{
-                      background: n === currentRoomPage ? ACCENT_SOFT : 'rgba(255,255,255,0.8)',
-                      color: n === currentRoomPage ? '#1e3549' : '#43596f',
+                      background: n === currentRoomPage ? ACCENT_SOFT : 'var(--c-ijr2vy)',
+                      color: n === currentRoomPage ? 'var(--c-2vtjkg)' : 'var(--c-3ji23s)',
                     }}
                   >
                     {n}
@@ -502,8 +471,8 @@ export default function Matching() {
                   onClick={() => setRoomPage((p) => Math.min(roomPageCount, p + 1))}
                   disabled={currentRoomPage === roomPageCount}
                   aria-label={t('matching.rooms.nextPage')}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border-none text-[13px] font-extrabold text-[#43596f] disabled:opacity-35"
-                  style={{ background: 'rgba(255,255,255,0.8)' }}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border-none text-[13px] font-extrabold text-[var(--c-3ji23s)] disabled:opacity-35"
+                  style={{ background: 'var(--c-ijr2vy)' }}
                 >
                   ›
                 </button>
@@ -517,28 +486,28 @@ export default function Matching() {
               <div
                 className="flex w-full flex-col gap-6 rounded-[34px] px-[30px] pt-8 pb-[30px] lg:max-h-[calc(100svh-3rem)] lg:overflow-y-auto"
                 style={{
-                  background: 'rgba(255,255,255,0.8)',
+                  background: 'var(--c-ijr2vy)',
                   backdropFilter: 'blur(22px)',
-                  boxShadow: '0 22px 56px rgba(58,98,126,0.13)',
+                  boxShadow: '0 22px 56px var(--c-1k1wm25)',
                 }}
               >
                 <div>
-                  <h1 className="m-0 text-[22px] font-extrabold tracking-[-0.5px] text-[#2c3f55]">
+                  <h1 className="m-0 text-[22px] font-extrabold tracking-[-0.5px] text-[var(--c-3bsl4p)]">
                     {t('matching.filters.title')}
                   </h1>
-                  <p className="mt-2 mb-0 text-[13.5px] leading-[1.55] font-semibold text-[rgba(51,71,94,0.58)]">
+                  <p className="mt-2 mb-0 text-[13.5px] leading-[1.55] font-semibold text-[var(--c-1kei8ee)]">
                     {t('matching.filters.subtitle')}
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-[11px]">
-                  <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                  <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                     {t('matching.filters.roomTypeLabel')}
                   </span>
                   <button
                     onClick={() => setRoomTypePopupOpen(true)}
-                    className="flex w-full items-center justify-between gap-3 rounded-[18px] border-[1.5px] border-[rgba(51,71,94,0.14)] px-4 py-[13px] font-sans text-[15px] font-bold text-[#2c3f55] transition-colors duration-200 hover:!bg-white"
-                    style={{ background: 'rgba(240,248,250,0.7)' }}
+                    className="flex w-full items-center justify-between gap-3 rounded-[18px] border-[1.5px] border-[var(--c-1kei5c6)] px-4 py-[13px] font-sans text-[15px] font-bold text-[var(--c-3bsl4p)] transition-colors duration-200 hover:!bg-white"
+                    style={{ background: 'var(--c-1h0taas)' }}
                   >
                     <span className="flex items-center gap-[9px]">
                       <span style={{ color: `oklch(0.62 0.09 ${current.hue})` }}>
@@ -551,7 +520,7 @@ export default function Matching() {
                       height="16"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="rgba(51,71,94,0.45)"
+                      stroke="var(--c-1kei7l4)"
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -561,7 +530,7 @@ export default function Matching() {
                   </button>
                   <div
                     className="flex items-start gap-[9px] rounded-[18px] px-[15px] py-3"
-                    style={{ background: 'rgba(255,255,255,0.66)', boxShadow: 'inset 0 0 0 1.5px rgba(51,71,94,0.07)' }}
+                    style={{ background: 'var(--c-6rf0kc)', boxShadow: 'inset 0 0 0 1.5px var(--c-dhk63a)' }}
                   >
                     <span
                       className="mt-px flex shrink-0"
@@ -573,14 +542,14 @@ export default function Matching() {
                         <path d="M12 7.7v.2" />
                       </svg>
                     </span>
-                    <span className="text-[13.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.72)]">
+                    <span className="text-[13.5px] leading-[1.5] font-semibold text-[var(--c-1kei9qm)]">
                       {roomTypeRule(current.key)}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-[11px]">
-                  <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                  <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                     {t('matching.filters.durationLabel')}
                   </span>
                   <div className="flex gap-2">
@@ -608,7 +577,7 @@ export default function Matching() {
                 </div>
 
                 <div className="flex flex-col gap-[11px]">
-                  <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                  <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                     {t('matching.filters.languageLabel')}
                   </span>
                   <div className="flex gap-2">
@@ -625,15 +594,15 @@ export default function Matching() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 border-t border-[rgba(51,71,94,0.1)] pt-5">
+                <div className="flex flex-col gap-2 border-t border-[var(--c-mfvyew)] pt-5">
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                       {t('matching.filters.filterRoomsLabel')}
                     </span>
                     {roomFilter && (
                       <button
                         onClick={clearRoomFilter}
-                        className="text-[12px] font-bold text-[rgba(51,71,94,0.55)] underline"
+                        className="text-[12px] font-bold text-[var(--c-1kei8bt)] underline"
                       >
                         {t('matching.filters.clearFilter')}
                       </button>
@@ -647,7 +616,7 @@ export default function Matching() {
                     {t('matching.filters.applyFilter')}
                   </button>
                   {roomFilter && (
-                    <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.5)]">
+                    <span className="text-[12.5px] font-semibold text-[var(--c-mfvyic)]">
                       {t('matching.filters.filterActiveSummary', {
                         roomType: roomTypeLabel(roomFilter.roomType),
                         minutes: roomFilter.focusMinutes,
@@ -659,14 +628,14 @@ export default function Matching() {
 
                 <button
                   onClick={openCreate}
-                  className="w-full rounded-[22px] border-[1.5px] bg-white px-3 py-[15px] font-sans text-[15.5px] font-extrabold text-[#22483f] transition-[transform,background] duration-200 hover:-translate-y-0.5 hover:!bg-[rgba(255,255,255,0.86)]"
+                  className="w-full rounded-[22px] border-[1.5px] bg-white px-3 py-[15px] font-sans text-[15.5px] font-extrabold text-[var(--c-2kucx8)] transition-[transform,background] duration-200 hover:-translate-y-0.5 hover:!bg-[var(--c-6rf21q)]"
                   style={{ borderColor: ACCENT_BORDER }}
                 >
                   {t('matching.filters.createRoom')}
                 </button>
 
-                <div className="flex flex-col gap-2 border-t border-[rgba(51,71,94,0.1)] pt-5">
-                  <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                <div className="flex flex-col gap-2 border-t border-[var(--c-mfvyew)] pt-5">
+                  <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                     {t('matching.filters.joinByCodeLabel')}
                   </span>
                   <div className="flex gap-2">
@@ -681,25 +650,25 @@ export default function Matching() {
                       }}
                       maxLength={6}
                       placeholder={t('matching.filters.joinCodePlaceholder')}
-                      className="w-full min-w-0 flex-1 rounded-[18px] border-[1.5px] border-[rgba(51,71,94,0.14)] px-4 py-[13px] font-sans text-[15px] font-bold tracking-[2px] text-[#2c3f55] uppercase outline-none focus:border-[rgba(126,201,198,0.9)] focus:bg-white"
-                      style={{ background: 'rgba(240,248,250,0.7)' }}
+                      className="w-full min-w-0 flex-1 rounded-[18px] border-[1.5px] border-[var(--c-1kei5c6)] px-4 py-[13px] font-sans text-[15px] font-bold tracking-[2px] text-[var(--c-3bsl4p)] uppercase outline-none focus:border-[var(--c-125fipz)] focus:bg-white"
+                      style={{ background: 'var(--c-1h0taas)' }}
                     />
                     <button
                       onClick={submitJoinCode}
                       disabled={joining || joinCode.trim().length < 6}
-                      className="shrink-0 rounded-[18px] border-none px-5 py-[13px] font-sans text-sm font-extrabold text-[#1e3549] disabled:opacity-50"
+                      className="shrink-0 rounded-[18px] border-none px-5 py-[13px] font-sans text-sm font-extrabold text-[var(--c-2vtjkg)] disabled:opacity-50"
                       style={{ background: ACCENT_SOFT }}
                     >
                       {joining ? t('matching.filters.joining') : t('matching.filters.join')}
                     </button>
                   </div>
-                  {joinError && <span className="text-[12.5px] font-semibold text-[#7a3f2c]">{joinError}</span>}
+                  {joinError && <span className="text-[12.5px] font-semibold text-[var(--c-5nx3vn)]">{joinError}</span>}
                 </div>
               </div>
           </div>
         </div>
 
-        <Link to="/" className="text-[13.5px] font-bold text-[oklch(0.58_0.075_220)] no-underline hover:text-[oklch(0.5_0.08_220)]">
+        <Link to="/" className="text-[13.5px] font-bold text-[var(--c-1swujpp)] no-underline hover:text-[var(--c-ounphr)]">
           {t('matching.backToStudy')}
         </Link>
       </div>
@@ -708,20 +677,20 @@ export default function Matching() {
       {modal && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center p-6"
-          style={{ background: 'rgba(38,66,86,0.28)', backdropFilter: 'blur(6px)' }}
+          style={{ background: 'var(--c-a8sm65)', backdropFilter: 'blur(6px)' }}
         >
           <div className="absolute inset-0" onClick={() => setModal(false)} />
           <div
             className="relative flex w-full max-w-[400px] flex-col gap-[18px] rounded-[30px] bg-white px-7 pt-7 pb-6"
-            style={{ boxShadow: '0 30px 70px rgba(38,66,86,0.28)', animation: 'ffPop 320ms cubic-bezier(0.22,1,0.36,1)' }}
+            style={{ boxShadow: '0 30px 70px var(--c-a8sm65)', animation: 'ffPop 320ms cubic-bezier(0.22,1,0.36,1)' }}
           >
             {!created ? (
               <div className="flex flex-col gap-[18px]">
                 <div>
-                  <h3 className="m-0 text-xl font-extrabold tracking-[-0.3px] text-[#2c3f55]">
+                  <h3 className="m-0 text-xl font-extrabold tracking-[-0.3px] text-[var(--c-3bsl4p)]">
                     {t('matching.create.title')}
                   </h3>
-                  <p className="mt-[6px] mb-0 text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
+                  <p className="mt-[6px] mb-0 text-[13.5px] font-semibold text-[var(--c-1kei8bt)]">
                     {t('matching.create.hostLine', {
                       name: profileName || t('matching.create.you'),
                       roomType: roomTypeLabel(current.key),
@@ -730,24 +699,24 @@ export default function Matching() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                  <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                     {t('matching.create.nameLabel')}
                   </span>
                   <input
                     value={roomName}
                     onChange={(e) => setRoomName(e.target.value)}
                     placeholder={t('matching.create.namePlaceholder')}
-                    className="w-full rounded-[18px] border-[1.5px] border-[rgba(51,71,94,0.14)] px-4 py-[13px] font-sans text-[15px] font-bold text-[#2c3f55] outline-none focus:border-[rgba(126,201,198,0.9)] focus:bg-white"
-                    style={{ background: 'rgba(240,248,250,0.7)' }}
+                    className="w-full rounded-[18px] border-[1.5px] border-[var(--c-1kei5c6)] px-4 py-[13px] font-sans text-[15px] font-bold text-[var(--c-3bsl4p)] outline-none focus:border-[var(--c-125fipz)] focus:bg-white"
+                    style={{ background: 'var(--c-1h0taas)' }}
                   />
                 </div>
 
                 <div className="flex flex-col gap-2">
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                       {t('matching.create.maxPeopleLabel')}
                     </span>
-                    <span className="text-[13.5px] font-extrabold text-[#2c5b53]">
+                    <span className="text-[13.5px] font-extrabold text-[var(--c-3bts4x)]">
                       {t('matching.create.maxPeopleValue', { count: capacity })}
                     </span>
                   </div>
@@ -766,7 +735,7 @@ export default function Matching() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                  <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                     {t('matching.create.privacyLabel')}
                   </span>
                   <div className="flex gap-2">
@@ -781,20 +750,20 @@ export default function Matching() {
                       </button>
                     ))}
                   </div>
-                  <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.5)]">
+                  <span className="text-[12.5px] font-semibold text-[var(--c-mfvyic)]">
                     {visibility === 'public'
                       ? t('matching.create.publicHint')
                       : t('matching.create.privateHint')}
                   </span>
                 </div>
 
-                {createError && <span className="text-[12.5px] font-semibold text-[#7a3f2c]">{createError}</span>}
+                {createError && <span className="text-[12.5px] font-semibold text-[var(--c-5nx3vn)]">{createError}</span>}
 
                 <button
                   onClick={createRoom}
                   disabled={creating}
-                  className="w-full rounded-[22px] border-none py-[15px] font-sans text-base font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-60"
-                  style={{ background: ACCENT_SOFT, boxShadow: '0 12px 26px rgba(58,98,126,0.16)' }}
+                  className="w-full rounded-[22px] border-none py-[15px] font-sans text-base font-extrabold text-[var(--c-2vtjkg)] transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-60"
+                  style={{ background: ACCENT_SOFT, boxShadow: '0 12px 26px var(--c-1k1wm4q)' }}
                 >
                   {creating ? t('matching.create.submitting') : t('matching.create.submit')}
                 </button>
@@ -802,18 +771,18 @@ export default function Matching() {
             ) : (
               <div className="flex flex-col items-center gap-4 text-center">
                 <span
-                  className="flex h-[54px] w-[54px] items-center justify-center rounded-full text-[#2c5b53]"
-                  style={{ background: 'rgba(140,205,196,0.3)' }}
+                  className="flex h-[54px] w-[54px] items-center justify-center rounded-full text-[var(--c-3bts4x)]"
+                  style={{ background: 'var(--c-9q3jpj)' }}
                 >
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 12.5l4.5 4.5L19 7.5" />
                   </svg>
                 </span>
                 <div>
-                  <h3 className="m-0 text-xl font-extrabold text-[#2c3f55]">
+                  <h3 className="m-0 text-xl font-extrabold text-[var(--c-3bsl4p)]">
                     {t('matching.create.created', { name: createdName })}
                   </h3>
-                  <p className="mt-[6px] mb-0 text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
+                  <p className="mt-[6px] mb-0 text-[13.5px] font-semibold text-[var(--c-1kei8bt)]">
                     {t('matching.create.createdMeta', {
                       visibility: visibilityLabel(visibility),
                       count: capacity,
@@ -822,14 +791,14 @@ export default function Matching() {
                 </div>
                 <div
                   className="flex w-full items-center gap-[10px] rounded-[20px] py-3 pr-3 pl-[18px]"
-                  style={{ background: 'rgba(240,248,250,0.9)', boxShadow: 'inset 0 0 0 1.5px rgba(51,71,94,0.08)' }}
+                  style={{ background: 'var(--c-1h0taci)', boxShadow: 'inset 0 0 0 1.5px var(--c-dhk645)' }}
                 >
-                  <span className="flex-1 text-left text-[22px] font-extrabold tracking-[3px] text-[#2c3f55]">
+                  <span className="flex-1 text-left text-[22px] font-extrabold tracking-[3px] text-[var(--c-3bsl4p)]">
                     {roomId}
                   </span>
                   <button
                     onClick={copyId}
-                    className="rounded-[15px] border-none px-4 py-[10px] font-sans text-[13.5px] font-extrabold text-[#22483f] hover:brightness-[0.97]"
+                    className="rounded-[15px] border-none px-4 py-[10px] font-sans text-[13.5px] font-extrabold text-[var(--c-2kucx8)] hover:brightness-[0.97]"
                     style={{ background: ACCENT_SOFT }}
                   >
                     {copied ? t('matching.create.copied') : t('matching.create.copy')}
@@ -838,13 +807,13 @@ export default function Matching() {
                 <div className="flex w-full gap-[9px]">
                   <button
                     onClick={() => setModal(false)}
-                    className="flex-1 rounded-[20px] border-[1.5px] border-[rgba(51,71,94,0.16)] bg-white py-[13px] font-sans text-[14.5px] font-extrabold text-[#43596f] hover:!bg-[rgba(240,248,250,0.8)]"
+                    className="flex-1 rounded-[20px] border-[1.5px] border-[var(--c-1kei5dw)] bg-white py-[13px] font-sans text-[14.5px] font-extrabold text-[var(--c-3ji23s)] hover:!bg-[var(--c-1h0tabn)]"
                   >
                     {t('matching.create.close')}
                   </button>
                   <button
                     onClick={() => navigate('/room/' + roomId)}
-                    className="flex-1 rounded-[20px] border-none py-[13px] text-center font-sans text-[14.5px] font-extrabold text-[#1e3549]"
+                    className="flex-1 rounded-[20px] border-none py-[13px] text-center font-sans text-[14.5px] font-extrabold text-[var(--c-2vtjkg)]"
                     style={{ background: ACCENT_SOFT }}
                   >
                     {t('matching.create.enterRoom')}
@@ -861,23 +830,23 @@ export default function Matching() {
       {roomTypePopupOpen && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center p-6"
-          style={{ background: 'rgba(38,66,86,0.28)', backdropFilter: 'blur(6px)' }}
+          style={{ background: 'var(--c-a8sm65)', backdropFilter: 'blur(6px)' }}
         >
           <div className="absolute inset-0" onClick={() => setRoomTypePopupOpen(false)} />
           <div
             className="relative flex w-full max-w-[440px] flex-col gap-4 rounded-[30px] bg-white px-7 pt-7 pb-6"
-            style={{ boxShadow: '0 30px 70px rgba(38,66,86,0.28)', animation: 'ffPop 320ms cubic-bezier(0.22,1,0.36,1)' }}
+            style={{ boxShadow: '0 30px 70px var(--c-a8sm65)', animation: 'ffPop 320ms cubic-bezier(0.22,1,0.36,1)' }}
           >
             <div className="flex items-center justify-between gap-3">
-              <h3 className="m-0 text-xl font-extrabold tracking-[-0.3px] text-[#2c3f55]">
+              <h3 className="m-0 text-xl font-extrabold tracking-[-0.3px] text-[var(--c-3bsl4p)]">
                 {t('matching.filters.roomTypeLabel')}
               </h3>
               <button
                 onClick={() => setRoomTypePopupOpen(false)}
                 title={t('matching.create.close')}
                 aria-label={t('matching.create.close')}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-[rgba(240,248,250,0.9)]"
-                style={{ background: 'rgba(240,248,250,0.7)' }}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-[var(--c-1h0taci)]"
+                style={{ background: 'var(--c-1h0taas)' }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                   <path d="M6 6l12 12M18 6L6 18" />
@@ -899,8 +868,8 @@ export default function Matching() {
                     <RoomTypeIcon type={r} />
                   </span>
                   <span className="flex flex-col gap-[3px]">
-                    <span className="text-sm font-extrabold text-[#2c3f55]">{roomTypeLabel(r.key)}</span>
-                    <span className="text-[12.5px] leading-[1.45] font-semibold text-[rgba(51,71,94,0.65)]">
+                    <span className="text-sm font-extrabold text-[var(--c-3bsl4p)]">{roomTypeLabel(r.key)}</span>
+                    <span className="text-[12.5px] leading-[1.45] font-semibold text-[var(--c-1kei92i)]">
                       {roomTypeRule(r.key)}
                     </span>
                   </span>

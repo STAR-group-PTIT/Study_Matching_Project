@@ -118,20 +118,20 @@ export default function ChangeAvatarModal({
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center p-6"
-      style={{ background: 'rgba(38,66,86,0.32)', backdropFilter: 'blur(7px)' }}
+      style={{ background: 'var(--c-a8smro)', backdropFilter: 'blur(7px)' }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
       <div
         className="relative flex w-full max-w-[380px] flex-col gap-5 rounded-[30px] bg-white px-7 pt-7 pb-6"
-        style={{ boxShadow: '0 30px 70px rgba(38,66,86,0.3)' }}
+        style={{ boxShadow: '0 30px 70px var(--c-13a6mpo)' }}
       >
         <div className="flex items-center justify-between">
-          <h3 className="m-0 text-[18px] font-extrabold text-[#2c3f55]">{t('settings.avatarModal.title')}</h3>
+          <h3 className="m-0 text-[18px] font-extrabold text-[var(--c-3bsl4p)]">{t('settings.avatarModal.title')}</h3>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-[rgba(238,246,248,0.9)]"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-[var(--c-rucw5u)]"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
               <path d="M6 6l12 12M18 6L6 18" />
@@ -149,37 +149,37 @@ export default function ChangeAvatarModal({
           onClick={() => inputRef.current?.click()}
           className="flex cursor-pointer flex-col items-center gap-3 rounded-[24px] border-2 border-dashed px-6 py-7 text-center transition-colors duration-200"
           style={{
-            borderColor: dragOver ? 'rgba(126,201,198,0.9)' : 'rgba(51,71,94,0.18)',
-            background: 'rgba(238,246,248,0.6)',
+            borderColor: dragOver ? 'var(--c-125fipz)' : 'var(--c-1kei5fm)',
+            background: 'var(--c-rucw39)',
           }}
         >
           {shownUrl ? (
-            <img src={shownUrl} alt={displayName} className="h-24 w-24 rounded-full object-cover" style={{ boxShadow: '0 8px 22px rgba(58,98,126,0.18)' }} />
+            <img src={shownUrl} alt={displayName} className="h-24 w-24 rounded-full object-cover" style={{ boxShadow: '0 8px 22px var(--c-1k1wm6g)' }} />
           ) : (
             <div
-              className="flex h-24 w-24 items-center justify-center rounded-full text-[26px] font-extrabold text-[#294a5f]"
-              style={{ background: 'linear-gradient(140deg, rgba(140,205,196,0.6), rgba(160,200,225,0.6))' }}
+              className="flex h-24 w-24 items-center justify-center rounded-full text-[26px] font-extrabold text-[var(--c-2opriy)]"
+              style={{ background: 'linear-gradient(140deg, var(--c-9q3js4), var(--c-1g0dok))' }}
             >
               {(displayName.trim()[0] ?? '?').toUpperCase()}
             </div>
           )}
-          <span className="text-[13px] font-bold text-[rgba(51,71,94,0.55)]">{t('settings.avatarModal.dropHint')}</span>
+          <span className="text-[13px] font-bold text-[var(--c-1kei8bt)]">{t('settings.avatarModal.dropHint')}</span>
         </div>
         <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={handleInputChange} />
 
-        {error && <span className="text-[12.5px] font-semibold text-[#a13f2c]">{error}</span>}
+        {error && <span className="text-[12.5px] font-semibold text-[var(--c-otf3yh)]">{error}</span>}
 
         <div className="flex justify-end gap-[9px]">
           <button
             onClick={onClose}
-            className="rounded-[20px] border-[1.5px] border-[rgba(51,71,94,0.14)] bg-[rgba(255,255,255,0.8)] px-5 py-[12px] font-sans text-sm font-bold text-[#445c74] transition-colors duration-200 hover:!bg-white"
+            className="rounded-[20px] border-[1.5px] border-[var(--c-1kei5c6)] bg-[var(--c-ijr2vy)] px-5 py-[12px] font-sans text-sm font-bold text-[var(--c-3k2pts)] transition-colors duration-200 hover:!bg-white"
           >
             {t('settings.avatarModal.cancel')}
           </button>
           <button
             onClick={() => void handleSave()}
             disabled={!pendingFile || uploading}
-            className="rounded-[20px] border-none px-5 py-[12px] font-sans text-sm font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
+            className="rounded-[20px] border-none px-5 py-[12px] font-sans text-sm font-extrabold text-[var(--c-2vtjkg)] transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
             style={{ background: 'var(--ff-accent-soft)' }}
           >
             {uploading ? t('settings.avatarModal.saving') : t('settings.avatarModal.save')}

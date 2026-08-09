@@ -97,15 +97,15 @@ export default function DeviceCheck({
 
   return (
     <div
-      className="relative flex h-svh w-full justify-center overflow-y-auto px-6 py-6 font-sans text-[#33475e] antialiased"
+      className="relative flex h-svh w-full justify-center overflow-y-auto px-6 py-6 font-sans text-[var(--c-32fr7s)] antialiased"
       style={{ background: 'var(--ff-page-gradient)' }}
     >
       <div className="my-auto flex w-full max-w-[420px] flex-col items-center gap-5 rounded-[30px] px-8 pt-8 pb-7 text-center">
         <div className="flex flex-col gap-[6px]">
-          <h2 className="m-0 text-[22px] font-extrabold tracking-[-0.4px] text-[#2c3f55]">
+          <h2 className="m-0 text-[22px] font-extrabold tracking-[-0.4px] text-[var(--c-3bsl4p)]">
             {t('room.deviceCheck.title')}
           </h2>
-          <p className="m-0 text-[13.5px] leading-[1.55] font-semibold text-[rgba(51,71,94,0.55)]">
+          <p className="m-0 text-[13.5px] leading-[1.55] font-semibold text-[var(--c-1kei8bt)]">
             {t('room.deviceCheck.subtitle')}
           </p>
         </div>
@@ -114,8 +114,8 @@ export default function DeviceCheck({
         <div
           className="relative flex h-[200px] w-full items-center justify-center overflow-hidden rounded-[22px]"
           style={{
-            background: 'rgba(44,63,85,0.85)',
-            boxShadow: '0 16px 38px rgba(58,98,126,0.18)',
+            background: 'var(--c-gd5203)',
+            boxShadow: '0 16px 38px var(--c-1k1wm6g)',
           }}
         >
           <video
@@ -125,7 +125,7 @@ export default function DeviceCheck({
             className={`h-full w-full object-cover ${cameraOn ? 'scale-x-[-1]' : 'hidden'}`}
           />
           {!cameraOn && (
-            <span className="flex flex-col items-center gap-[8px] text-[13px] font-bold text-[rgba(255,255,255,0.72)]">
+            <span className="flex flex-col items-center gap-[8px] text-[13px] font-bold text-[var(--c-50bzth)]">
               <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
                 <rect x="2.5" y="6.5" width="13" height="11" rx="3.5" />
                 <path d="M15.5 11.5l6-3v7l-6-3z" />
@@ -136,18 +136,18 @@ export default function DeviceCheck({
           )}
 
           {/* thanh đo mic — nhảy theo âm lượng thật qua AnalyserNode */}
-          <div className="absolute right-3 bottom-3 left-3 flex items-center gap-[8px] rounded-[14px] bg-[rgba(20,32,44,0.55)] px-3 py-[9px] backdrop-blur-[4px]">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" className="shrink-0">
+          <div className="absolute right-3 bottom-3 left-3 flex items-center gap-[8px] rounded-[14px] bg-[var(--c-exjtmn)] px-3 py-[9px] backdrop-blur-[4px]">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--c-s0owyd)" strokeWidth="1.9" strokeLinecap="round" className="shrink-0">
               <rect x="9" y="3" width="6" height="11" rx="3" />
               <path d="M5.5 11.5a6.5 6.5 0 0013 0" />
               <path d="M12 18v3" />
             </svg>
-            <div className="h-[8px] flex-1 overflow-hidden rounded-full bg-[rgba(255,255,255,0.18)]">
+            <div className="h-[8px] flex-1 overflow-hidden rounded-full bg-[var(--c-6rewwl)]">
               <div
                 className="h-full rounded-full"
                 style={{
                   width: `${Math.max(4, level * 100)}%`,
-                  background: level > 0.75 ? 'rgba(255,158,120,0.95)' : 'rgba(126,201,198,0.95)',
+                  background: level > 0.75 ? 'var(--c-5l4crj)' : 'var(--c-1bxnagy)',
                   transition: 'width 80ms linear',
                 }}
               />
@@ -156,7 +156,7 @@ export default function DeviceCheck({
         </div>
 
         {permissionError && (
-          <span className="w-full rounded-[16px] px-4 py-3 text-[12.5px] font-bold text-[#7a4a2c]">
+          <span className="w-full rounded-[16px] px-4 py-3 text-[12.5px] font-bold text-[var(--c-5nxn5p)]">
             {permissionError}
           </span>
         )}
@@ -171,8 +171,8 @@ export default function DeviceCheck({
             className="flex items-center gap-[8px] rounded-[19px] border-none px-5 py-[11px] font-sans text-[13.5px] font-extrabold transition-colors duration-[220ms] disabled:cursor-not-allowed disabled:opacity-70"
             style={
               cameraOn
-                ? { background: 'rgba(140,205,196,0.4)', color: '#2c5b53' }
-                : { background: 'rgba(206,222,232,0.85)', color: 'rgba(51,71,94,0.62)' }
+                ? { background: 'var(--c-9q3jqe)', color: 'var(--c-3bts4x)' }
+                : { background: 'var(--c-1izck5g)', color: 'var(--c-1kei8zx)' }
             }
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -189,8 +189,8 @@ export default function DeviceCheck({
             className="flex items-center gap-[8px] rounded-[19px] border-none px-5 py-[11px] font-sans text-[13.5px] font-extrabold transition-colors duration-[220ms] disabled:cursor-not-allowed disabled:opacity-70"
             style={
               micOn
-                ? { background: 'rgba(140,205,196,0.4)', color: '#2c5b53' }
-                : { background: 'rgba(206,222,232,0.85)', color: 'rgba(51,71,94,0.62)' }
+                ? { background: 'var(--c-9q3jqe)', color: 'var(--c-3bts4x)' }
+                : { background: 'var(--c-1izck5g)', color: 'var(--c-1kei8zx)' }
             }
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -203,13 +203,13 @@ export default function DeviceCheck({
           </button>
         </div>
         {(camLocked || micLocked) && (
-          <span className="text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">{t('room.deviceCheck.lockedNote')}</span>
+          <span className="text-[12px] font-semibold text-[var(--c-mfvyic)]">{t('room.deviceCheck.lockedNote')}</span>
         )}
 
         <button
           onClick={onDone}
-          className="w-full rounded-[22px] border-none py-[15px] font-sans text-base font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
-          style={{ background: 'var(--ff-accent-soft)', boxShadow: '0 12px 26px rgba(58,98,126,0.16)' }}
+          className="w-full rounded-[22px] border-none py-[15px] font-sans text-base font-extrabold text-[var(--c-2vtjkg)] transition-transform duration-200 hover:-translate-y-0.5"
+          style={{ background: 'var(--ff-accent-soft)', boxShadow: '0 12px 26px var(--c-1k1wm4q)' }}
         >
           {t('room.deviceCheck.enter')}
         </button>

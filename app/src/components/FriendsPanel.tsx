@@ -159,17 +159,17 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(20,32,42,0.42)', backdropFilter: 'blur(2px)' }}
+      style={{ background: 'var(--c-1klvacf)', backdropFilter: 'blur(2px)' }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
       <div
-        className="relative flex w-full max-w-[560px] flex-col overflow-hidden rounded-[32px] font-sans text-[#33475e] antialiased"
+        className="relative flex w-full max-w-[560px] flex-col overflow-hidden rounded-[32px] font-sans text-[var(--c-32fr7s)] antialiased"
         style={{
           maxHeight: '88vh',
-          background: 'linear-gradient(170deg, #e4f1f4 0%, #dbeaf2 50%, #e6f4ee 100%)',
-          boxShadow: '0 30px 80px rgba(20,32,42,0.35)',
+          background: 'linear-gradient(170deg, var(--c-1fqdrzz) 0%, var(--c-1fyn1i5) 50%, var(--c-1frhffa) 100%)',
+          boxShadow: '0 30px 80px var(--c-1klv9ob)',
         }}
       >
         <div className="flex-1 overflow-y-auto">
@@ -177,16 +177,16 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
             <div className="flex items-center gap-[11px]">
               <div
                 className="h-[22px] w-[22px] rounded-[9px]"
-                style={{ background: 'linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235))' }}
+                style={{ background: 'linear-gradient(135deg, var(--c-1feyjhs), var(--c-yr829))' }}
               />
-              <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[#2f4459]">{t('app.name')}</span>
-              <span className="text-sm font-semibold text-[rgba(51,71,94,0.5)]">· {t('friends.headerTag')}</span>
+              <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[var(--c-3dfktp)]">{t('app.name')}</span>
+              <span className="text-sm font-semibold text-[var(--c-mfvyic)]">· {t('friends.headerTag')}</span>
               <button
                 onClick={onClose}
                 title={t('friends.close')}
                 aria-label={t('friends.close')}
-                className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
-                style={{ background: 'rgba(255,255,255,0.7)' }}
+                className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-white"
+                style={{ background: 'var(--c-ijr2v3)' }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                   <path d="M6 6l12 12M18 6L6 18" />
@@ -197,21 +197,21 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
             {/* handle của chính mình */}
             <div
               className="flex flex-wrap items-center justify-between gap-[14px] rounded-[26px] px-6 py-5"
-              style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
+              style={{ background: 'var(--c-ijr2vy)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px var(--c-1w98bua)' }}
             >
               <div className="flex flex-col gap-[2px]">
-                <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                   {t('friends.yourHandle')}
                 </span>
-                <span className="text-[19px] font-extrabold text-[#2c3f55] tabular-nums">
+                <span className="text-[19px] font-extrabold text-[var(--c-3bsl4p)] tabular-nums">
                   {myHandle ? formatFriendHandle(myHandle.name, myHandle.tag) : '···'}
                 </span>
               </div>
               <button
                 onClick={copyHandle}
                 disabled={!myHandle}
-                className="shrink-0 rounded-[16px] border-none px-5 py-3 font-sans text-sm font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-50"
-                style={{ background: 'var(--ff-accent-soft)' }}
+                className="shrink-0 rounded-[16px] border-none px-5 py-3 font-sans text-sm font-extrabold text-[var(--ff-btn-soft-fg)] transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-50"
+                style={{ background: 'var(--ff-btn-soft-bg)' }}
               >
                 {copied ? t('friends.copied') : t('friends.copy')}
               </button>
@@ -220,9 +220,9 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
             {/* thêm bạn */}
             <div
               className="flex flex-col gap-[10px] rounded-[26px] px-6 py-5"
-              style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
+              style={{ background: 'var(--c-ijr2vy)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px var(--c-1w98bua)' }}
             >
-              <span className="text-[15px] font-extrabold text-[#2c3f55]">{t('friends.addTitle')}</span>
+              <span className="text-[15px] font-extrabold text-[var(--c-3bsl4p)]">{t('friends.addTitle')}</span>
               <div className="flex flex-wrap gap-[7px]">
                 <input
                   value={handleInput}
@@ -234,13 +234,13 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
                     if (e.key === 'Enter') void handleSend()
                   }}
                   placeholder={t('friends.addPlaceholder')}
-                  className="min-w-0 flex-1 rounded-[16px] border-none px-4 py-3 font-sans text-sm font-semibold text-[#2c3f55] outline-none"
-                  style={{ background: 'rgba(238,246,248,0.9)' }}
+                  className="min-w-0 flex-1 rounded-[16px] border-none px-4 py-3 font-sans text-sm font-semibold text-[var(--c-3bsl4p)] outline-none"
+                  style={{ background: 'var(--c-rucw5u)' }}
                 />
                 <button
                   onClick={() => void handleSend()}
                   disabled={sendState === 'sending' || !handleInput.trim()}
-                  className="shrink-0 rounded-[16px] border-none px-5 py-3 font-sans text-sm font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-50"
+                  className="shrink-0 rounded-[16px] border-none px-5 py-3 font-sans text-sm font-extrabold text-[var(--c-2vtjkg)] transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-50"
                   style={{ background: 'var(--ff-accent-soft)' }}
                 >
                   {t('friends.addButton')}
@@ -249,7 +249,7 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
               {sendState !== 'idle' && sendState !== 'sending' && (
                 <span
                   className="text-[12.5px] font-semibold"
-                  style={{ color: sendState === 'sent' || sendState === 'accepted' ? '#2c5b53' : '#a13f2c' }}
+                  style={{ color: sendState === 'sent' || sendState === 'accepted' ? 'var(--c-3bts4x)' : 'var(--c-otf3yh)' }}
                 >
                   {t(`friends.sendState.${sendState}`)}
                 </span>
@@ -262,24 +262,24 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
                 không dấu vết. Giờ liệt kê lại ở đây, đếm vào cùng badge với lời mời kết bạn. */}
             {incomingRoomInvites.length > 0 && (
               <div className="flex flex-col gap-[10px]">
-                <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                   {t('friends.roomInvitesTitle', { count: incomingRoomInvites.length })}
                 </span>
                 {incomingRoomInvites.map((inv) => (
                   <div
                     key={inv.id}
                     className="flex flex-wrap items-center justify-between gap-[10px] rounded-[20px] px-5 py-[13px]"
-                    style={{ background: 'rgba(255,255,255,0.8)' }}
+                    style={{ background: 'var(--c-ijr2vy)' }}
                   >
                     <div className="flex flex-col gap-[2px]">
-                      <span className="text-sm font-bold text-[#2c3f55]">
+                      <span className="text-sm font-bold text-[var(--c-3bsl4p)]">
                         {formatFriendHandle(inv.inviter_name, inv.inviter_tag)}
                       </span>
-                      <span className="text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">
+                      <span className="text-[12px] font-semibold text-[var(--c-mfvyic)]">
                         {t('friends.roomInviteSubtitle', { room: inv.room_name })}
                       </span>
                       {inviteResultMsg?.id === inv.id && (
-                        <span className="text-[12px] font-bold text-[#a13f2c]">
+                        <span className="text-[12px] font-bold text-[var(--c-otf3yh)]">
                           {t(`friends.${inviteResultMsg.key}`)}
                         </span>
                       )}
@@ -288,15 +288,15 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
                       <button
                         onClick={() => void handleDeclineInvite(inv.id)}
                         disabled={inviteActionId === inv.id}
-                        className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-bold text-[#7a3f2c] disabled:opacity-50"
-                        style={{ background: 'oklch(0.93 0.03 45)' }}
+                        className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-bold text-[var(--c-5nx3vn)] disabled:opacity-50"
+                        style={{ background: 'var(--c-11c6fho)' }}
                       >
                         {t('roomInvite.decline')}
                       </button>
                       <button
                         onClick={() => void handleAcceptInvite(inv)}
                         disabled={inviteActionId === inv.id}
-                        className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-extrabold text-[#1e3549] disabled:opacity-50"
+                        className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-2vtjkg)] disabled:opacity-50"
                         style={{ background: 'var(--ff-accent-soft)' }}
                       >
                         {t('roomInvite.accept')}
@@ -310,7 +310,7 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
             {/* lời mời đến */}
             {incoming.length > 0 && (
               <div className="flex flex-col gap-[10px]">
-                <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                   {t('friends.incomingTitle', { count: incoming.length })}
                 </span>
                 {incoming.map((r) => {
@@ -319,20 +319,20 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
                     <div
                       key={r.id}
                       className="flex flex-wrap items-center justify-between gap-[10px] rounded-[20px] px-5 py-[13px]"
-                      style={{ background: 'rgba(255,255,255,0.8)' }}
+                      style={{ background: 'var(--c-ijr2vy)' }}
                     >
-                      <span className="text-sm font-bold text-[#2c3f55]">{formatFriendHandle(other.name, other.tag)}</span>
+                      <span className="text-sm font-bold text-[var(--c-3bsl4p)]">{formatFriendHandle(other.name, other.tag)}</span>
                       <div className="flex gap-[7px]">
                         <button
                           onClick={() => void handleRemove(r.id)}
-                          className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-bold text-[#7a3f2c]"
-                          style={{ background: 'oklch(0.93 0.03 45)' }}
+                          className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-bold text-[var(--c-5nx3vn)]"
+                          style={{ background: 'var(--c-11c6fho)' }}
                         >
                           {t('friends.decline')}
                         </button>
                         <button
                           onClick={() => void handleAccept(r.id)}
-                          className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-extrabold text-[#1e3549]"
+                          className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-2vtjkg)]"
                           style={{ background: 'var(--ff-accent-soft)' }}
                         >
                           {t('friends.accept')}
@@ -347,7 +347,7 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
             {/* lời mời đã gửi */}
             {outgoing.length > 0 && (
               <div className="flex flex-col gap-[10px]">
-                <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                   {t('friends.outgoingTitle', { count: outgoing.length })}
                 </span>
                 {outgoing.map((r) => {
@@ -356,13 +356,13 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
                     <div
                       key={r.id}
                       className="flex flex-wrap items-center justify-between gap-[10px] rounded-[20px] px-5 py-[13px]"
-                      style={{ background: 'rgba(255,255,255,0.8)' }}
+                      style={{ background: 'var(--c-ijr2vy)' }}
                     >
-                      <span className="text-sm font-bold text-[#2c3f55]">{formatFriendHandle(other.name, other.tag)}</span>
+                      <span className="text-sm font-bold text-[var(--c-3bsl4p)]">{formatFriendHandle(other.name, other.tag)}</span>
                       <button
                         onClick={() => void handleRemove(r.id)}
-                        className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-bold text-[#43596f]"
-                        style={{ background: 'rgba(238,246,248,0.9)' }}
+                        className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-bold text-[var(--c-3ji23s)]"
+                        style={{ background: 'var(--c-rucw5u)' }}
                       >
                         {t('friends.cancel')}
                       </button>
@@ -374,11 +374,11 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
 
             {/* danh sách bạn bè */}
             <div className="flex flex-col gap-[10px]">
-              <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+              <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                 {t('friends.listTitle', { count: friends.length })}
               </span>
               {friends.length === 0 ? (
-                <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.45)]">{t('friends.noFriends')}</span>
+                <span className="text-[13px] font-semibold text-[var(--c-1kei7l4)]">{t('friends.noFriends')}</span>
               ) : (
                 friends.map((r) => {
                   const other = otherSideOf(r, user.id)
@@ -386,13 +386,13 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
                     <div
                       key={r.id}
                       className="flex flex-wrap items-center justify-between gap-[10px] rounded-[20px] px-5 py-[13px]"
-                      style={{ background: 'rgba(255,255,255,0.8)' }}
+                      style={{ background: 'var(--c-ijr2vy)' }}
                     >
-                      <span className="text-sm font-bold text-[#2c3f55]">{formatFriendHandle(other.name, other.tag)}</span>
+                      <span className="text-sm font-bold text-[var(--c-3bsl4p)]">{formatFriendHandle(other.name, other.tag)}</span>
                       <button
                         onClick={() => void handleRemove(r.id)}
-                        className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-bold text-[#7a3f2c]"
-                        style={{ background: 'oklch(0.93 0.03 45)' }}
+                        className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-bold text-[var(--c-5nx3vn)]"
+                        style={{ background: 'var(--c-11c6fho)' }}
                       >
                         {t('friends.remove')}
                       </button>

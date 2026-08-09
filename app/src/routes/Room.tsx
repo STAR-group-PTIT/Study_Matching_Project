@@ -147,9 +147,9 @@ type Demo = 'two' | 'five'
 
 function segStyle(on: boolean) {
   return {
-    background: on ? '#ffffff' : 'transparent',
-    color: on ? '#22483f' : 'rgba(51,71,94,0.55)',
-    boxShadow: on ? '0 4px 12px rgba(58,98,126,0.12)' : 'none',
+    background: on ? 'var(--c-1gyy7ef)' : 'transparent',
+    color: on ? 'var(--c-2kucx8)' : 'var(--c-1kei8bt)',
+    boxShadow: on ? '0 4px 12px var(--c-1k1wm1a)' : 'none',
   }
 }
 
@@ -1231,14 +1231,14 @@ export default function Room() {
       name: u.name,
       initials: initials(u.name),
       status: me ? (mic ? t('room.status.micOn') : t('room.status.micOff')) : displayStatusLabel,
-      statusColor: me ? (mic ? '#2c5b53' : 'rgba(51,71,94,0.45)') : online ? 'rgba(51,71,94,0.45)' : 'rgba(51,71,94,0.3)',
+      statusColor: me ? (mic ? 'var(--c-3bts4x)' : 'var(--c-1kei7l4)') : online ? 'var(--c-1kei7l4)' : 'var(--c-mfvygm)',
       feedLabel: camOff ? t('room.camOffFeed') : t('room.webcamOf', { name: u.name }),
       videoTrack: camOff ? undefined : videoTrack,
       audioTrack,
-      avatarBg: me ? 'rgba(140,205,196,0.55)' : 'rgba(160,200,225,0.5)',
-      avatarColor: me ? '#22483f' : '#2b4d68',
-      tileBorder: me ? '2.5px solid rgba(126,201,198,0.95)' : '2px solid rgba(140,205,196,0.45)',
-      tileShadow: me ? '0 14px 32px rgba(58,98,126,0.18)' : '0 10px 24px rgba(58,98,126,0.1)',
+      avatarBg: me ? 'var(--c-hclsvs)' : 'var(--c-1g0dnp)',
+      avatarColor: me ? 'var(--c-2kucx8)' : 'var(--c-3b9e2f)',
+      tileBorder: me ? '2.5px solid var(--c-1a6k92u)' : '2px solid var(--c-fliqqz)',
+      tileShadow: me ? '0 14px 32px var(--c-1k1wm6g)' : '0 10px 24px var(--c-1w98bua)',
       self: me,
     }
   })
@@ -1246,7 +1246,7 @@ export default function Room() {
   if (user && loadingRoom) {
     return (
       <div
-        className="flex h-svh w-full items-center justify-center font-sans text-[15px] font-bold text-[rgba(51,71,94,0.55)]"
+        className="flex h-svh w-full items-center justify-center font-sans text-[15px] font-bold text-[var(--c-1kei8bt)]"
         style={{ background: 'var(--ff-page-gradient)' }}
       >
         {t('room.loadingRoom')}
@@ -1260,20 +1260,20 @@ export default function Room() {
   if (isRealMode && realRoom.status === 'lobby') {
     return (
       <div
-        className="relative flex h-svh w-full items-center justify-center overflow-hidden px-6 font-sans text-[#33475e] antialiased"
+        className="relative flex h-svh w-full items-center justify-center overflow-hidden px-6 font-sans text-[var(--c-32fr7s)] antialiased"
         style={{ background: 'var(--ff-page-gradient)' }}
       >
         <div
           className="flex w-full max-w-[420px] flex-col items-center gap-4 rounded-[30px] px-8 py-9 text-center"
-          style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(22px)', boxShadow: '0 22px 56px rgba(58,98,126,0.15)' }}
+          style={{ background: 'var(--c-6rf20v)', backdropFilter: 'blur(22px)', boxShadow: '0 22px 56px var(--c-1k1wm3v)' }}
         >
-          <h2 className="m-0 text-xl font-extrabold text-[#2c3f55]">{t('room.notStarted.title')}</h2>
-          <p className="mt-2 mb-0 text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
+          <h2 className="m-0 text-xl font-extrabold text-[var(--c-3bsl4p)]">{t('room.notStarted.title')}</h2>
+          <p className="mt-2 mb-0 text-[13.5px] font-semibold text-[var(--c-1kei8bt)]">
             {t('room.notStarted.desc')}
           </p>
           <button
             onClick={() => navigate('/')}
-            className="rounded-[20px] border-none px-6 py-[13px] font-sans text-[14.5px] font-extrabold text-[#1e3549]"
+            className="rounded-[20px] border-none px-6 py-[13px] font-sans text-[14.5px] font-extrabold text-[var(--c-2vtjkg)]"
             style={{ background: 'var(--ff-accent-soft)' }}
           >
             {t('room.notStarted.back')}
@@ -1286,20 +1286,20 @@ export default function Room() {
   if (isRealMode && membersLoaded && myStatus === null) {
     return (
       <div
-        className="relative flex h-svh w-full items-center justify-center overflow-hidden px-6 font-sans text-[#33475e] antialiased"
+        className="relative flex h-svh w-full items-center justify-center overflow-hidden px-6 font-sans text-[var(--c-32fr7s)] antialiased"
         style={{ background: 'var(--ff-page-gradient)' }}
       >
         <div
           className="flex w-full max-w-[420px] flex-col items-center gap-4 rounded-[30px] px-8 py-9 text-center"
-          style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(22px)', boxShadow: '0 22px 56px rgba(58,98,126,0.15)' }}
+          style={{ background: 'var(--c-6rf20v)', backdropFilter: 'blur(22px)', boxShadow: '0 22px 56px var(--c-1k1wm3v)' }}
         >
-          <h2 className="m-0 text-xl font-extrabold text-[#2c3f55]">{t('room.notJoined.title')}</h2>
-          <p className="mt-2 mb-0 text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
+          <h2 className="m-0 text-xl font-extrabold text-[var(--c-3bsl4p)]">{t('room.notJoined.title')}</h2>
+          <p className="mt-2 mb-0 text-[13.5px] font-semibold text-[var(--c-1kei8bt)]">
             {t('room.notJoined.desc')}
           </p>
           <button
             onClick={() => navigate('/matching')}
-            className="rounded-[20px] border-none px-6 py-[13px] font-sans text-[14.5px] font-extrabold text-[#1e3549]"
+            className="rounded-[20px] border-none px-6 py-[13px] font-sans text-[14.5px] font-extrabold text-[var(--c-2vtjkg)]"
             style={{ background: 'var(--ff-accent-soft)' }}
           >
             {t('room.notJoined.goToMatching')}
@@ -1312,16 +1312,16 @@ export default function Room() {
   if (isRealMode && myStatus === 'pending') {
     return (
       <div
-        className="relative flex h-svh w-full items-center justify-center overflow-hidden px-6 font-sans text-[#33475e] antialiased"
+        className="relative flex h-svh w-full items-center justify-center overflow-hidden px-6 font-sans text-[var(--c-32fr7s)] antialiased"
         style={{ background: 'var(--ff-page-gradient)' }}
       >
         <div
           className="flex w-full max-w-[420px] flex-col items-center gap-4 rounded-[30px] px-8 py-9 text-center"
-          style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(22px)', boxShadow: '0 22px 56px rgba(58,98,126,0.15)' }}
+          style={{ background: 'var(--c-6rf20v)', backdropFilter: 'blur(22px)', boxShadow: '0 22px 56px var(--c-1k1wm3v)' }}
         >
           <span
-            className="flex h-[54px] w-[54px] items-center justify-center rounded-full text-[#7a4a2c]"
-            style={{ background: 'rgba(226,190,150,0.4)' }}
+            className="flex h-[54px] w-[54px] items-center justify-center rounded-full text-[var(--c-5nxn5p)]"
+            style={{ background: 'var(--c-cja3ta)' }}
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
               <circle cx="12" cy="12" r="9" />
@@ -1329,15 +1329,15 @@ export default function Room() {
             </svg>
           </span>
           <div>
-            <h2 className="m-0 text-xl font-extrabold text-[#2c3f55]">{t('room.waitingApproval.title')}</h2>
-            <p className="mt-2 mb-0 text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
+            <h2 className="m-0 text-xl font-extrabold text-[var(--c-3bsl4p)]">{t('room.waitingApproval.title')}</h2>
+            <p className="mt-2 mb-0 text-[13.5px] font-semibold text-[var(--c-1kei8bt)]">
               {t('room.waitingApproval.desc', { name: realRoom?.name })}
             </p>
           </div>
           <button
             onClick={leaveRoom}
-            className="rounded-[20px] border-none px-6 py-[13px] font-sans text-[14.5px] font-extrabold text-[#43596f]"
-            style={{ background: 'rgba(240,248,250,0.9)' }}
+            className="rounded-[20px] border-none px-6 py-[13px] font-sans text-[14.5px] font-extrabold text-[var(--c-3ji23s)]"
+            style={{ background: 'var(--c-1h0taci)' }}
           >
             {t('room.waitingApproval.cancel')}
           </button>
@@ -1363,7 +1363,7 @@ export default function Room() {
 
   return (
     <div
-      className="relative h-svh w-full overflow-hidden font-sans text-[#33475e] antialiased"
+      className="relative h-svh w-full overflow-hidden font-sans text-[var(--c-32fr7s)] antialiased"
       style={{ background: 'var(--ff-page-gradient)' }}
     >
       {isRealMode && <audio ref={musicAudioRef} loop style={{ display: 'none' }} />}
@@ -1381,8 +1381,8 @@ export default function Room() {
               height: ytVideoVisible ? '146px' : '1px',
               opacity: ytVideoVisible ? 1 : 0,
               pointerEvents: ytVideoVisible ? 'auto' : 'none',
-              background: 'rgba(0,0,0,0.85)',
-              boxShadow: ytVideoVisible ? '0 10px 26px rgba(20,30,40,0.28)' : 'none',
+              background: 'var(--c-xhdzkp)',
+              boxShadow: ytVideoVisible ? '0 10px 26px var(--c-xr2m53)' : 'none',
             }}
           >
             <div ref={ytContainerRef} className="block h-full w-full" />
@@ -1391,8 +1391,8 @@ export default function Room() {
             onClick={() => setYtVideoVisible((v) => !v)}
             title={ytVideoVisible ? t('room.music.hideVideo') : t('room.music.showVideo')}
             aria-label={ytVideoVisible ? t('room.music.hideVideo') : t('room.music.showVideo')}
-            className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-200 hover:!bg-white"
-            style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px rgba(58,98,126,0.14)' }}
+            className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-200 hover:!bg-white"
+            style={{ background: 'var(--c-6rf0kc)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px var(--c-1k1wm30)' }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 18V6l10-2v12" />
@@ -1402,7 +1402,7 @@ export default function Room() {
             {musicOn && (
               <span
                 className="absolute right-[3px] bottom-[3px] h-[9px] w-[9px] rounded-full"
-                style={{ background: '#4bbf9a', boxShadow: '0 0 0 2px rgba(255,255,255,0.85)' }}
+                style={{ background: 'var(--c-t8fca9)', boxShadow: '0 0 0 2px var(--c-6rf20v)' }}
               />
             )}
           </button>
@@ -1413,11 +1413,11 @@ export default function Room() {
       <div className="absolute top-[22px] right-[26px] left-[26px] z-[42] flex flex-wrap items-center justify-between gap-[10px]">
         <div
           className="flex items-center gap-[11px] rounded-[22px] py-[9px] pr-[18px] pl-[13px]"
-          style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)' }}
+          style={{ background: 'var(--c-6rf0kc)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px var(--c-fc5pjb)' }}
         >
-          <div className="h-5 w-5 rounded-lg" style={{ background: 'linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235))' }} />
-          <span className="text-base font-extrabold tracking-[-0.2px] text-[#2f4459]">{t('app.name')}</span>
-          <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.5)]">
+          <div className="h-5 w-5 rounded-lg" style={{ background: 'linear-gradient(135deg, var(--c-1feyjhs), var(--c-yr829))' }} />
+          <span className="text-base font-extrabold tracking-[-0.2px] text-[var(--c-3dfktp)]">{t('app.name')}</span>
+          <span className="text-[13px] font-semibold text-[var(--c-mfvyic)]">
             · {t('room.headerTag')}
           </span>
         </div>
@@ -1426,17 +1426,17 @@ export default function Room() {
         {code && (
           <div
             className="flex items-center gap-2 rounded-[22px] py-[9px] pr-[9px] pl-[16px]"
-            style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)' }}
+            style={{ background: 'var(--c-6rf0kc)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px var(--c-fc5pjb)' }}
           >
-            <span className="text-[11px] font-extrabold tracking-[0.6px] text-[rgba(51,71,94,0.5)] uppercase">
+            <span className="text-[11px] font-extrabold tracking-[0.6px] text-[var(--c-mfvyic)] uppercase">
               {t('room.roomCode.label')}
             </span>
-            <span className="text-[14.5px] font-extrabold tracking-[2px] text-[#2c3f55]">{code.toUpperCase()}</span>
+            <span className="text-[14.5px] font-extrabold tracking-[2px] text-[var(--c-3bsl4p)]">{code.toUpperCase()}</span>
             <button
               onClick={copyRoomCode}
               title={t('room.roomCode.copy')}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
-              style={{ background: 'rgba(255,255,255,0.6)' }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-white"
+              style={{ background: 'var(--c-ijr2u8)' }}
             >
               {codeCopied ? (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -1457,8 +1457,8 @@ export default function Room() {
           <button
             onClick={() => setInviteFriendOpen(true)}
             title={t('friends.inviteTitle')}
-            className="flex items-center gap-2 rounded-[22px] border-none py-[9px] pr-[16px] pl-[14px] font-sans text-[13px] font-extrabold text-[#354c65] transition-colors duration-200 hover:!bg-white"
-            style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)' }}
+            className="flex items-center gap-2 rounded-[22px] border-none py-[9px] pr-[16px] pl-[14px] font-sans text-[13px] font-extrabold text-[var(--c-33k90l)] transition-colors duration-200 hover:!bg-white"
+            style={{ background: 'var(--c-6rf0kc)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px var(--c-fc5pjb)' }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="8" cy="8" r="3" />
@@ -1473,7 +1473,7 @@ export default function Room() {
           {!isRealMode && (
             <div
               className="flex items-center gap-[5px] rounded-[20px] p-[5px]"
-              style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)' }}
+              style={{ background: 'var(--c-6rf0kc)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px var(--c-fc5pjb)' }}
             >
               {(['two', 'five'] as Demo[]).map((key) => (
                 <button
@@ -1492,10 +1492,10 @@ export default function Room() {
           )}
           <div
             className="flex items-center gap-[9px] rounded-[20px] px-[17px] py-[9px]"
-            style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)' }}
+            style={{ background: 'var(--c-6rf0kc)', backdropFilter: 'blur(16px)', boxShadow: '0 6px 20px var(--c-fc5pjb)' }}
           >
-            <span className="h-2 w-2 rounded-full" style={{ background: 'oklch(0.76 0.09 170)' }} />
-            <span className="text-[13.5px] font-bold text-[#35566b]">{syncLabel}</span>
+            <span className="h-2 w-2 rounded-full" style={{ background: 'var(--c-1fsabe)' }} />
+            <span className="text-[13.5px] font-bold text-[var(--c-33jyo4)]">{syncLabel}</span>
           </div>
         </div>
       </div>
@@ -1507,9 +1507,9 @@ export default function Room() {
         <div
           className="relative h-full w-full overflow-hidden rounded-[34px] p-4"
           style={{
-            border: '2px solid rgba(140,205,196,0.4)',
-            boxShadow: '0 22px 56px rgba(58,98,126,0.15)',
-            background: 'repeating-linear-gradient(135deg, #dbe9ef 0 14px, #d2e3ea 14px 28px)',
+            border: '2px solid var(--c-9q3jqe)',
+            boxShadow: '0 22px 56px var(--c-1k1wm3v)',
+            background: 'repeating-linear-gradient(135deg, var(--c-1fym7uy) 0 14px, var(--c-1f87yxb) 14px 28px)',
           }}
         >
           <div
@@ -1529,7 +1529,7 @@ export default function Room() {
                   aspectRatio: '16 / 9',
                   border: tile.tileBorder,
                   boxShadow: tile.tileShadow,
-                  background: 'repeating-linear-gradient(135deg, #e3eef2 0 12px, #dae8ee 12px 24px)',
+                  background: 'repeating-linear-gradient(135deg, var(--c-1fpuez5) 0 12px, var(--c-1fy2eiv) 12px 24px)',
                 }}
               >
                 {tile.videoTrack ? (
@@ -1537,8 +1537,8 @@ export default function Room() {
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-[6px]">
                     <span
-                      className="rounded-[11px] px-3 py-[7px] font-mono text-xs tracking-[0.5px] text-[rgba(51,71,94,0.5)]"
-                      style={{ background: 'rgba(255,255,255,0.7)' }}
+                      className="rounded-[11px] px-3 py-[7px] font-mono text-xs tracking-[0.5px] text-[var(--c-mfvyic)]"
+                      style={{ background: 'var(--c-ijr2v3)' }}
                     >
                       {tile.feedLabel}
                     </span>
@@ -1547,7 +1547,7 @@ export default function Room() {
                 {tile.audioTrack && <TrackMediaEl track={tile.audioTrack} kind="audio" />}
                 <div
                   className="absolute top-3 left-3 flex items-center gap-2 rounded-[18px] py-[6px] pr-[13px] pl-[7px]"
-                  style={{ background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(14px)', boxShadow: '0 5px 15px rgba(58,98,126,0.1)' }}
+                  style={{ background: 'var(--c-6rf1ya)', backdropFilter: 'blur(14px)', boxShadow: '0 5px 15px var(--c-1w98bua)' }}
                 >
                   <span
                     className="flex h-[26px] w-[26px] items-center justify-center rounded-[10px] text-[11.5px] font-extrabold"
@@ -1555,17 +1555,17 @@ export default function Room() {
                   >
                     {tile.initials}
                   </span>
-                  <span className="text-[13px] font-extrabold text-[#2c3f55]">{tile.name}</span>
+                  <span className="text-[13px] font-extrabold text-[var(--c-3bsl4p)]">{tile.name}</span>
                   <span className="text-[11.5px] font-bold" style={{ color: tile.statusColor }}>
                     {tile.status}
                   </span>
                 </div>
                 {tile.self && (
                   <span
-                    className="absolute top-[14px] right-[14px] flex items-center gap-[6px] rounded-full px-[11px] py-[5px] text-[11px] font-extrabold tracking-[0.4px] text-[#22483f]"
-                    style={{ background: 'rgba(255,255,255,0.82)' }}
+                    className="absolute top-[14px] right-[14px] flex items-center gap-[6px] rounded-full px-[11px] py-[5px] text-[11px] font-extrabold tracking-[0.4px] text-[var(--c-2kucx8)]"
+                    style={{ background: 'var(--c-6rf1ya)' }}
                   >
-                    <span className="h-[7px] w-[7px] rounded-full" style={{ background: 'oklch(0.72 0.11 165)' }} />
+                    <span className="h-[7px] w-[7px] rounded-full" style={{ background: 'var(--c-1o654yh)' }} />
                     {t('room.you')}
                   </span>
                 )}
@@ -1580,11 +1580,11 @@ export default function Room() {
       {
         <div
           className="absolute top-[106px] left-1/2 z-40 flex -translate-x-1/2 items-center gap-[18px] rounded-[30px] py-[14px] pr-6 pl-4"
-          style={{ background: 'rgba(255,255,255,0.62)', backdropFilter: 'blur(18px)', boxShadow: '0 16px 40px rgba(58,98,126,0.16)' }}
+          style={{ background: 'var(--c-6rf0gw)', backdropFilter: 'blur(18px)', boxShadow: '0 16px 40px var(--c-1k1wm4q)' }}
         >
           <div className="relative flex h-[92px] w-[92px] items-center justify-center">
             <svg viewBox="0 0 100 100" className="absolute h-[92px] w-[92px]" style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx="50" cy="50" r="43" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="8" />
+              <circle cx="50" cy="50" r="43" fill="none" stroke="var(--c-1q0z9u3)" strokeWidth="8" />
               <circle
                 cx="50"
                 cy="50"
@@ -1597,20 +1597,20 @@ export default function Room() {
                 style={{ strokeDashoffset: dashOffset, transition: 'stroke-dashoffset 980ms linear' }}
               />
             </svg>
-            <span className="relative text-xl font-extrabold text-[#2c3f55] tabular-nums">
+            <span className="relative text-xl font-extrabold text-[var(--c-3bsl4p)] tabular-nums">
               {done ? '🎉' : timeText}
             </span>
           </div>
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-px">
-              <span className="text-xs font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.5)] uppercase">
+              <span className="text-xs font-extrabold tracking-[1.2px] text-[var(--c-mfvyic)] uppercase">
                 {done
                   ? t('room.pomodoro.doneTitle')
                   : phase === 'focus'
                     ? t('room.pomodoro.focusing')
                     : t('room.pomodoro.onBreak')}
               </span>
-              <span className="text-[13.5px] font-bold text-[#2c3f55]">
+              <span className="text-[13.5px] font-bold text-[var(--c-3bsl4p)]">
                 {done
                   ? t('room.pomodoro.doneHint', { count: sessionCount })
                   : t('room.pomodoro.syncedNote')}
@@ -1621,7 +1621,7 @@ export default function Room() {
                 <button
                   onClick={startNewRound}
                   disabled={useDbTimer && !isHost}
-                  className="rounded-2xl border-none px-[18px] py-[9px] font-sans text-[13px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:enabled:-translate-y-px disabled:opacity-50"
+                  className="rounded-2xl border-none px-[18px] py-[9px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)] transition-transform duration-200 hover:enabled:-translate-y-px disabled:opacity-50"
                   style={{ background: ACCENT_SOFT }}
                 >
                   {t('room.pomodoro.newRound')}
@@ -1631,7 +1631,7 @@ export default function Room() {
                   <button
                     onClick={toggleRunning}
                     disabled={useDbTimer && !isHost}
-                    className="rounded-2xl border-none px-[18px] py-[9px] font-sans text-[13px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:enabled:-translate-y-px disabled:opacity-50"
+                    className="rounded-2xl border-none px-[18px] py-[9px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)] transition-transform duration-200 hover:enabled:-translate-y-px disabled:opacity-50"
                     style={{ background: ACCENT_SOFT }}
                   >
                     {running ? t('room.pomodoro.pause') : t('room.pomodoro.resume')}
@@ -1639,8 +1639,8 @@ export default function Room() {
                   <button
                     onClick={resetTimer}
                     disabled={useDbTimer && !isHost}
-                    className="rounded-2xl border-none px-4 py-[9px] font-sans text-[13px] font-bold text-[#4a637d] hover:enabled:!bg-white disabled:opacity-50"
-                    style={{ background: 'rgba(255,255,255,0.7)' }}
+                    className="rounded-2xl border-none px-4 py-[9px] font-sans text-[13px] font-bold text-[var(--c-48t3yk)] hover:enabled:!bg-white disabled:opacity-50"
+                    style={{ background: 'var(--c-ijr2v3)' }}
                   >
                     {t('room.pomodoro.reset')}
                   </button>
@@ -1654,7 +1654,7 @@ export default function Room() {
       {/* bottom controls */}
       <div
         className="absolute bottom-4 left-1/2 z-30 flex max-w-[calc(100vw-24px)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-[26px] p-[8px] md:bottom-7 md:max-w-none md:gap-2 md:p-[10px]"
-        style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px rgba(58,98,126,0.15)' }}
+        style={{ background: 'var(--c-ijr2v3)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px var(--c-1k1wm3v)' }}
       >
         <button
           onClick={toggleCam}
@@ -1667,7 +1667,7 @@ export default function Room() {
                 : t('room.controls.cameraOff')
           }
           className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:enabled:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70 md:px-5"
-          style={{ background: cam ? 'rgba(255,255,255,0.4)' : 'rgba(206,222,232,0.85)', color: cam ? '#354c65' : 'rgba(51,71,94,0.62)' }}
+          style={{ background: cam ? 'var(--c-ijr2si)' : 'var(--c-1izck5g)', color: cam ? 'var(--c-33k90l)' : 'var(--c-1kei8zx)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
             <rect x="2.5" y="6.5" width="13" height="11" rx="3.5" />
@@ -1687,7 +1687,7 @@ export default function Room() {
                 : t('room.controls.micOff')
           }
           className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:enabled:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70 md:px-5"
-          style={{ background: mic ? 'rgba(255,255,255,0.4)' : 'rgba(206,222,232,0.85)', color: mic ? '#354c65' : 'rgba(51,71,94,0.62)' }}
+          style={{ background: mic ? 'var(--c-ijr2si)' : 'var(--c-1izck5g)', color: mic ? 'var(--c-33k90l)' : 'var(--c-1kei8zx)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
             <rect x="9" y="3" width="6" height="11" rx="3" />
@@ -1699,15 +1699,15 @@ export default function Room() {
         <button
           onClick={() => openTab('chat')}
           title={t('room.controls.chat')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)] md:px-5"
-          style={{ background: chatOpen && effectiveTab === 'chat' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)' }}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] md:px-5"
+          style={{ background: chatOpen && effectiveTab === 'chat' ? 'var(--c-6rf2rk)' : 'var(--c-ijr2si)' }}
         >
           <span className="relative flex h-[18px] w-[18px] shrink-0 items-center justify-center">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
               <path d="M20 12.5c0 3.6-3.6 6.5-8 6.5-1 0-2-.15-2.9-.42L4.5 20l1.1-3.3A6.7 6.7 0 014 12.5C4 8.9 7.6 6 12 6s8 2.9 8 6.5z" />
             </svg>
             {hasUnreadChat && (
-              <span className="absolute -top-[3px] -right-[3px] h-[9px] w-[9px] rounded-full ring-2 ring-white" style={{ background: '#c0524a' }} />
+              <span className="absolute -top-[3px] -right-[3px] h-[9px] w-[9px] rounded-full ring-2 ring-white" style={{ background: 'var(--c-1ep8226)' }} />
             )}
           </span>
           <span className="hidden md:inline">{t('room.controls.chat')}</span>
@@ -1715,8 +1715,8 @@ export default function Room() {
         <button
           onClick={() => openTab('music')}
           title={t('room.controls.music')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)] md:px-5"
-          style={{ background: chatOpen && effectiveTab === 'music' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)' }}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] md:px-5"
+          style={{ background: chatOpen && effectiveTab === 'music' ? 'var(--c-6rf2rk)' : 'var(--c-ijr2si)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
             <path d="M9 18V6l10-2v12" />
@@ -1728,8 +1728,8 @@ export default function Room() {
         <button
           onClick={() => openTab('members')}
           title={t('room.controls.members')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)] md:px-5"
-          style={{ background: chatOpen && effectiveTab === 'members' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)' }}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] md:px-5"
+          style={{ background: chatOpen && effectiveTab === 'members' ? 'var(--c-6rf2rk)' : 'var(--c-ijr2si)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="8" cy="8" r="3" />
@@ -1743,8 +1743,8 @@ export default function Room() {
           <button
             onClick={() => openTab('host')}
             title={t('room.controls.manage')}
-            className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-all duration-[220ms] hover:!bg-[rgba(255,255,255,0.95)] md:px-5"
-            style={{ background: chatOpen && effectiveTab === 'host' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)' }}
+            className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] md:px-5"
+            style={{ background: chatOpen && effectiveTab === 'host' ? 'var(--c-6rf2rk)' : 'var(--c-ijr2si)' }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19" />
@@ -1754,20 +1754,20 @@ export default function Room() {
             <span className="hidden md:inline">{t('room.controls.manage')}</span>
             {queued && (
               <span
-                className="rounded-full px-2 py-[2px] text-xs font-extrabold text-[#7a4a2c]"
-                style={{ background: 'oklch(0.87 0.075 55)' }}
+                className="rounded-full px-2 py-[2px] text-xs font-extrabold text-[var(--c-5nxn5p)]"
+                style={{ background: 'var(--c-1891o57)' }}
               >
                 {pending.length}
               </span>
             )}
           </button>
         )}
-        <div className="mx-1 h-[26px] w-px shrink-0" style={{ background: 'rgba(51,71,94,0.13)' }} />
+        <div className="mx-1 h-[26px] w-px shrink-0" style={{ background: 'var(--c-dhk6qj)' }} />
         <button
           onClick={handleLeaveClick}
           title={t('room.controls.leave')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-extrabold text-[#7a3f2c] transition-all duration-[220ms] hover:brightness-95 md:px-[22px]"
-          style={{ background: 'oklch(0.86 0.055 45)' }}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-extrabold text-[var(--c-5nx3vn)] transition-all duration-[220ms] hover:brightness-95 md:px-[22px]"
+          style={{ background: 'var(--c-1zp96j)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
             <path d="M15 5.5V4a2 2 0 00-2-2H6a2 2 0 00-2 2v16a2 2 0 002 2h7a2 2 0 002-2v-1.5" />
@@ -1783,17 +1783,17 @@ export default function Room() {
           chatOpen ? 'translate-y-0 md:translate-x-0' : 'translate-y-[calc(100%+24px)] md:translate-y-0 md:translate-x-[380px]'
         }`}
         style={{
-          background: 'rgba(255,255,255,0.84)',
+          background: 'var(--c-6rf200)',
           backdropFilter: 'blur(22px)',
-          boxShadow: '0 18px 46px rgba(58,98,126,0.15)',
+          boxShadow: '0 18px 46px var(--c-1k1wm3v)',
           opacity: chatOpen ? 1 : 0,
           pointerEvents: chatOpen ? 'auto' : 'none',
           transition: 'transform 440ms cubic-bezier(0.22,1,0.36,1), opacity 340ms ease',
         }}
       >
-        <div className="mx-auto -mt-1 mb-1 h-1 w-9 shrink-0 rounded-full bg-[rgba(51,71,94,0.16)] md:hidden" />
+        <div className="mx-auto -mt-1 mb-1 h-1 w-9 shrink-0 rounded-full bg-[var(--c-dhk6t4)] md:hidden" />
         <div className="flex items-center gap-2">
-          <div className="flex flex-1 gap-[5px] rounded-[20px] p-[5px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
+          <div className="flex flex-1 gap-[5px] rounded-[20px] p-[5px]" style={{ background: 'var(--c-rucw5u)' }}>
             {(
               [
                 { key: 'chat' as Tab, name: t('room.controls.chat'), show: true, badge: '' },
@@ -1818,8 +1818,8 @@ export default function Room() {
                     {x.name}
                     {x.badge && (
                       <span
-                        className="rounded-full px-[7px] py-[2px] text-[11px] font-extrabold text-[#7a4a2c]"
-                        style={{ background: 'oklch(0.87 0.075 55)' }}
+                        className="rounded-full px-[7px] py-[2px] text-[11px] font-extrabold text-[var(--c-5nxn5p)]"
+                        style={{ background: 'var(--c-1891o57)' }}
                       >
                         {x.badge}
                       </span>
@@ -1830,7 +1830,7 @@ export default function Room() {
           </div>
           <button
             onClick={() => setChatOpen(false)}
-            className="border-none bg-transparent px-1 py-[6px] font-sans text-[13px] font-bold text-[rgba(51,71,94,0.5)]"
+            className="border-none bg-transparent px-1 py-[6px] font-sans text-[13px] font-bold text-[var(--c-mfvyic)]"
           >
             {t('room.panel.collapse')}
           </button>
@@ -1842,10 +1842,10 @@ export default function Room() {
             <div className="flex flex-1 flex-col gap-[9px] overflow-y-auto">
               {messages.map((msg, i) => (
                 <div key={i} className="flex max-w-[84%] flex-col gap-[3px]" style={{ alignSelf: msg.me ? 'flex-end' : 'flex-start' }}>
-                  <span className="pl-1 text-[11.5px] font-bold text-[rgba(51,71,94,0.42)]">{msg.who}</span>
+                  <span className="pl-1 text-[11.5px] font-bold text-[var(--c-1kei7ij)]">{msg.who}</span>
                   <span
-                    className="rounded-[18px] px-[14px] py-[11px] text-[13.5px] leading-[1.5] font-semibold text-[#2c3f55]"
-                    style={{ background: msg.me ? 'color-mix(in oklab, var(--ff-accent) 26%, white)' : 'rgba(238,246,248,0.95)' }}
+                    className="rounded-[18px] px-[14px] py-[11px] text-[13.5px] leading-[1.5] font-semibold text-[var(--c-3bsl4p)]"
+                    style={{ background: msg.me ? 'color-mix(in oklab, var(--ff-accent) 26%, white)' : 'var(--c-90o08v)' }}
                   >
                     {msg.text}
                   </span>
@@ -1854,7 +1854,7 @@ export default function Room() {
             </div>
             <div
               className="flex items-center gap-2 rounded-[20px] py-[5px] pr-[5px] pl-[15px]"
-              style={{ background: 'rgba(255,255,255,0.9)', boxShadow: '0 4px 14px rgba(58,98,126,0.08)' }}
+              style={{ background: 'var(--c-ijr2wt)', boxShadow: '0 4px 14px var(--c-1k1wlfr)' }}
             >
               <input
                 value={draft}
@@ -1863,11 +1863,11 @@ export default function Room() {
                   if (e.key === 'Enter') send()
                 }}
                 placeholder={t('room.panel.chatPlaceholder')}
-                className="min-w-0 flex-1 border-none bg-transparent py-[10px] font-sans text-[13.5px] font-semibold text-[#2c3f55] outline-none"
+                className="min-w-0 flex-1 border-none bg-transparent py-[10px] font-sans text-[13.5px] font-semibold text-[var(--c-3bsl4p)] outline-none"
               />
               <button
                 onClick={send}
-                className="rounded-[15px] border-none px-4 py-[10px] font-sans text-[13px] font-extrabold text-[#1e3549]"
+                className="rounded-[15px] border-none px-4 py-[10px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)]"
                 style={{ background: ACCENT_SOFT }}
               >
                 {t('room.panel.send')}
@@ -1879,14 +1879,14 @@ export default function Room() {
         {/* tab: music */}
         {effectiveTab === 'music' && (
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-            <div className="flex items-center gap-[13px] rounded-[24px] px-4 py-[15px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
+            <div className="flex items-center gap-[13px] rounded-[24px] px-4 py-[15px]" style={{ background: 'var(--c-rucw5u)' }}>
               <span className="flex h-[30px] w-[34px] shrink-0 items-end gap-[3px]">
                 {[0, 1, 2].map((i) => (
                   <span
                     key={i}
                     className="h-full flex-1 rounded-[3px]"
                     style={{
-                      background: musicOn ? 'color-mix(in oklab, var(--ff-accent) 78%, white)' : 'rgba(51,71,94,0.18)',
+                      background: musicOn ? 'color-mix(in oklab, var(--ff-accent) 78%, white)' : 'var(--c-1kei5fm)',
                       transformOrigin: 'bottom',
                       animation: musicOn ? `ffEq 900ms ease-in-out infinite ${i * 300}ms` : 'none',
                     }}
@@ -1894,10 +1894,10 @@ export default function Room() {
                 ))}
               </span>
               <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
-                <span className="text-sm font-extrabold text-[#2c3f55]">
+                <span className="text-sm font-extrabold text-[var(--c-3bsl4p)]">
                   {ytActive ? t('room.music.youtubeNowPlaying') : currentTrack.name}
                 </span>
-                <span className="text-xs font-semibold text-[rgba(51,71,94,0.5)]">
+                <span className="text-xs font-semibold text-[var(--c-mfvyic)]">
                   {musicOn
                     ? t('room.music.playing', { mood: ytActive ? t('room.music.youtubeTag') : currentTrack.mood })
                     : t('room.music.paused')}
@@ -1909,7 +1909,7 @@ export default function Room() {
                   setMusicOn((v) => !v)
                 }}
                 disabled={musicLocked || (!ytActive && tracks.length === 0)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[15px] border-none text-[#1e3549] hover:enabled:brightness-[0.97] disabled:opacity-50"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[15px] border-none text-[var(--c-2vtjkg)] hover:enabled:brightness-[0.97] disabled:opacity-50"
                 style={{ background: ACCENT_SOFT }}
               >
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
@@ -1920,26 +1920,26 @@ export default function Room() {
 
             {musicLocked && (
               <span
-                className="rounded-[18px] px-[15px] py-3 text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.65)]"
-                style={{ background: 'rgba(255,255,255,0.66)', boxShadow: 'inset 0 0 0 1.5px rgba(51,71,94,0.07)' }}
+                className="rounded-[18px] px-[15px] py-3 text-[12.5px] leading-[1.5] font-semibold text-[var(--c-1kei92i)]"
+                style={{ background: 'var(--c-6rf0kc)', boxShadow: 'inset 0 0 0 1.5px var(--c-dhk63a)' }}
               >
                 {t('room.music.lockedNote')}
               </span>
             )}
 
             {isRealMode && (
-              <div className="flex gap-[7px] rounded-[20px] p-[5px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
+              <div className="flex gap-[7px] rounded-[20px] p-[5px]" style={{ background: 'var(--c-rucw5u)' }}>
                 <button
                   onClick={switchToLibrary}
                   className="flex-1 rounded-2xl border-none px-[6px] py-[9px] font-sans text-[12.5px] font-extrabold transition-all duration-[220ms] disabled:cursor-default"
-                  style={{ background: activeTab === 'library' ? 'white' : 'transparent', color: activeTab === 'library' ? '#22483f' : 'rgba(51,71,94,0.55)' }}
+                  style={{ background: activeTab === 'library' ? 'white' : 'transparent', color: activeTab === 'library' ? 'var(--c-2kucx8)' : 'var(--c-1kei8bt)' }}
                 >
                   {t('room.music.sourceLibrary')}
                 </button>
                 <button
                   onClick={switchToYoutube}
                   className="flex-1 rounded-2xl border-none px-[6px] py-[9px] font-sans text-[12.5px] font-extrabold transition-all duration-[220ms] disabled:cursor-default"
-                  style={{ background: activeTab === 'youtube' ? 'white' : 'transparent', color: activeTab === 'youtube' ? '#22483f' : 'rgba(51,71,94,0.55)' }}
+                  style={{ background: activeTab === 'youtube' ? 'white' : 'transparent', color: activeTab === 'youtube' ? 'var(--c-2kucx8)' : 'var(--c-1kei8bt)' }}
                 >
                   {t('room.music.sourceYoutube')}
                 </button>
@@ -1957,24 +1957,24 @@ export default function Room() {
                         setYtError(false)
                       }}
                       placeholder={t('room.music.youtubeInputPlaceholder')}
-                      className="min-w-0 flex-1 rounded-[16px] border-none px-[13px] py-[10px] font-sans text-[13px] font-semibold text-[#2c3f55] outline-none"
-                      style={{ background: 'rgba(238,246,248,0.9)' }}
+                      className="min-w-0 flex-1 rounded-[16px] border-none px-[13px] py-[10px] font-sans text-[13px] font-semibold text-[var(--c-3bsl4p)] outline-none"
+                      style={{ background: 'var(--c-rucw5u)' }}
                     />
                     <button
                       onClick={applyYoutubeLink}
                       disabled={!ytInput.trim()}
-                      className="shrink-0 rounded-[16px] border-none px-[16px] py-[10px] font-sans text-[13px] font-extrabold text-[#1e3549] disabled:opacity-50"
+                      className="shrink-0 rounded-[16px] border-none px-[16px] py-[10px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)] disabled:opacity-50"
                       style={{ background: ACCENT_SOFT }}
                     >
                       {t('room.music.youtubeUse')}
                     </button>
                   </div>
                   {ytError && (
-                    <span className="text-[12px] font-semibold text-[#a13f2c]">{t('room.music.youtubeInvalid')}</span>
+                    <span className="text-[12px] font-semibold text-[var(--c-otf3yh)]">{t('room.music.youtubeInvalid')}</span>
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">
+                  <span className="truncate text-[12px] font-semibold text-[var(--c-mfvyic)]">
                     {musicSource === 'youtube'
                       ? t('room.music.youtubeCurrent', { url: youtubeUrl })
                       : t('room.music.youtubeSaved', { url: youtubeUrl })}
@@ -1987,7 +1987,7 @@ export default function Room() {
                         setMusicOn(true)
                       }}
                       disabled={musicLocked}
-                      className="shrink-0 rounded-[15px] border-none px-[14px] py-[9px] font-sans text-[12.5px] font-extrabold text-[#1e3549] disabled:opacity-50"
+                      className="shrink-0 rounded-[15px] border-none px-[14px] py-[9px] font-sans text-[12.5px] font-extrabold text-[var(--c-2vtjkg)] disabled:opacity-50"
                       style={{ background: ACCENT_SOFT }}
                     >
                       {t('room.music.play')}
@@ -2007,8 +2007,8 @@ export default function Room() {
                   onClick={() => playRelativeTrack(-1)}
                   disabled={musicLocked || tracks.length === 0}
                   title={t('room.music.prevTrack')}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:enabled:!bg-white disabled:opacity-40"
-                  style={{ background: 'rgba(238,246,248,0.9)' }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:enabled:!bg-white disabled:opacity-40"
+                  style={{ background: 'var(--c-rucw5u)' }}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                     <rect x="5" y="5" width="3" height="14" />
@@ -2019,8 +2019,8 @@ export default function Room() {
                   onClick={() => playRelativeTrack(1)}
                   disabled={musicLocked || tracks.length === 0}
                   title={t('room.music.nextTrack')}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:enabled:!bg-white disabled:opacity-40"
-                  style={{ background: 'rgba(238,246,248,0.9)' }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:enabled:!bg-white disabled:opacity-40"
+                  style={{ background: 'var(--c-rucw5u)' }}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M6 5v14l8-7z" />
@@ -2029,7 +2029,7 @@ export default function Room() {
                 </button>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-7 shrink-0 text-right text-[11px] font-semibold text-[rgba(51,71,94,0.5)] tabular-nums">
+                <span className="w-7 shrink-0 text-right text-[11px] font-semibold text-[var(--c-mfvyic)] tabular-nums">
                   {fmtTrackTime(audioCurrentTime)}
                 </span>
                 <input
@@ -2042,12 +2042,12 @@ export default function Room() {
                   disabled={!audioDuration}
                   className="ff-range w-full flex-1"
                 />
-                <span className="w-7 shrink-0 text-[11px] font-semibold text-[rgba(51,71,94,0.5)] tabular-nums">
+                <span className="w-7 shrink-0 text-[11px] font-semibold text-[var(--c-mfvyic)] tabular-nums">
                   {fmtTrackTime(audioDuration)}
                 </span>
               </div>
               <div className="flex items-center gap-[11px]">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(51,71,94,0.45)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--c-1kei7l4)" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 9.5h3.5L13 5.5v13L8.5 14.5H5z" />
                   <path d={volume === 0 ? 'M16.5 9.5l4 5m0-5l-4 5' : 'M16.5 9a4 4 0 010 6'} />
                 </svg>
@@ -2060,19 +2060,19 @@ export default function Room() {
                   onChange={(e) => setVolume(Number(e.target.value))}
                   className="ff-range min-w-0 flex-1"
                 />
-                <span className="w-[34px] text-right text-[12.5px] font-extrabold text-[rgba(51,71,94,0.55)]">{volume}%</span>
+                <span className="w-[34px] text-right text-[12.5px] font-extrabold text-[var(--c-1kei8bt)]">{volume}%</span>
               </div>
 
               <div className="flex items-baseline justify-between gap-[10px]">
-                <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                <span className="text-xs font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                   {t('room.music.playlist')}
                 </span>
-                <span className="text-xs font-semibold text-[rgba(51,71,94,0.45)]">
+                <span className="text-xs font-semibold text-[var(--c-1kei7l4)]">
                   {t('room.music.onlyYouHear')}
                 </span>
               </div>
               {isRealMode && tracks.length === 0 && (
-                <span className="rounded-[20px] px-[13px] py-[15px] text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.5)]" style={{ background: 'rgba(238,246,248,0.8)' }}>
+                <span className="rounded-[20px] px-[13px] py-[15px] text-[12.5px] leading-[1.5] font-semibold text-[var(--c-mfvyic)]" style={{ background: 'var(--c-rucw4z)' }}>
                   {t('room.music.empty')}
                 </span>
               )}
@@ -2090,13 +2090,13 @@ export default function Room() {
                     disabled={musicLocked}
                     className="flex items-center gap-[11px] rounded-[20px] border-none px-[13px] py-[11px] text-left font-sans transition-all duration-200 hover:enabled:brightness-[0.98] disabled:cursor-default disabled:opacity-70"
                     style={{
-                      background: on ? 'color-mix(in oklab, var(--ff-accent) 20%, white)' : 'rgba(238,246,248,0.8)',
+                      background: on ? 'color-mix(in oklab, var(--ff-accent) 20%, white)' : 'var(--c-ah14v)',
                       boxShadow: on ? 'inset 0 0 0 1.5px color-mix(in oklab, var(--ff-accent) 55%, white)' : 'none',
                     }}
                   >
                     <span
                       className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[11px]"
-                      style={{ background: on ? 'rgba(255,255,255,0.85)' : 'rgba(160,200,225,0.35)', color: on ? '#22483f' : '#2b4d68' }}
+                      style={{ background: on ? 'var(--c-6rf20v)' : 'var(--c-18sbq8m)', color: on ? 'var(--c-2kucx8)' : 'var(--c-3b9e2f)' }}
                     >
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
                         <path d="M9 18V6l10-2v12" />
@@ -2105,19 +2105,19 @@ export default function Room() {
                       </svg>
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-[13.5px] font-extrabold" style={{ color: on ? '#22483f' : '#2c3f55' }}>
+                      <span className="text-[13.5px] font-extrabold" style={{ color: on ? 'var(--c-2kucx8)' : 'var(--c-3bsl4p)' }}>
                         {track.name}
                       </span>
-                      <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.48)]">{track.mood}</span>
+                      <span className="text-[11.5px] font-semibold text-[var(--c-1kei7np)]">{track.mood}</span>
                     </span>
-                    <span className="text-[11.5px] font-extrabold text-[rgba(51,71,94,0.42)]">{track.length}</span>
+                    <span className="text-[11.5px] font-extrabold text-[var(--c-1kei7ij)]">{track.length}</span>
                   </button>
                 )
               })}
             </div>
             )}
 
-            <span className="text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.5)]">
+            <span className="text-[12.5px] leading-[1.5] font-semibold text-[var(--c-mfvyic)]">
               {t('room.music.personalNote')}
             </span>
           </div>
@@ -2128,7 +2128,7 @@ export default function Room() {
             nhận lời mời kết bạn ngay tại đây nếu chưa là bạn với nhau (0016_friends.sql). */}
         {effectiveTab === 'members' && (
           <div className="flex min-h-0 flex-1 flex-col gap-[9px] overflow-y-auto">
-            <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+            <span className="text-xs font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
               {t('room.members.title', { count: members.length })}
             </span>
             {members.map((u) => {
@@ -2138,27 +2138,27 @@ export default function Room() {
                 <div
                   key={u.id}
                   className="flex items-center gap-[10px] rounded-[20px] px-3 py-[10px]"
-                  style={{ background: 'rgba(238,246,248,0.85)' }}
+                  style={{ background: 'var(--c-arr0wa)' }}
                 >
                   <MemberAvatarBadge
                     name={u.name}
                     avatarUrl={u.avatarUrl}
-                    background={u.host ? 'rgba(140,205,196,0.5)' : 'rgba(160,200,225,0.5)'}
-                    color={u.host ? '#22483f' : '#2b4d68'}
+                    background={u.host ? 'var(--c-9q3jr9)' : 'var(--c-1g0dnp)'}
+                    color={u.host ? 'var(--c-2kucx8)' : 'var(--c-3b9e2f)'}
                   />
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="flex items-center gap-[6px]">
-                      <span className="truncate text-[13.5px] font-extrabold text-[#2c3f55]">{u.name}</span>
+                      <span className="truncate text-[13.5px] font-extrabold text-[var(--c-3bsl4p)]">{u.name}</span>
                       {u.host && (
                         <span
-                          className="shrink-0 rounded-full px-2 py-[2px] text-[10.5px] font-extrabold text-[#22483f]"
-                          style={{ background: 'rgba(140,205,196,0.55)' }}
+                          className="shrink-0 rounded-full px-2 py-[2px] text-[10.5px] font-extrabold text-[var(--c-2kucx8)]"
+                          style={{ background: 'var(--c-hclsvs)' }}
                         >
                           {t('room.members.hostBadge')}
                         </span>
                       )}
                     </div>
-                    <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.5)]">
+                    <span className="text-[11.5px] font-semibold text-[var(--c-mfvyic)]">
                       {statusLabel(u.statusKey)}
                     </span>
                   </div>
@@ -2168,15 +2168,15 @@ export default function Room() {
                         <button
                           onClick={() => void handleSendFriendRequest(u.id)}
                           disabled={friendActionId === u.id}
-                          className="shrink-0 rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[#1e3549] hover:enabled:brightness-[0.97] disabled:opacity-50"
+                          className="shrink-0 rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-2vtjkg)] hover:enabled:brightness-[0.97] disabled:opacity-50"
                           style={{ background: ACCENT_SOFT }}
                         >
                           {t('room.members.addFriend')}
                         </button>
                       ) : row.status === 'accepted' ? (
                         <span
-                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#2c5b53]"
-                          style={{ background: 'rgba(140,205,196,0.4)' }}
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[var(--c-3bts4x)]"
+                          style={{ background: 'var(--c-9q3jqe)' }}
                           title={t('room.members.alreadyFriends')}
                           aria-label={t('room.members.alreadyFriends')}
                         >
@@ -2186,14 +2186,14 @@ export default function Room() {
                           </svg>
                         </span>
                       ) : row.requester_id === user.id ? (
-                        <span className="shrink-0 text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">
+                        <span className="shrink-0 text-[12px] font-semibold text-[var(--c-mfvyic)]">
                           {t('room.members.requestSent')}
                         </span>
                       ) : (
                         <button
                           onClick={() => void handleAcceptFriendRow(row.id)}
                           disabled={friendActionId === row.id}
-                          className="shrink-0 rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[#1e3549] hover:enabled:brightness-[0.97] disabled:opacity-50"
+                          className="shrink-0 rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-2vtjkg)] hover:enabled:brightness-[0.97] disabled:opacity-50"
                           style={{ background: ACCENT_SOFT }}
                         >
                           {t('room.members.acceptFriend')}
@@ -2210,10 +2210,10 @@ export default function Room() {
         {effectiveTab === 'host' && isHost && (
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
             <div className="flex flex-col gap-[9px]">
-              <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+              <span className="text-xs font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                 {t('room.host.admitMode')}
               </span>
-              <div className="flex gap-[7px] rounded-[20px] p-[5px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
+              <div className="flex gap-[7px] rounded-[20px] p-[5px]" style={{ background: 'var(--c-rucw5u)' }}>
                 {(['auto', 'manual'] as Admit[]).map((key) => (
                   <button
                     key={key}
@@ -2225,7 +2225,7 @@ export default function Room() {
                   </button>
                 ))}
               </div>
-              <span className="text-[12.5px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.58)]">
+              <span className="text-[12.5px] leading-[1.5] font-semibold text-[var(--c-1kei8ee)]">
                 {admit === 'auto' ? t('room.host.autoAdmitDesc') : t('room.host.manualAdmitDesc')}
               </span>
             </div>
@@ -2233,13 +2233,13 @@ export default function Room() {
             {admit === 'manual' && (
               <div className="flex flex-col gap-[9px]">
                 <div className="flex items-baseline justify-between gap-[10px]">
-                  <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                  <span className="text-xs font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                     {t('room.host.queueTitle')}
                   </span>
                   {pending.length > 1 && (
                     <button
                       onClick={approveAll}
-                      className="border-none bg-transparent font-sans text-[12.5px] font-extrabold text-[#2c5b53]"
+                      className="border-none bg-transparent font-sans text-[12.5px] font-extrabold text-[var(--c-3bts4x)]"
                     >
                       {t('room.host.approveAll')}
                     </button>
@@ -2247,8 +2247,8 @@ export default function Room() {
                 </div>
                 {pending.length === 0 ? (
                   <span
-                    className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[rgba(51,71,94,0.45)]"
-                    style={{ background: 'rgba(238,246,248,0.8)' }}
+                    className="rounded-[18px] p-[14px] text-center text-[13px] font-semibold text-[var(--c-1kei7l4)]"
+                    style={{ background: 'var(--c-rucw4z)' }}
                   >
                     {t('room.host.emptyQueue')}
                   </span>
@@ -2257,24 +2257,24 @@ export default function Room() {
                     <div
                       key={p.id}
                       className="flex items-center gap-[10px] rounded-[20px] px-3 py-[10px]"
-                      style={{ background: 'rgba(255,246,238,0.9)', boxShadow: 'inset 0 0 0 1.5px rgba(196,142,96,0.18)' }}
+                      style={{ background: 'var(--c-h2ybee)', boxShadow: 'inset 0 0 0 1.5px var(--c-crwsmp)' }}
                     >
                       <MemberAvatarBadge
                         name={p.name}
                         avatarUrl={p.avatarUrl}
-                        background="rgba(226,190,150,0.45)"
-                        color="#7a4a2c"
+                        background="var(--c-xg50nj)"
+                        color="var(--c-5nxn5p)"
                       />
                       <div className="flex min-w-0 flex-1 flex-col">
-                        <span className="text-[13.5px] font-extrabold text-[#2c3f55]">{p.name}</span>
-                        <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.5)]">
+                        <span className="text-[13.5px] font-extrabold text-[var(--c-3bsl4p)]">{p.name}</span>
+                        <span className="text-[11.5px] font-semibold text-[var(--c-mfvyic)]">
                           {t('room.host.waitPrefix', { wait: p.wait })}
                         </span>
                       </div>
                       <button
                         onClick={() => approve(p)}
                         title={t('room.host.approveTitle')}
-                        className="rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[#1e3549] hover:brightness-[0.97]"
+                        className="rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-2vtjkg)] hover:brightness-[0.97]"
                         style={{ background: ACCENT_SOFT }}
                       >
                         {t('room.host.approve')}
@@ -2282,8 +2282,8 @@ export default function Room() {
                       <button
                         onClick={() => reject(p)}
                         title={t('room.host.rejectTitle')}
-                        className="rounded-[14px] border-none px-[11px] py-2 font-sans text-[12.5px] font-extrabold text-[rgba(51,71,94,0.55)] hover:!text-[#7a3f2c]"
-                        style={{ background: 'rgba(255,255,255,0.9)' }}
+                        className="rounded-[14px] border-none px-[11px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-1kei8bt)] hover:!text-[var(--c-5nx3vn)]"
+                        style={{ background: 'var(--c-ijr2wt)' }}
                       >
                         {t('room.host.reject')}
                       </button>
@@ -2294,28 +2294,28 @@ export default function Room() {
             )}
 
             <div className="flex flex-col gap-[9px]">
-              <span className="text-xs font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+              <span className="text-xs font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                 {t('room.host.membersInRoom', { count: members.length })}
               </span>
               {members.map((u) => (
-                <div key={u.id} className="flex items-center gap-[10px] rounded-[20px] px-3 py-[10px]" style={{ background: 'rgba(238,246,248,0.85)' }}>
+                <div key={u.id} className="flex items-center gap-[10px] rounded-[20px] px-3 py-[10px]" style={{ background: 'var(--c-arr0wa)' }}>
                   <MemberAvatarBadge
                     name={u.name}
                     avatarUrl={u.avatarUrl}
-                    background={u.host ? 'rgba(140,205,196,0.5)' : 'rgba(160,200,225,0.5)'}
-                    color={u.host ? '#22483f' : '#2b4d68'}
+                    background={u.host ? 'var(--c-9q3jr9)' : 'var(--c-1g0dnp)'}
+                    color={u.host ? 'var(--c-2kucx8)' : 'var(--c-3b9e2f)'}
                   />
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="text-[13.5px] font-extrabold text-[#2c3f55]">{u.name}</span>
-                    <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.5)]">
+                    <span className="text-[13.5px] font-extrabold text-[var(--c-3bsl4p)]">{u.name}</span>
+                    <span className="text-[11.5px] font-semibold text-[var(--c-mfvyic)]">
                       {statusLabel(u.statusKey)}
                     </span>
                   </div>
                   {isHost && !u.host && (
                     <button
                       onClick={() => kick(u)}
-                      className="rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[#7a3f2c] hover:!bg-[oklch(0.86_0.055_45)]"
-                      style={{ background: 'oklch(0.9 0.045 45)' }}
+                      className="rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-5nx3vn)] hover:!bg-[var(--c-1zp96j)]"
+                      style={{ background: 'var(--c-kmvgtt)' }}
                     >
                       {t('room.host.kick')}
                     </button>

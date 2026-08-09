@@ -31,34 +31,34 @@ export default function LobbyWaiting({
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center p-6"
-      style={{ background: 'rgba(38,66,86,0.32)', backdropFilter: 'blur(7px)' }}
+      style={{ background: 'var(--c-a8smro)', backdropFilter: 'blur(7px)' }}
     >
       {!expired && <div className="absolute inset-0" onClick={onCancel} />}
       <div
         className="relative flex max-h-[90svh] w-full max-w-[400px] flex-col items-center gap-[18px] overflow-y-auto rounded-[30px] bg-white px-7 pt-8 pb-6 text-center"
-        style={{ boxShadow: '0 30px 70px rgba(38,66,86,0.3)', animation: 'ffPop 380ms cubic-bezier(0.22,1,0.36,1)' }}
+        style={{ boxShadow: '0 30px 70px var(--c-13a6mpo)', animation: 'ffPop 380ms cubic-bezier(0.22,1,0.36,1)' }}
       >
         <div className="relative flex h-[100px] w-[100px] items-center justify-center">
           {!expired && (
             <div
               className="absolute h-[100px] w-[100px] rounded-full"
-              style={{ border: '2px solid rgba(126,201,198,0.55)', animation: 'ffRipple 3.4s cubic-bezier(0.24,0.6,0.3,1) infinite' }}
+              style={{ border: '2px solid var(--c-1bxn7i6)', animation: 'ffRipple 3.4s cubic-bezier(0.24,0.6,0.3,1) infinite' }}
             />
           )}
           <div
             className="absolute h-[76px] w-[76px] rounded-full"
-            style={{ background: 'rgba(240,248,250,0.9)', boxShadow: '0 10px 26px rgba(58,98,126,0.13)' }}
+            style={{ background: 'var(--c-1h0taci)', boxShadow: '0 10px 26px var(--c-1k1wm25)' }}
           />
-          <span className="relative text-xl font-extrabold text-[#2c3f55] tabular-nums">
+          <span className="relative text-xl font-extrabold text-[var(--c-3bsl4p)] tabular-nums">
             {memberCount}/{capacity}
           </span>
         </div>
 
         <div className="flex flex-col gap-[6px]">
-          <span className="text-[17px] font-extrabold tracking-[-0.2px] text-[#2c3f55]">
+          <span className="text-[17px] font-extrabold tracking-[-0.2px] text-[var(--c-3bsl4p)]">
             {matchError ? t('lobby.errorTitle') : expired ? t('lobby.expiredTitle') : t('lobby.title')}
           </span>
-          <span className="text-[13px] leading-[1.5] font-semibold text-[rgba(51,71,94,0.55)]">
+          <span className="text-[13px] leading-[1.5] font-semibold text-[var(--c-1kei8bt)]">
             {matchError
               ? t('matching.errors.' + matchError)
               : expired
@@ -80,7 +80,7 @@ export default function LobbyWaiting({
                 <div
                   key={i}
                   className="flex items-center gap-[10px] rounded-[18px] px-[13px] py-[9px]"
-                  style={{ background: 'rgba(240,248,250,0.7)' }}
+                  style={{ background: 'var(--c-1h0taas)' }}
                 >
                   {p.avatar_url ? (
                     <img src={p.avatar_url} alt={name} className="h-8 w-8 shrink-0 rounded-full object-cover" />
@@ -92,7 +92,7 @@ export default function LobbyWaiting({
                       {name.trim().charAt(0).toUpperCase()}
                     </span>
                   )}
-                  <span className="flex-1 truncate text-left text-sm font-bold text-[#2c3f55]">{name}</span>
+                  <span className="flex-1 truncate text-left text-sm font-bold text-[var(--c-3bsl4p)]">{name}</span>
                   <span
                     className="shrink-0 rounded-full px-[9px] py-[3px] text-[11px] font-extrabold"
                     style={{ background: `oklch(0.94 0.04 ${levelHue})`, color: `oklch(0.42 0.08 ${levelHue})` }}
@@ -109,14 +109,14 @@ export default function LobbyWaiting({
           <div className="flex w-full gap-[9px]">
             <button
               onClick={onCancel}
-              className="flex-1 rounded-[20px] border-[1.5px] border-[rgba(51,71,94,0.16)] bg-white py-[13px] font-sans text-[14.5px] font-extrabold text-[#43596f] hover:!bg-[rgba(240,248,250,0.8)]"
+              className="flex-1 rounded-[20px] border-[1.5px] border-[var(--c-1kei5dw)] bg-white py-[13px] font-sans text-[14.5px] font-extrabold text-[var(--c-3ji23s)] hover:!bg-[var(--c-1h0tabn)]"
             >
               {t('lobby.cancel')}
             </button>
             <button
               onClick={onRetry}
-              className="flex-[1.4] rounded-[20px] border-none py-[13px] font-sans text-[14.5px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
-              style={{ background: 'var(--ff-accent-soft)', boxShadow: '0 10px 22px rgba(58,98,126,0.16)' }}
+              className="flex-[1.4] rounded-[20px] border-none py-[13px] font-sans text-[14.5px] font-extrabold text-[var(--c-2vtjkg)] transition-transform duration-200 hover:-translate-y-0.5"
+              style={{ background: 'var(--ff-accent-soft)', boxShadow: '0 10px 22px var(--c-1k1wm4q)' }}
             >
               {t('lobby.retry')}
             </button>
@@ -124,8 +124,8 @@ export default function LobbyWaiting({
         ) : (
           <button
             onClick={onCancel}
-            className="rounded-[20px] border-none px-[26px] py-[12px] font-sans text-[14px] font-extrabold text-[#43596f] hover:!bg-[rgba(240,248,250,0.95)]"
-            style={{ background: 'rgba(240,248,250,0.9)' }}
+            className="rounded-[20px] border-none px-[26px] py-[12px] font-sans text-[14px] font-extrabold text-[var(--c-3ji23s)] hover:!bg-[var(--c-9zmnnf)]"
+            style={{ background: 'var(--c-1h0taci)' }}
           >
             {t('lobby.cancel')}
           </button>

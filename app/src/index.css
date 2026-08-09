@@ -15,11 +15,24 @@
   --ff-text-primary: #2c3f55;
   --ff-text-body: #33475e;
   --ff-text-muted: rgba(51, 71, 94, 0.5);
+  --ff-text-2: rgba(51, 71, 94, 0.62);
+  --ff-text-3: rgba(51, 71, 94, 0.45);
   --ff-text-on-accent: #1e3549;
   --ff-text-on-accent-2: #22483f;
+  --ff-accent-fg: var(--ff-text-on-accent);
+  --ff-accent-text: oklch(0.5 0.1 var(--ff-accent-h));
+  --ff-btn-primary-bg: var(--ff-accent-soft);
+  --ff-btn-primary-fg: var(--ff-accent-fg);
+  --ff-btn-soft-bg: var(--ff-accent-soft);
+  --ff-btn-soft-fg: var(--ff-accent-fg);
 
   --ff-surface-solid: #ffffff;
   --ff-neutral-fill: rgba(238, 246, 248, 0.85);
+  --ff-surface-1: #ffffff;
+  --ff-surface-2: #f3f7f8;
+  --ff-surface-3: #e8eef0;
+  --ff-border: rgba(51, 71, 94, 0.14);
+  --ff-border-strong: rgba(51, 71, 94, 0.3);
 
   --ff-danger-bg: oklch(0.86 0.055 45);
   --ff-danger-text: #7a3f2c;
@@ -42,6 +55,61 @@
   --ff-shadow-modal: 0 30px 70px rgba(38, 66, 86, 0.28);
 
   --ff-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Dark theme. --ff-accent and --ff-accent-soft stay the SAME formula in both themes on
+   purpose — accent-soft is always a pale mint button surface (color-mix with white), so it
+   doesn't need a dark variant; --ff-accent-fg (the dark navy text that sits ON TOP of it)
+   likewise stays constant — see the elevation scale below for the part that actually needed
+   a real dark-mode redesign, not just a lightness invert. Room-type hue badges
+   (oklch(... H)) and accent-preset swatches also stay as-is — they're small, deliberately
+   colorful chips, not page chrome. */
+:root[data-theme='dark'] {
+  --ff-page-bg: #0d1316;
+  --ff-page-gradient: linear-gradient(160deg, #0c1a1c 0%, #0a1621 45%, #0b1a15 100%);
+
+  --ff-text-primary: #e6edef;
+  --ff-text-body: #c3d2e0;
+  --ff-text-muted: rgba(159, 176, 181, 0.65);
+  --ff-text-2: #9fb0b5;
+  --ff-text-3: #7c8f96;
+
+  /* Elevation ladder — each step ~4-6% lighter than the one below, so cards are visibly
+     distinct from the page and from each other instead of collapsing into the same
+     near-black translucent overlay a blind lightness-invert would produce. */
+  --ff-surface-solid: #151e22;
+  --ff-neutral-fill: rgba(255, 255, 255, 0.05);
+  --ff-surface-1: #151e22;
+  --ff-surface-2: #1d282d;
+  --ff-surface-3: #263338;
+  --ff-border: #2c3a3f;
+  --ff-border-strong: #3d4e54;
+
+  /* Dark mode gets its own brighter, more saturated accent — mixing the light-mode accent
+     with white for accent-soft (unchanged) still works fine as a pale CTA on a dark page,
+     but a couple of specific buttons (see Settings.tsx) go bolder: solid accent fill for
+     primary actions, subtle accent-tinted fill for small badge/pill actions — matching the
+     look the user asked for after reviewing a real dark-mode mockup. */
+  --ff-accent-vivid: oklch(0.78 0.135 var(--ff-accent-h));
+  --ff-accent-text: oklch(0.78 0.12 var(--ff-accent-h));
+  --ff-accent-fg-vivid: oklch(0.18 0.03 var(--ff-accent-h));
+  --ff-btn-primary-bg: var(--ff-accent-vivid);
+  --ff-btn-primary-fg: var(--ff-accent-fg-vivid);
+  --ff-btn-soft-bg: oklch(0.78 0.135 var(--ff-accent-h) / 0.16);
+  --ff-btn-soft-fg: var(--ff-accent-text);
+
+  --ff-danger-bg: oklch(0.28 0.06 35);
+  --ff-danger-text: #ff7a6b;
+  --ff-warning-bg: rgba(58, 42, 22, 0.65);
+  --ff-warning-badge: oklch(0.32 0.08 55);
+  --ff-warning-text: #f5c462;
+
+  --ff-video-tile-bg: repeating-linear-gradient(135deg, #16232a 0 12px, #121b21 12px 24px);
+
+  --ff-shadow-card: 0 10px 28px rgba(0, 0, 0, 0.32);
+  --ff-shadow-card-raised: 0 18px 46px rgba(0, 0, 0, 0.45);
+  --ff-shadow-panel: 0 22px 56px rgba(0, 0, 0, 0.4);
+  --ff-shadow-modal: 0 30px 70px rgba(0, 0, 0, 0.6);
 }
 
 @theme inline {
@@ -96,6 +164,26 @@ body {
 
 #root {
   min-height: 100svh;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ff-accent-text);
+  outline-offset: 2px;
+}
+
+/* Dark mode only — the default (light, native) scrollbar is unchanged. */
+:root[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: var(--ff-surface-3);
+  border-radius: 999px;
+}
+:root[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: var(--ff-border-strong);
+}
+:root[data-theme='dark'] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+:root[data-theme='dark'] * {
+  scrollbar-color: var(--ff-surface-3) transparent;
 }
 
 input.ff-range {
@@ -173,6 +261,20 @@ input.ff-range-lg::-moz-range-thumb {
   cursor: pointer;
 }
 
+:root[data-theme='dark'] input.ff-range::-webkit-slider-runnable-track,
+:root[data-theme='dark'] input.ff-range::-moz-range-track,
+:root[data-theme='dark'] input.ff-range-lg::-webkit-slider-runnable-track,
+:root[data-theme='dark'] input.ff-range-lg::-moz-range-track {
+  background: var(--ff-surface-3);
+}
+:root[data-theme='dark'] input.ff-range::-webkit-slider-thumb,
+:root[data-theme='dark'] input.ff-range::-moz-range-thumb,
+:root[data-theme='dark'] input.ff-range-lg::-webkit-slider-thumb,
+:root[data-theme='dark'] input.ff-range-lg::-moz-range-thumb {
+  background: var(--ff-surface-1);
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.4);
+}
+
 @keyframes ffFloatIn {
   from {
     opacity: 0;
@@ -241,4 +343,419 @@ input.ff-range-lg::-moz-range-thumb {
   50% {
     transform: scaleY(1);
   }
+}
+
+/* Auto-generated dark-mode color tokens — see gen-dark-tokens.mjs. */
+:root {
+  --c-a8smro: rgba(38,66,86,0.32);
+  --c-13a6mpo: rgba(38,66,86,0.3);
+  --c-rucw5u: rgba(238,246,248,0.9);
+  --c-125fipz: rgba(126,201,198,0.9);
+  --c-1kei5fm: rgba(51,71,94,0.18);
+  --c-rucw39: rgba(238,246,248,0.6);
+  --c-1k1wm6g: rgba(58,98,126,0.18);
+  --c-9q3js4: rgba(140,205,196,0.6);
+  --c-1g0dok: rgba(160,200,225,0.6);
+  --c-1kei8bt: rgba(51,71,94,0.55);
+  --c-1kei5c6: rgba(51,71,94,0.14);
+  --c-ijr2vy: rgba(255,255,255,0.8);
+  --c-3bsl4p: #2c3f55;
+  --c-48t3yk: #4a637d;
+  --c-2opriy: #294a5f;
+  --c-otf3yh: #a13f2c;
+  --c-3k2pts: #445c74;
+  --c-2vtjkg: #1e3549;
+  --c-6rf1cr: rgba(255,255,255,0.78);
+  --c-1w98bua: rgba(58,98,126,0.1);
+  --c-1kei7np: rgba(51,71,94,0.48);
+  --c-mfvyhh: rgba(51,71,94,0.4);
+  --c-50c1av: rgba(255,255,255,0.92);
+  --c-mfvyj7: rgba(51,71,94,0.6);
+  --c-1kei7ij: rgba(51,71,94,0.42);
+  --c-dhk645: rgba(51,71,94,0.08);
+  --c-1k1wlfr: rgba(58,98,126,0.08);
+  --c-mfvyic: rgba(51,71,94,0.5);
+  --c-2kucx8: #22483f;
+  --c-gd5203: rgba(44,63,85,0.85);
+  --c-50bzth: rgba(255,255,255,0.72);
+  --c-exjtmn: rgba(20,32,44,0.55);
+  --c-6rewwl: rgba(255,255,255,0.18);
+  --c-5l4crj: rgba(255,158,120,0.95);
+  --c-1bxnagy: rgba(126,201,198,0.95);
+  --c-9q3jqe: rgba(140,205,196,0.4);
+  --c-1izck5g: rgba(206,222,232,0.85);
+  --c-1kei8zx: rgba(51,71,94,0.62);
+  --c-1k1wm4q: rgba(58,98,126,0.16);
+  --c-32fr7s: #33475e;
+  --c-s0owyd: #ffffff;
+  --c-5nxn5p: #7a4a2c;
+  --c-3bts4x: #2c5b53;
+  --c-1klvacf: rgba(20,32,42,0.42);
+  --c-1klv9ob: rgba(20,32,42,0.35);
+  --c-ijr2v3: rgba(255,255,255,0.7);
+  --c-1kei7l4: rgba(51,71,94,0.45);
+  --c-1feyjhs: oklch(0.82 0.09 175);
+  --c-yr829: oklch(0.76 0.08 235);
+  --c-11c6fho: oklch(0.93 0.03 45);
+  --c-1fqdrzz: #e4f1f4;
+  --c-1fyn1i5: #dbeaf2;
+  --c-1frhffa: #e6f4ee;
+  --c-3dfktp: #2f4459;
+  --c-5nx3vn: #7a3f2c;
+  --c-3ji23s: #43596f;
+  --c-2s3160: rgba(122,63,44,0.75);
+  --c-hxgb90: rgba(30,53,73,0.7);
+  --c-1h0taci: rgba(240,248,250,0.9);
+  --c-18rtmp8: rgba(240,248,250,1);
+  --c-dhk63a: rgba(51,71,94,0.07);
+  --c-11cq831: oklch(0.93 0.04 45);
+  --c-kmvgtt: oklch(0.9 0.045 45);
+  --c-1bxn7i6: rgba(126,201,198,0.55);
+  --c-1k1wm25: rgba(58,98,126,0.13);
+  --c-1h0taas: rgba(240,248,250,0.7);
+  --c-1kei5dw: rgba(51,71,94,0.16);
+  --c-1h0tabn: rgba(240,248,250,0.8);
+  --c-9zmnnf: rgba(240,248,250,0.95);
+  --c-1w98bv5: rgba(58,98,126,0.2);
+  --c-1kei8ee: rgba(51,71,94,0.58);
+  --c-1feykz6: oklch(0.82 0.09 195);
+  --c-1fnms9h: oklch(0.92 0.05 195);
+  --c-vvd254: oklch(0.85 0.06 195);
+  --c-1j1jqr4: oklch(0.4 0.09 195);
+  --c-33jyo4: #35566b;
+  --c-vukw3w: rgba(215,140,170,0.3);
+  --c-6rf20v: rgba(255,255,255,0.85);
+  --c-pc4fdf: #b4577a;
+  --c-9q3jpj: rgba(140,205,196,0.3);
+  --c-18sbq61: rgba(160,200,225,0.32);
+  --c-1ni0y5h: rgba(150,210,205,0.3);
+  --c-6rf2u5: rgba(255,255,255,0.98);
+  --c-1kei5ag: rgba(51,71,94,0.12);
+  --c-ijr2wt: rgba(255,255,255,0.9);
+  --c-1kei6x0: rgba(51,71,94,0.38);
+  --c-1bxn4lz: rgba(126,201,198,0.18);
+  --c-arr1mz: rgba(238,246,248,0.95);
+  --c-1k1wm30: rgba(58,98,126,0.14);
+  --c-dhk6qj: rgba(51,71,94,0.13);
+  --c-6rf2oz: rgba(255,255,255,0.92);
+  --c-1kei615: rgba(51,71,94,0.22);
+  --c-91o5zw: rgba(238,246,248,1);
+  --c-rucw44: rgba(238,246,248,0.7);
+  --c-6rezvd: rgba(255,255,255,0.58);
+  --c-6rezq7: rgba(255,255,255,0.52);
+  --c-1k1wlew: rgba(58,98,126,0.07);
+  --c-1swujpp: oklch(0.58 0.075 220);
+  --c-ounphr: oklch(0.5 0.08 220);
+  --c-2mhlk3: #25415c;
+  --c-4qg41x: #5b7a92;
+  --c-xhdzkp: rgba(0,0,0,0.85);
+  --c-xr2m53: rgba(20,30,40,0.28);
+  --c-6rf0kc: rgba(255,255,255,0.66);
+  --c-ijr2u8: rgba(255,255,255,0.6);
+  --c-hcls53: rgba(140,205,196,0.45);
+  --c-pz0zw9: rgba(8,20,24,0.12);
+  --c-6rewt5: rgba(255,255,255,0.14);
+  --c-fc5pjb: rgba(64,102,128,0.09);
+  --c-6rf2rk: rgba(255,255,255,0.95);
+  --c-6reyzi: rgba(255,255,255,0.42);
+  --c-50bz5d: rgba(255,255,255,0.65);
+  --c-6rf1ya: rgba(255,255,255,0.82);
+  --c-ijr2td: rgba(255,255,255,0.5);
+  --c-6rf0gw: rgba(255,255,255,0.62);
+  --c-6rf17l: rgba(255,255,255,0.72);
+  --c-hclrbt: rgba(140,205,196,0.32);
+  --c-10f8f7j: rgba(30,80,72,0.3);
+  --c-6reybe: rgba(255,255,255,0.35);
+  --c-iz1xfk: rgba(120,190,180,0.28);
+  --c-40zs1j: rgba(140,200,205,0.16);
+  --c-40zsos: rgba(140,200,205,0.22);
+  --c-6rezss: rgba(255,255,255,0.55);
+  --c-hclree: rgba(140,205,196,0.35);
+  --c-dhk6uu: rgba(51,71,94,0.18);
+  --c-hclrgz: rgba(140,205,196,0.38);
+  --c-cvfsr8: oklch(0.6 0.1 175);
+  --c-ecaxup: oklch(0.53 0.1 235);
+  --c-1b2b91a: oklch(0.86 0.045 205);
+  --c-1yu9b2: oklch(0.79 0.055 235);
+  --c-1g0tv9u: #dff1f4;
+  --c-1fjrplj: #cfe6f2;
+  --c-33k90l: #354c65;
+  --c-t8fca9: #4bbf9a;
+  --c-2k9xd7: #21384f;
+  --c-3suggt: #3c5470;
+  --c-1gyy7ef: #ffffff;
+  --c-2vwdyb: #1e6b5c;
+  --c-1ep8226: #c0524a;
+  --c-1kei953: rgba(51,71,94,0.68);
+  --c-6rewuv: rgba(255,255,255,0.16);
+  --c-h2ybee: rgba(255,246,238,0.9);
+  --c-crwtat: rgba(196,142,96,0.25);
+  --c-cja3u5: rgba(226,190,150,0.5);
+  --c-1k1wlgm: rgba(58,98,126,0.09);
+  --c-6rf19b: rgba(255,255,255,0.74);
+  --c-1kei9qm: rgba(51,71,94,0.72);
+  --c-mfvyew: rgba(51,71,94,0.1);
+  --c-6rf21q: rgba(255,255,255,0.86);
+  --c-a8sm65: rgba(38,66,86,0.28);
+  --c-1kei92i: rgba(51,71,94,0.65);
+  --c-1k1wm1a: rgba(58,98,126,0.12);
+  --c-mfvygm: rgba(51,71,94,0.3);
+  --c-hclsvs: rgba(140,205,196,0.55);
+  --c-1g0dnp: rgba(160,200,225,0.5);
+  --c-1a6k92u: rgba(126,201,198,0.95);
+  --c-fliqqz: rgba(140,205,196,0.45);
+  --c-1k1wm3v: rgba(58,98,126,0.15);
+  --c-cja3ta: rgba(226,190,150,0.4);
+  --c-1q0z9u3: rgba(255,255,255,0.7);
+  --c-ijr2si: rgba(255,255,255,0.4);
+  --c-6rf200: rgba(255,255,255,0.84);
+  --c-dhk6t4: rgba(51,71,94,0.16);
+  --c-90o08v: rgba(238,246,248,0.95);
+  --c-rucw4z: rgba(238,246,248,0.8);
+  --c-ah14v: rgba(238,246,248,0.8);
+  --c-18sbq8m: rgba(160,200,225,0.35);
+  --c-arr0wa: rgba(238,246,248,0.85);
+  --c-9q3jr9: rgba(140,205,196,0.5);
+  --c-crwsmp: rgba(196,142,96,0.18);
+  --c-xg50nj: rgba(226,190,150,0.45);
+  --c-1fsabe: oklch(0.76 0.09 170);
+  --c-1o654yh: oklch(0.72 0.11 165);
+  --c-1891o57: oklch(0.87 0.075 55);
+  --c-1zp96j: oklch(0.86 0.055 45);
+  --c-3b9e2f: #2b4d68;
+  --c-1fym7uy: #dbe9ef;
+  --c-1f87yxb: #d2e3ea;
+  --c-1fpuez5: #e3eef2;
+  --c-1fy2eiv: #dae8ee;
+  --c-6rf1a6: rgba(255,255,255,0.75);
+  --c-arr030: rgba(238,246,248,0.72);
+  --c-hclrdj: rgba(140,205,196,0.34);
+  --c-1bxn4ij: rgba(126,201,198,0.14);
+  --c-1k1wmrz: rgba(58,98,126,0.22);
+  --c-dhk89n: rgba(51,71,94,0.35);
+  --c-wihkuc: rgba(51,71,94,0.1);
+  --c-p573sp: oklch(0.82 0.06 45);
+  --c-1eu539k: oklch(0.88 0.05 45);
+  --c-1fsl0le: #e8f4f0;
+  --c-1f9vh56: #d5e9f4;
+  --c-1fc3int: #d9ecf5;
+  --c-1gf4lnx: #eaf5f1;
+  --c-1fz6x28: #dceef0;
+  --c-1ghbqk6: #eef3f8;
+  --c-1fyn1i3: #dbeaf0;
+  --c-1fjro3e: #cfe4e6;
+  --c-1ft4uo7: #e9f6f2;
+  --c-1f8rtq9: #d3e6f0;
+  --c-1g58bqa: #f0f6f7;
+  --c-1fbjokx: #d8eaf0;
+  --c-1fio3nu: #cde5df;
+  --c-24cd5g: #134034;
+}
+
+:root[data-theme='dark'] {
+  --c-a8smro: rgba(0,0,0,0.48);
+  --c-13a6mpo: rgba(0,0,0,0.45);
+  --c-rucw5u: var(--ff-surface-1);
+  --c-125fipz: rgba(54,129,126,0.9);
+  --c-1kei5fm: rgba(161,181,204,0.18);
+  --c-rucw39: var(--ff-surface-2);
+  --c-1k1wm6g: rgba(0,0,0,0.27);
+  --c-9q3js4: rgba(50,115,106,0.6);
+  --c-1g0dok: rgba(30,70,95,0.6);
+  --c-1kei8bt: rgba(161,181,204,0.55);
+  --c-1kei5c6: rgba(161,181,204,0.14);
+  --c-ijr2vy: var(--ff-surface-2);
+  --c-3bsl4p: #aabdd3;
+  --c-48t3yk: #829bb5;
+  --c-2opriy: #a0c1d6;
+  --c-otf3yh: #d3715e;
+  --c-3k2pts: #8ba3bb;
+  /* text sitting on an accent-soft (pale mint) surface — accent-soft doesn't invert, so
+     this text color must not invert either, or it goes light-on-light and disappears */
+  --c-2vtjkg: var(--ff-text-on-accent);
+  --c-6rf1cr: var(--ff-surface-2);
+  --c-1w98bua: rgba(0,0,0,0.15);
+  --c-1kei7np: rgba(161,181,204,0.48);
+  --c-mfvyhh: rgba(161,181,204,0.4);
+  --c-50c1av: var(--ff-surface-1);
+  --c-mfvyj7: rgba(161,181,204,0.6);
+  --c-1kei7ij: rgba(161,181,204,0.42);
+  --c-dhk645: rgba(161,181,204,0.08);
+  --c-1k1wlfr: rgba(0,0,0,0.12);
+  --c-mfvyic: rgba(161,181,204,0.5);
+  --c-2kucx8: var(--ff-text-on-accent-2);
+  --c-gd5203: rgba(44,63,85,0.85);
+  --c-50bzth: var(--ff-surface-2);
+  --c-exjtmn: rgba(20,32,44,0.55);
+  --c-6rewwl: var(--ff-surface-3);
+  --c-5l4crj: rgba(135,38,0,0.95);
+  --c-1bxnagy: rgba(54,129,126,0.95);
+  --c-9q3jqe: rgba(50,115,106,0.4);
+  --c-1izck5g: rgba(23,39,49,0.85);
+  --c-1kei8zx: rgba(161,181,204,0.62);
+  --c-1k1wm4q: rgba(0,0,0,0.24);
+  --c-32fr7s: #a1b5cc;
+  --c-s0owyd: #000000;
+  --c-5nxn5p: #d3a385;
+  --c-3bts4x: #a4d3cb;
+  --c-1klvacf: rgba(20,32,42,0.42);
+  --c-1klv9ob: rgba(20,32,42,0.35);
+  --c-ijr2v3: var(--ff-surface-2);
+  --c-1kei7l4: var(--ff-text-3);
+  --c-1feyjhs: oklch(0.18 0.09 175);
+  --c-yr829: oklch(0.24 0.08 235);
+  --c-11c6fho: oklch(0.07 0.03 45);
+  --c-1fqdrzz: #0b181b;
+  --c-1fyn1i5: #0d1c24;
+  --c-1frhffa: #0b1913;
+  --c-3dfktp: #a6bbd0;
+  --c-5nx3vn: #d39885;
+  --c-3ji23s: #90a6bc;
+  --c-2s3160: rgba(211,152,133,0.75);
+  --c-hxgb90: rgba(182,205,225,0.7);
+  --c-1h0taci: var(--ff-surface-1);
+  --c-18rtmp8: var(--ff-surface-1);
+  --c-dhk63a: rgba(161,181,204,0.07);
+  --c-11cq831: oklch(0.07 0.04 45);
+  --c-kmvgtt: oklch(0.1 0.045 45);
+  --c-1bxn7i6: rgba(54,129,126,0.55);
+  --c-1k1wm25: rgba(0,0,0,0.195);
+  --c-1h0taas: var(--ff-surface-2);
+  --c-1kei5dw: rgba(161,181,204,0.16);
+  --c-1h0tabn: var(--ff-surface-2);
+  --c-9zmnnf: var(--ff-surface-1);
+  --c-1w98bv5: rgba(0,0,0,0.3);
+  --c-1kei8ee: rgba(161,181,204,0.58);
+  --c-1feykz6: oklch(0.18 0.09 195);
+  --c-1fnms9h: oklch(0.08 0.05 195);
+  --c-vvd254: oklch(0.15 0.06 195);
+  --c-1j1jqr4: oklch(0.6 0.09 195);
+  --c-33jyo4: #94b5ca;
+  --c-vukw3w: rgba(115,40,70,0.3);
+  --c-6rf20v: var(--ff-surface-1);
+  --c-pc4fdf: #a84b6e;
+  --c-9q3jpj: rgba(50,115,106,0.3);
+  --c-18sbq61: rgba(30,70,95,0.32);
+  --c-1ni0y5h: rgba(45,105,100,0.3);
+  --c-6rf2u5: var(--ff-surface-1);
+  --c-1kei5ag: rgba(161,181,204,0.12);
+  --c-ijr2wt: var(--ff-surface-1);
+  --c-1kei6x0: rgba(161,181,204,0.38);
+  --c-1bxn4lz: rgba(54,129,126,0.18);
+  --c-arr1mz: var(--ff-surface-1);
+  --c-1k1wm30: rgba(0,0,0,0.21);
+  --c-dhk6qj: rgba(161,181,204,0.13);
+  --c-6rf2oz: var(--ff-surface-1);
+  --c-1kei615: rgba(161,181,204,0.22);
+  --c-91o5zw: var(--ff-surface-1);
+  --c-rucw44: var(--ff-surface-2);
+  --c-6rezvd: var(--ff-surface-2);
+  --c-6rezq7: var(--ff-surface-3);
+  --c-1k1wlew: rgba(0,0,0,0.105);
+  --c-1swujpp: oklch(0.42 0.075 220);
+  --c-ounphr: oklch(0.5 0.08 220);
+  --c-2mhlk3: #a3bfda;
+  --c-4qg41x: #6d8ca4;
+  --c-xhdzkp: rgba(0,0,0,0.85);
+  --c-xr2m53: rgba(20,30,40,0.28);
+  --c-6rf0kc: var(--ff-surface-2);
+  --c-ijr2u8: var(--ff-surface-2);
+  --c-hcls53: rgba(50,115,106,0.45);
+  --c-pz0zw9: rgba(8,20,24,0.12);
+  --c-6rewt5: var(--ff-surface-3);
+  --c-fc5pjb: rgba(127,165,191,0.09);
+  --c-6rf2rk: var(--ff-surface-1);
+  --c-6reyzi: var(--ff-surface-3);
+  --c-50bz5d: var(--ff-surface-2);
+  --c-6rf1ya: var(--ff-surface-2);
+  --c-ijr2td: var(--ff-surface-3);
+  --c-6rf0gw: rgba(0,0,0,0.62);
+  --c-6rf17l: var(--ff-surface-2);
+  --c-hclrbt: rgba(50,115,106,0.32);
+  --c-10f8f7j: rgba(30,80,72,0.3);
+  --c-6reybe: var(--ff-surface-3);
+  --c-iz1xfk: rgba(65,135,125,0.28);
+  --c-40zs1j: rgba(50,110,115,0.16);
+  --c-40zsos: rgba(50,110,115,0.22);
+  --c-6rezss: var(--ff-surface-2);
+  --c-hclree: rgba(50,115,106,0.35);
+  --c-dhk6uu: rgba(161,181,204,0.18);
+  --c-hclrgz: rgba(50,115,106,0.38);
+  --c-cvfsr8: oklch(0.4 0.1 175);
+  --c-ecaxup: oklch(0.47 0.1 235);
+  --c-1b2b91a: oklch(0.14 0.045 205);
+  --c-1yu9b2: oklch(0.21 0.055 235);
+  --c-1g0tv9u: #0b1d20;
+  --c-1fjrplj: #0d2430;
+  --c-33k90l: #9ab1ca;
+  --c-t8fca9: #40b48f;
+  --c-2k9xd7: #b0c7de;
+  --c-3suggt: #8fa7c3;
+  --c-1gyy7ef: #000000;
+  --c-2vwdyb: #94e1d2;
+  --c-1ep8226: #b5473f;
+  --c-1kei953: rgba(161,181,204,0.68);
+  --c-6rewuv: var(--ff-surface-3);
+  --c-h2ybee: var(--ff-surface-1);
+  --c-crwtat: rgba(159,105,59,0.25);
+  --c-cja3u5: rgba(105,69,29,0.5);
+  --c-1k1wlgm: rgba(0,0,0,0.135);
+  --c-6rf19b: var(--ff-surface-2);
+  --c-1kei9qm: rgba(161,181,204,0.72);
+  --c-mfvyew: rgba(161,181,204,0.1);
+  --c-6rf21q: var(--ff-surface-1);
+  --c-a8sm65: rgba(0,0,0,0.42);
+  --c-1kei92i: rgba(161,181,204,0.65);
+  --c-1k1wm1a: rgba(0,0,0,0.18);
+  --c-mfvygm: rgba(161,181,204,0.3);
+  --c-hclsvs: rgba(50,115,106,0.55);
+  --c-1g0dnp: rgba(30,70,95,0.5);
+  --c-1a6k92u: rgba(54,129,126,0.95);
+  --c-fliqqz: rgba(50,115,106,0.45);
+  --c-1k1wm3v: rgba(0,0,0,0.225);
+  --c-cja3ta: rgba(105,69,29,0.4);
+  --c-1q0z9u3: var(--ff-surface-2);
+  --c-ijr2si: var(--ff-surface-3);
+  --c-6rf200: var(--ff-surface-2);
+  --c-dhk6t4: rgba(161,181,204,0.16);
+  --c-90o08v: var(--ff-surface-1);
+  --c-rucw4z: var(--ff-surface-2);
+  --c-ah14v: var(--ff-surface-2);
+  --c-18sbq8m: rgba(30,70,95,0.35);
+  --c-arr0wa: var(--ff-surface-1);
+  --c-9q3jr9: rgba(50,115,106,0.5);
+  --c-crwsmp: rgba(159,105,59,0.18);
+  --c-xg50nj: rgba(105,69,29,0.45);
+  --c-1fsabe: oklch(0.24 0.09 170);
+  --c-1o654yh: oklch(0.28 0.11 165);
+  --c-1891o57: oklch(0.13 0.075 55);
+  --c-1zp96j: oklch(0.14 0.055 45);
+  --c-3b9e2f: #97b9d4;
+  --c-1fym7uy: #101e24;
+  --c-1f87yxb: #15262d;
+  --c-1fpuez5: #0d181c;
+  --c-1fy2eiv: #111f25;
+  --c-6rf1a6: var(--ff-surface-2);
+  --c-arr030: var(--ff-surface-2);
+  --c-hclrdj: rgba(50,115,106,0.34);
+  --c-1bxn4ij: rgba(54,129,126,0.14);
+  --c-1k1wmrz: rgba(0,0,0,0.33);
+  --c-dhk89n: rgba(161,181,204,0.35);
+  --c-wihkuc: rgba(161,181,204,0.1);
+  --c-p573sp: oklch(0.18 0.06 45);
+  --c-1eu539k: oklch(0.12 0.05 45);
+  --c-1fsl0le: #0b1713;
+  --c-1f9vh56: #0b1f2a;
+  --c-1fc3int: #0a1d26;
+  --c-1gf4lnx: #0a1511;
+  --c-1fz6x28: #0f2123;
+  --c-1ghbqk6: #070c11;
+  --c-1fyn1i3: #0f1e24;
+  --c-1fjro3e: #192e30;
+  --c-1ft4uo7: #091612;
+  --c-1f8rtq9: #0f222c;
+  --c-1g58bqa: #080e0f;
+  --c-1fbjokx: #0f2127;
+  --c-1fio3nu: #1a322c;
+  --c-24cd5g: #bfece0;
 }
