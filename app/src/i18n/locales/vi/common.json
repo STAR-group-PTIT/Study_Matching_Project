@@ -304,10 +304,34 @@
     },
     "profile": {
       "defaultName": "Người dùng mới",
-      "friendHandle": "Handle kết bạn: {{handle}}",
+      "friendCode": "Mã bạn bè: {{handle}}",
+      "copyCode": "Sao chép",
+      "codeCopied": "Đã sao chép ✓",
       "streak": "Streak {{days}} ngày · {{sessions}} phiên tuần này",
       "changeAvatar": "Đổi ảnh đại diện",
       "editInfo": "Sửa thông tin"
+    },
+    "avatarModal": {
+      "title": "Đổi ảnh đại diện",
+      "dropHint": "Kéo ảnh vào đây hoặc bấm để chọn",
+      "cancel": "Huỷ",
+      "save": "Lưu ảnh",
+      "saving": "Đang lưu…",
+      "tooLarge": "Ảnh quá lớn (tối đa 5MB).",
+      "invalidType": "Chỉ nhận ảnh JPG, PNG hoặc WEBP.",
+      "uploadFailed": "Tải ảnh lên thất bại, thử lại nhé."
+    },
+    "editInfoModal": {
+      "title": "Sửa thông tin",
+      "nameLabel": "Tên hiển thị",
+      "namePlaceholder": "Tên của bạn",
+      "cancel": "Huỷ",
+      "save": "Lưu",
+      "saving": "Đang lưu…",
+      "nameRequired": "Tên không được để trống.",
+      "nameTooLong": "Tên tối đa 40 ký tự.",
+      "nameTaken": "Tên này đang trùng với người khác, thử tên khác nhé.",
+      "saveFailed": "Lưu thất bại, thử lại nhé."
     },
     "wallpapers": {
       "title": "Wallpaper của tôi",
@@ -557,7 +581,9 @@
       "youtubeInvalid": "Link YouTube không hợp lệ.",
       "youtubeCurrent": "Đang phát: {{url}}",
       "youtubeSaved": "Đã lưu: {{url}}",
-      "lockedNote": "Loại phòng này tắt nhạc để giữ tập trung."
+      "lockedNote": "Loại phòng này tắt nhạc để giữ tập trung.",
+      "showVideo": "Hiện video",
+      "hideVideo": "Ẩn video"
     },
     "host": {
       "admitMode": "Chế độ vào phòng",

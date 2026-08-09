@@ -95,6 +95,9 @@ const FOCUS_MINUTES = 25
 const BREAK_MINUTES = 5
 const SESSION_COUNT_DEFAULT = 4
 const ACCENT = 'var(--ff-accent)'
+// Chặn phòng hờ — to-do của 1 user vốn nhỏ (RLS chỉ trả về to-do của chính mình) nên không
+// cần phân trang thật, chỉ cần 1 trần cứng phòng lúc dữ liệu phình bất thường.
+const TODOS_FETCH_LIMIT = 500
 
 type Phase = 'focus' | 'break'
 type Mode = 'dashboard' | 'focus'
@@ -685,6 +688,7 @@ export default function Dashboard() {
       .from('todos')
       .select('id, name, meta, done')
       .order('created_at')
+      .limit(TODOS_FETCH_LIMIT)
       .then(({ data, error }) => {
         if (cancelled || error || !data) return
         setTasks(data.map((row) => ({ id: row.id, name: row.name, meta: row.meta ?? '', done: row.done })))
@@ -760,12 +764,24 @@ export default function Dashboard() {
   const active = tasks.find((task) => !task.done)
 
   function toggleRun() {
-    // Bấm Tạm dừng (đang running -> dừng) cũng thoát auto-fullscreen/trả UI về Dashboard luôn,
-    // giống Huỷ/hoàn thành phiên/Esc — không đợi bấm Huỷ mới thoát. Bấm Tiếp tục lại (đang
-    // dừng -> running) thì KHÔNG tự bật lại fullscreen, chỉ "Bắt đầu" mới bật (đúng thiết kế
-    // gốc của toggle này).
-    if (running) exitAutoFocusFullscreen()
-    setRunning((r) => !r)
+    // Bấm Tạm dừng (đang running -> dừng) thoát auto-fullscreen/trả UI về Dashboard, giống
+    // Huỷ/hoàn thành phiên/Esc. Bấm Tiếp tục lại (đang dừng -> running) thì bật lại y hệt
+    // những gì "Bắt đầu" đã bật (nếu setting auto-fullscreen đang bật) — trước đây không bật
+    // lại, khiến user bấm Tiếp tục mà không fullscreen lại.
+    if (running) {
+      exitAutoFocusFullscreen()
+      setRunning(false)
+      return
+    }
+    setRunning(true)
+    if (loadStoredAutoFullscreenFocus()) {
+      autoFocusActiveRef.current = true
+      setAutoFocusFullscreen(true)
+      setMode('focus')
+      // Phải gọi trực tiếp trong handler click (user gesture) thì Fullscreen API mới cho phép,
+      // gọi trong .then()/setTimeout sẽ bị trình duyệt từ chối.
+      void document.documentElement.requestFullscreen?.().catch(() => {})
+    }
   }
 
   function resetToIdle() {
