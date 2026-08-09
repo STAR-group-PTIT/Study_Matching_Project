@@ -7,6 +7,8 @@ import { useAuthStore } from '../store/auth'
 import { parseYoutubeUrl, DEFAULT_YOUTUBE_URL } from '../lib/youtube'
 import { isVideoWallpaper } from '../lib/wallpaper'
 import { loadStoredAutoFullscreenFocus, saveStoredAutoFullscreenFocus } from '../lib/focusFullscreen'
+import ChangeAvatarModal from '../components/ChangeAvatarModal'
+import EditInfoModal from '../components/EditInfoModal'
 
 const GRADIENTS = [
   'linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)',
@@ -109,6 +111,10 @@ export default function Settings({ onClose }: { onClose: () => void }) {
   const [tracks, setTracks] = useState<Track[]>([])
   const [profileName, setProfileName] = useState('')
   const [profileTag, setProfileTag] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false)
+  const [editInfoModalOpen, setEditInfoModalOpen] = useState(false)
+  const [codeCopied, setCodeCopied] = useState(false)
   const wallpaperInputRef = useRef<HTMLInputElement>(null)
   const trackInputRef = useRef<HTMLInputElement>(null)
 
@@ -140,7 +146,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
     supabase
       .from('profiles')
       .select(
-        'name, tag, focus_minutes, break_minutes, session_count, auto_start_next, accent_hue, preferred_camera_id, preferred_mic_id, notification_sound, default_youtube_url',
+        'name, tag, avatar_url, focus_minutes, break_minutes, session_count, auto_start_next, accent_hue, preferred_camera_id, preferred_mic_id, notification_sound, default_youtube_url',
       )
       .eq('id', user.id)
       .single()
@@ -148,6 +154,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
         if (!data) return
         setProfileName(data.name)
         setProfileTag(data.tag)
+        setAvatarUrl(data.avatar_url)
         setFocus(data.focus_minutes)
         setBrk(data.break_minutes)
         setSessionCount(data.session_count)
@@ -294,6 +301,14 @@ export default function Settings({ onClose }: { onClose: () => void }) {
   function applyPreset(presetFocus: number, presetBreak: number) {
     setFocus(presetFocus)
     setBrk(presetBreak)
+  }
+
+  function copyFriendCode() {
+    if (!profileTag) return
+    const code = `${profileName}#${profileTag}`
+    if (navigator.clipboard) navigator.clipboard.writeText(code).catch(() => {})
+    setCodeCopied(true)
+    setTimeout(() => setCodeCopied(false), 1800)
   }
 
   function toggleAutoFullscreenFocus() {
@@ -545,24 +560,42 @@ export default function Settings({ onClose }: { onClose: () => void }) {
               className="flex flex-wrap items-center gap-5 rounded-[32px] px-7 py-[26px]"
               style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
             >
-              <div
-                className="flex h-[84px] w-[84px] items-center justify-center rounded-[28px] text-[28px] font-extrabold text-[#294a5f]"
-                style={{
-                  background: 'linear-gradient(140deg, rgba(140,205,196,0.6), rgba(160,200,225,0.6))',
-                  boxShadow: '0 8px 22px rgba(58,98,126,0.12)',
-                }}
-              >
-                {initials(profileName || user?.email || '?')}
-              </div>
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={profileName}
+                  className="h-[84px] w-[84px] shrink-0 rounded-[28px] object-cover"
+                  style={{ boxShadow: '0 8px 22px rgba(58,98,126,0.12)' }}
+                />
+              ) : (
+                <div
+                  className="flex h-[84px] w-[84px] shrink-0 items-center justify-center rounded-[28px] text-[28px] font-extrabold text-[#294a5f]"
+                  style={{
+                    background: 'linear-gradient(140deg, rgba(140,205,196,0.6), rgba(160,200,225,0.6))',
+                    boxShadow: '0 8px 22px rgba(58,98,126,0.12)',
+                  }}
+                >
+                  {initials(profileName || user?.email || '?')}
+                </div>
+              )}
               <div className="flex min-w-0 flex-[1_1_200px] flex-col gap-1">
                 <span className="text-[22px] font-extrabold tracking-[-0.3px] text-[#2c3f55]">
                   {profileName || t('settings.profile.defaultName')}
                 </span>
                 <span className="text-sm font-semibold break-words text-[rgba(51,71,94,0.55)]">{user?.email}</span>
                 {profileTag && (
-                  <span className="text-[12.5px] font-bold tabular-nums text-[rgba(51,71,94,0.5)]">
-                    {t('settings.profile.friendHandle', { handle: `${profileName}#${profileTag}` })}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-[9px]">
+                    <span className="text-[12.5px] font-bold tabular-nums text-[rgba(51,71,94,0.5)]">
+                      {t('settings.profile.friendCode', { handle: `${profileName}#${profileTag}` })}
+                    </span>
+                    <button
+                      onClick={copyFriendCode}
+                      className="shrink-0 rounded-[10px] border-none px-[9px] py-[3px] font-sans text-[11.5px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
+                      style={{ background: ACCENT_SOFT }}
+                    >
+                      {codeCopied ? t('settings.profile.codeCopied') : t('settings.profile.copyCode')}
+                    </button>
+                  </div>
                 )}
                 <span className="text-[13px] font-bold text-[#2c5b53]">
                   {t('settings.profile.streak', { days: streak, sessions: sessionsThisWeek })}
@@ -570,12 +603,14 @@ export default function Settings({ onClose }: { onClose: () => void }) {
               </div>
               <div className="flex flex-wrap gap-[9px]">
                 <button
+                  onClick={() => setAvatarModalOpen(true)}
                   className="rounded-[20px] border-none px-5 py-[13px] font-sans text-sm font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
                   style={{ background: ACCENT_SOFT }}
                 >
                   {t('settings.profile.changeAvatar')}
                 </button>
                 <button
+                  onClick={() => setEditInfoModalOpen(true)}
                   className="rounded-[20px] border-[1.5px] border-[rgba(51,71,94,0.14)] bg-[rgba(255,255,255,0.8)] px-[18px] py-[13px] font-sans text-sm font-bold text-[#445c74] transition-colors duration-200 hover:!bg-white"
                 >
                   {t('settings.profile.editInfo')}
@@ -1131,6 +1166,22 @@ export default function Settings({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       </div>
+
+      {avatarModalOpen && (
+        <ChangeAvatarModal
+          currentAvatarUrl={avatarUrl}
+          displayName={profileName || user?.email || '?'}
+          onClose={() => setAvatarModalOpen(false)}
+          onUploaded={setAvatarUrl}
+        />
+      )}
+      {editInfoModalOpen && (
+        <EditInfoModal
+          currentName={profileName}
+          onClose={() => setEditInfoModalOpen(false)}
+          onSaved={setProfileName}
+        />
+      )}
     </div>
   )
 }

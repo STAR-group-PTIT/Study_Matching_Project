@@ -78,11 +78,17 @@ export async function sendFriendRequest(targetId: string): Promise<SendFriendReq
   return data?.[0]?.status as SendFriendRequestResult
 }
 
+// Chặn phòng hờ — danh sách này luôn nhỏ về bản chất (RLS chỉ trả về lời mời/tình bạn của
+// chính mình) nên không cần phân trang thật, nhưng vẫn giới hạn 1 mức trần để 1 tài khoản có
+// hàng trăm lời mời cũ chưa dọn không kéo về client không giới hạn.
+const FRIEND_REQUESTS_LIMIT = 300
+
 export async function listFriendRequests(): Promise<FriendRequestRow[]> {
   const { data, error } = await supabase
     .from('friend_requests_view')
     .select('*')
     .order('created_at', { ascending: false })
+    .limit(FRIEND_REQUESTS_LIMIT)
   if (error) throw error
   return (data as FriendRequestRow[]) ?? []
 }

@@ -67,6 +67,10 @@ const ACCENT_CHIP_ACTIVE = 'var(--ff-accent-chip-active)'
 const ACCENT_BORDER = 'var(--ff-accent-border)'
 
 const ROOMS_PER_PAGE = 8
+// Chặn phòng hờ cho fetch gốc (trước khi cắt trang ở client) — `room_public_list` đã tự
+// khoanh vùng còn phòng public đang mở/có người, nhưng vẫn cần 1 trần cứng phòng lúc traffic
+// bất thường (spam tạo phòng) kéo về không giới hạn.
+const PUBLIC_ROOMS_FETCH_LIMIT = 500
 const DURATION_TOLERANCE_MINUTES = 5
 
 type Language = 'Tiếng Việt' | 'English'
@@ -154,6 +158,7 @@ export default function Matching() {
       .from('room_public_list')
       .select('*')
       .order('member_count', { ascending: false })
+      .limit(PUBLIC_ROOMS_FETCH_LIMIT)
       .then(({ data, error }) => {
         if (cancelled) return
         setLoadingRooms(false)

@@ -16,8 +16,8 @@ import InviteFriendModal from '../components/InviteFriendModal'
 import { acceptFriendRequest, listFriendRequests, sendFriendRequest, type FriendRequestRow } from '../lib/friends'
 
 type StatusKey = 'host' | 'focusing' | 'micOff' | 'camOff' | 'justJoined'
-type Member = { id: string; name: string; statusKey: StatusKey; host: boolean; me?: boolean }
-type Pending = { id: string; userId: string; name: string; wait: string }
+type Member = { id: string; name: string; avatarUrl?: string | null; statusKey: StatusKey; host: boolean; me?: boolean }
+type Pending = { id: string; userId: string; name: string; avatarUrl?: string | null; wait: string }
 type ChatMsg = { who: string; me: boolean; text: string }
 
 type RealTrack = LibraryTrack & { isDefault: boolean }
@@ -28,6 +28,7 @@ type RealMemberRow = {
   status: 'pending' | 'member'
   joined_at: string
   name: string
+  avatar_url: string | null
 }
 type RealMsgRow = {
   id: string
@@ -104,6 +105,32 @@ function TrackMediaEl({ track, kind, mirror }: { track: MediaStreamTrack; kind: 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/)
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
+}
+
+// Ảnh đại diện thật (avatar_url) nếu có, fallback về ô chữ cái đầu — dùng chung cho tab
+// Members, danh sách chờ duyệt và danh sách thành viên ở tab Manage.
+function MemberAvatarBadge({
+  name,
+  avatarUrl,
+  background,
+  color,
+}: {
+  name: string
+  avatarUrl?: string | null
+  background: string
+  color: string
+}) {
+  if (avatarUrl) {
+    return <img src={avatarUrl} alt={name} className="h-8 w-8 shrink-0 rounded-xl object-cover" />
+  }
+  return (
+    <span
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[12.5px] font-extrabold"
+      style={{ background, color }}
+    >
+      {initials(name)}
+    </span>
+  )
 }
 
 function focusSecs() {
@@ -480,6 +507,9 @@ export default function Room() {
   const [ytInput, setYtInput] = useState('')
   const [ytError, setYtError] = useState(false)
   const [ytReady, setYtReady] = useState(false)
+  // Khung video mặc định thu gọn (giống mini-player của Dashboard) — trước đây luôn hiện
+  // full 260x146 ngay góc trái phòng, chiếm chỗ và gây mất tập trung dù chỉ đang nghe nhạc.
+  const [ytVideoVisible, setYtVideoVisible] = useState(false)
   const ytContainerRef = useRef<HTMLDivElement>(null)
   const ytPlayerRef = useRef<YTPlayer | null>(null)
   const ytActive = isRealMode && musicSource === 'youtube' && !musicLocked
@@ -504,9 +534,26 @@ export default function Room() {
       videoId: ytParsed.videoId || undefined,
       playerVars: { listType: ytParsed.playlistId ? 'playlist' : undefined, list: ytParsed.playlistId || undefined, playsinline: 1 },
       events: {
+        // Trước đây chỉ set volume ở đây, không tự playVideo() — effect [ytActive, musicOn]
+        // bên dưới thì đã chạy xong (ytPlayerRef còn null) trước khi player kịp sẵn sàng nên
+        // không bao giờ được gọi lại, kết quả nhạc nằm im dù musicOn mặc định true. Gọi
+        // playVideo() thẳng trong onReady, cùng cách reconcile lại nếu trình duyệt chặn
+        // autoplay có tiếng (chưa có gesture thật) như Dashboard đang làm.
         onReady: (e: { target: YTPlayer }) => {
           ytPlayerRef.current = e.target
           e.target.setVolume(volume)
+          if (musicOn) {
+            e.target.playVideo()
+            setTimeout(() => {
+              if (ytPlayerRef.current === e.target && e.target.getPlayerState() !== 1) setMusicOn(false)
+            }, 1200)
+          }
+        },
+        // Đồng bộ lại nếu user tự bấm pause/play ngay trên control gốc của khung video
+        // YouTube (lúc đang mở rộng xem video), không chỉ qua nút Play/Pause của app.
+        onStateChange: (e: { data: number }) => {
+          if (e.data === 1) setMusicOn(true)
+          else if (e.data === 2 || e.data === 0) setMusicOn(false)
         },
       },
     })
@@ -670,6 +717,7 @@ export default function Room() {
               .map((r) => ({
                 id: r.user_id,
                 name: r.name,
+                avatarUrl: r.avatar_url,
                 statusKey: 'focusing' as StatusKey,
                 host: r.user_id === realRoom!.host_id,
                 me: r.user_id === uid,
@@ -678,7 +726,13 @@ export default function Room() {
           setPending(
             rows
               .filter((r) => r.status === 'pending')
-              .map((r) => ({ id: r.id, userId: r.user_id, name: r.name, wait: relativeWait(r.joined_at, t) })),
+              .map((r) => ({
+                id: r.id,
+                userId: r.user_id,
+                name: r.name,
+                avatarUrl: r.avatar_url,
+                wait: relativeWait(r.joined_at, t),
+              })),
           )
           const mine = rows.find((r) => r.user_id === uid)
           setMyStatus(mine ? mine.status : null)
@@ -1314,15 +1368,44 @@ export default function Room() {
     >
       {isRealMode && <audio ref={musicAudioRef} loop style={{ display: 'none' }} />}
 
-      {/* mini player YouTube — góc dưới-trái (cùng hàng với control bar), chỉ hiện khi
-          phòng đang phát từ YouTube. Iframe phải hiện thật (không display:none) theo
-          đúng ToS nhúng của YouTube. */}
-      {ytActive && (
-        <div
-          className="absolute bottom-4 left-[26px] z-[41] w-[260px] overflow-hidden rounded-[18px] md:bottom-7"
-          style={{ background: 'rgba(0,0,0,0.85)', boxShadow: '0 10px 26px rgba(20,30,40,0.28)' }}
-        >
-          <div ref={ytContainerRef} className="block h-[146px] w-[260px]" />
+      {/* mini player YouTube — góc dưới-trái, cùng pattern thu gọn của Dashboard (main UI):
+          mặc định chỉ còn 1 icon tròn nhỏ, bấm mới mở ra khung video. Iframe LUÔN mounted khi
+          đang là nguồn active kể cả lúc thu gọn — KHÔNG unmount, chỉ co kích thước + opacity
+          về gần 0 (đúng ToS nhúng của YouTube, và để nhạc không bị ngắt khi ẩn video). */}
+      {ytActive && ytParsed && (
+        <div className="absolute bottom-4 left-[26px] z-[41] flex flex-col items-start gap-2 md:bottom-7">
+          <div
+            className="overflow-hidden rounded-[18px] transition-all duration-300"
+            style={{
+              width: ytVideoVisible ? '260px' : '1px',
+              height: ytVideoVisible ? '146px' : '1px',
+              opacity: ytVideoVisible ? 1 : 0,
+              pointerEvents: ytVideoVisible ? 'auto' : 'none',
+              background: 'rgba(0,0,0,0.85)',
+              boxShadow: ytVideoVisible ? '0 10px 26px rgba(20,30,40,0.28)' : 'none',
+            }}
+          >
+            <div ref={ytContainerRef} className="block h-full w-full" />
+          </div>
+          <button
+            onClick={() => setYtVideoVisible((v) => !v)}
+            title={ytVideoVisible ? t('room.music.hideVideo') : t('room.music.showVideo')}
+            aria-label={ytVideoVisible ? t('room.music.hideVideo') : t('room.music.showVideo')}
+            className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-200 hover:!bg-white"
+            style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px rgba(58,98,126,0.14)' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18V6l10-2v12" />
+              <circle cx="6.5" cy="18" r="2.5" />
+              <circle cx="16.5" cy="16" r="2.5" />
+            </svg>
+            {musicOn && (
+              <span
+                className="absolute right-[3px] bottom-[3px] h-[9px] w-[9px] rounded-full"
+                style={{ background: '#4bbf9a', boxShadow: '0 0 0 2px rgba(255,255,255,0.85)' }}
+              />
+            )}
+          </button>
         </div>
       )}
 
@@ -2057,15 +2140,12 @@ export default function Room() {
                   className="flex items-center gap-[10px] rounded-[20px] px-3 py-[10px]"
                   style={{ background: 'rgba(238,246,248,0.85)' }}
                 >
-                  <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[12.5px] font-extrabold"
-                    style={{
-                      background: u.host ? 'rgba(140,205,196,0.5)' : 'rgba(160,200,225,0.5)',
-                      color: u.host ? '#22483f' : '#2b4d68',
-                    }}
-                  >
-                    {initials(u.name)}
-                  </span>
+                  <MemberAvatarBadge
+                    name={u.name}
+                    avatarUrl={u.avatarUrl}
+                    background={u.host ? 'rgba(140,205,196,0.5)' : 'rgba(160,200,225,0.5)'}
+                    color={u.host ? '#22483f' : '#2b4d68'}
+                  />
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="flex items-center gap-[6px]">
                       <span className="truncate text-[13.5px] font-extrabold text-[#2c3f55]">{u.name}</span>
@@ -2179,12 +2259,12 @@ export default function Room() {
                       className="flex items-center gap-[10px] rounded-[20px] px-3 py-[10px]"
                       style={{ background: 'rgba(255,246,238,0.9)', boxShadow: 'inset 0 0 0 1.5px rgba(196,142,96,0.18)' }}
                     >
-                      <span
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[12.5px] font-extrabold text-[#7a4a2c]"
-                        style={{ background: 'rgba(226,190,150,0.45)' }}
-                      >
-                        {initials(p.name)}
-                      </span>
+                      <MemberAvatarBadge
+                        name={p.name}
+                        avatarUrl={p.avatarUrl}
+                        background="rgba(226,190,150,0.45)"
+                        color="#7a4a2c"
+                      />
                       <div className="flex min-w-0 flex-1 flex-col">
                         <span className="text-[13.5px] font-extrabold text-[#2c3f55]">{p.name}</span>
                         <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.5)]">
@@ -2219,15 +2299,12 @@ export default function Room() {
               </span>
               {members.map((u) => (
                 <div key={u.id} className="flex items-center gap-[10px] rounded-[20px] px-3 py-[10px]" style={{ background: 'rgba(238,246,248,0.85)' }}>
-                  <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[12.5px] font-extrabold"
-                    style={{
-                      background: u.host ? 'rgba(140,205,196,0.5)' : 'rgba(160,200,225,0.5)',
-                      color: u.host ? '#22483f' : '#2b4d68',
-                    }}
-                  >
-                    {initials(u.name)}
-                  </span>
+                  <MemberAvatarBadge
+                    name={u.name}
+                    avatarUrl={u.avatarUrl}
+                    background={u.host ? 'rgba(140,205,196,0.5)' : 'rgba(160,200,225,0.5)'}
+                    color={u.host ? '#22483f' : '#2b4d68'}
+                  />
                   <div className="flex min-w-0 flex-1 flex-col">
                     <span className="text-[13.5px] font-extrabold text-[#2c3f55]">{u.name}</span>
                     <span className="text-[11.5px] font-semibold text-[rgba(51,71,94,0.5)]">

@@ -304,10 +304,34 @@
     },
     "profile": {
       "defaultName": "New user",
-      "friendHandle": "Friend handle: {{handle}}",
+      "friendCode": "Friend code: {{handle}}",
+      "copyCode": "Copy",
+      "codeCopied": "Copied ✓",
       "streak": "{{days}}-day streak · {{sessions}} sessions this week",
       "changeAvatar": "Change avatar",
       "editInfo": "Edit info"
+    },
+    "avatarModal": {
+      "title": "Change avatar",
+      "dropHint": "Drag an image here or click to choose",
+      "cancel": "Cancel",
+      "save": "Save photo",
+      "saving": "Saving…",
+      "tooLarge": "Image too large (max 5MB).",
+      "invalidType": "Only JPG, PNG or WEBP images are allowed.",
+      "uploadFailed": "Upload failed, please try again."
+    },
+    "editInfoModal": {
+      "title": "Edit info",
+      "nameLabel": "Display name",
+      "namePlaceholder": "Your name",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving…",
+      "nameRequired": "Name can't be empty.",
+      "nameTooLong": "Name is limited to 40 characters.",
+      "nameTaken": "This name is already taken, try another one.",
+      "saveFailed": "Save failed, please try again."
     },
     "wallpapers": {
       "title": "My wallpapers",
@@ -557,7 +581,9 @@
       "youtubeInvalid": "That YouTube link doesn't look valid.",
       "youtubeCurrent": "Now playing: {{url}}",
       "youtubeSaved": "Saved: {{url}}",
-      "lockedNote": "This room type keeps music off to stay focused."
+      "lockedNote": "This room type keeps music off to stay focused.",
+      "showVideo": "Show video",
+      "hideVideo": "Hide video"
     },
     "host": {
       "admitMode": "Admission mode",

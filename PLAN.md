@@ -127,5 +127,22 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Ghép ngẫu nhiên: bỏ mô hình "chờ đủ 5 mới tạo phòng" (0018) — thay bằng mô hình LOBBY hiện hình (tạo/join 1 phòng thật ngay từ đầu, thấy người vào live qua Realtime, tự chốt khi đủ 5 hoặc hết giờ ân hạn 75s mà ≥2 người), migration `0019` (2 RPC mới `find_or_create_lobby`/`finalize_lobby`, xoá `matching_queue`), viết lại `quickMatch.ts` + component mới `LobbyWaiting.tsx` — lên plan chi tiết qua `EnterPlanMode` trước khi code — xong 2026-08-08, xem CONTEXT.md "Giai đoạn 10 (phần 4)"
 - [ ] User chạy `0019_lobby_match.sql` (sau `0017`/`0018` nếu chưa chạy từ phần 2) + `supabase functions deploy match-room` lại + tự test luồng lobby với ≥2 tài khoản (thay cho mục cần "≥5 tài khoản" cũ ở phần 2 — giờ chỉ cần 2 người là thấy được cơ chế join-live)
 
+## Giai đoạn 10 (phần 4 tiếp) — Fix 2 bug chặn hẳn ghép ngẫu nhiên sau deploy thật, bỏ tuỳ chỉnh thời lượng/ngôn ngữ (ngoài kế hoạch gốc, 2026-08-08)
+- [x] Fix "column reference is ambiguous" trong `find_or_create_lobby`/`finalize_lobby` (migration `0020`, đã `db push`) — xong 2026-08-08
+- [x] Fix bug client kẹt lobby vĩnh viễn (`scheduleFinalize()` vứt kết quả RPC, chỉ trông cậy Realtime echo về chính mình) — xong 2026-08-08
+- [x] Bỏ tuỳ chỉnh thời lượng/ngôn ngữ ở popup "Học cùng nhau", cố định `RANDOM_MATCH_CONFIG` (25 phút, Tiếng Việt) — xong 2026-08-08, xem CONTEXT.md "Giai đoạn 10 (phần 4 tiếp)"
+- [x] Đã commit + push lên `origin/giai-doan-10-phan-2-group-match` (`0976595`)
+- [ ] User tự test lại nút Ghép ngẫu nhiên với ≥2 tài khoản thật (chưa verify được qua browser trong sandbox)
+
+## Giai đoạn 10 (phần 5) — Avatar/Edit info thật, mã bạn bè + copy, avatar trong Room, nhạc YouTube Room, nhạc main UI không ngắt khi chuyển tab (ngoài kế hoạch gốc, 2026-08-09)
+- [x] Fix bug "Tiếp tục" Pomodoro không tự bật lại fullscreen sau khi "Tạm dừng" — xong 2026-08-09
+- [x] Nối thật nút "Đổi ảnh đại diện"/"Sửa thông tin" ở Settings (trước không có `onClick`) — popup upload avatar (resize + bucket Storage `avatars` công khai) + popup sửa tên hiển thị, migration `0021` — xong 2026-08-09, xem CONTEXT.md "Giai đoạn 10 (phần 5)"
+- [x] Đổi nhãn "Handle kết bạn" → "Mã bạn bè" + thêm nút Sao chép cạnh đó ở Settings — xong 2026-08-09
+- [x] Fix avatar không hiện trong tab Thành viên/Quản lý ở Room (`room_members_view` thiếu cột `avatar_url`), migration `0022` — xong 2026-08-09
+- [x] Fix nhạc YouTube trong Room không tự phát (thiếu `playVideo()` thật trong `onReady`) + đổi khung video từ luôn-hiện-to sang mini-player thu gọn giống main UI — xong 2026-08-09
+- [x] Rà soát phân trang friend list/danh sách phòng/to-do list — không cần phân trang thật (đều bị RLS/view khoanh vùng tự nhiên), chỉ thêm `.limit()` phòng hờ (300–500 dòng) cho 3 query gốc — xong 2026-08-09
+- [x] Nhạc main UI không còn bị ngắt khi chuyển từ Dashboard sang "Duyệt phòng" (`/matching`) — Dashboard giờ mount 1 lần, giữ nguyên xuyên suốt `/` ↔ `/matching` (ẩn qua opacity+inert khi ở `/matching`, không unmount), chỉ mất khi vào Room thật/`/auth` (đúng ý, Room có hệ thống nhạc riêng) — xong 2026-08-09, xem CONTEXT.md "Giai đoạn 10 (phần 5)"
+- [ ] User chạy `0021_avatars_storage.sql` + `0022_room_members_avatar.sql` trong Supabase SQL Editor, rồi tự test: đổi avatar/tên, copy mã bạn bè, avatar hiện trong Room, nhạc YouTube tự phát + thu gọn đúng trong Room, và nhạc main UI không tắt khi chuyển sang "Duyệt phòng" (vẫn tắt khi vào Room thật — đúng ý)
+
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).
