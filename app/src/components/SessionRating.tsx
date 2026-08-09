@@ -56,24 +56,24 @@ export default function SessionRating({
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center p-6"
-      style={{ background: 'rgba(38,66,86,0.32)', backdropFilter: 'blur(7px)' }}
+      style={{ background: 'var(--c-a8smro)', backdropFilter: 'blur(7px)' }}
     >
       <div className="absolute inset-0" onClick={pendingLeave ? onLeave : onClose} />
       <div
         className="relative flex max-h-[85svh] w-full max-w-[380px] flex-col gap-[16px] overflow-y-auto rounded-[30px] bg-white px-7 pt-7 pb-6"
-        style={{ boxShadow: '0 30px 70px rgba(38,66,86,0.3)', animation: 'ffPop 380ms cubic-bezier(0.22,1,0.36,1)' }}
+        style={{ boxShadow: '0 30px 70px var(--c-13a6mpo)', animation: 'ffPop 380ms cubic-bezier(0.22,1,0.36,1)' }}
       >
         <div className="flex flex-col gap-[5px]">
-          <h3 className="m-0 text-xl font-extrabold tracking-[-0.3px] text-[#2c3f55]">
+          <h3 className="m-0 text-xl font-extrabold tracking-[-0.3px] text-[var(--c-3bsl4p)]">
             {t('room.rating.title')}
           </h3>
-          <p className="m-0 text-[13.5px] font-semibold text-[rgba(51,71,94,0.55)]">
+          <p className="m-0 text-[13.5px] font-semibold text-[var(--c-1kei8bt)]">
             {t('room.rating.subtitle')}
           </p>
         </div>
 
         {members.length === 0 ? (
-          <p className="m-0 text-[13.5px] font-semibold text-[rgba(51,71,94,0.45)]">
+          <p className="m-0 text-[13.5px] font-semibold text-[var(--c-1kei7l4)]">
             {t('room.rating.noOne')}
           </p>
         ) : (
@@ -85,7 +85,7 @@ export default function SessionRating({
                 <div
                   key={m.id}
                   className="flex items-center justify-between gap-3 rounded-[18px] px-[14px] py-[10px]"
-                  style={{ background: 'rgba(240,248,250,0.9)', boxShadow: 'inset 0 0 0 1.5px rgba(51,71,94,0.07)' }}
+                  style={{ background: 'var(--c-1h0taci)', boxShadow: 'inset 0 0 0 1.5px var(--c-dhk63a)' }}
                 >
                   <div className="flex min-w-0 items-center gap-[10px]">
                     <span
@@ -94,7 +94,7 @@ export default function SessionRating({
                     >
                       {m.name.trim().charAt(0).toUpperCase()}
                     </span>
-                    <span className="truncate text-[14px] font-extrabold text-[#2c3f55]">{m.name}</span>
+                    <span className="truncate text-[14px] font-extrabold text-[var(--c-3bsl4p)]">{m.name}</span>
                   </div>
                   <button
                     onClick={() => void like(m.id)}
@@ -103,8 +103,8 @@ export default function SessionRating({
                     className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-full border-none transition-transform duration-200 hover:enabled:-translate-y-0.5 disabled:cursor-default"
                     style={
                       rated
-                        ? { background: 'rgba(215,140,170,0.3)', color: '#b4577a' }
-                        : { background: 'rgba(255,255,255,0.85)', color: 'rgba(51,71,94,0.5)' }
+                        ? { background: 'var(--c-vukw3w)', color: 'var(--c-pc4fdf)' }
+                        : { background: 'var(--c-6rf20v)', color: 'var(--c-mfvyic)' }
                     }
                   >
                     {rated ? (
@@ -126,16 +126,16 @@ export default function SessionRating({
         {pendingLeave ? (
           <button
             onClick={onLeave}
-            className="w-full rounded-[20px] border-none py-[13px] font-sans text-[14.5px] font-extrabold text-[#43596f] hover:!bg-[rgba(240,248,250,0.9)]"
-            style={{ background: 'rgba(240,248,250,0.9)' }}
+            className="w-full rounded-[20px] border-none py-[13px] font-sans text-[14.5px] font-extrabold text-[var(--c-3ji23s)] hover:!bg-[var(--c-1h0taci)]"
+            style={{ background: 'var(--c-1h0taci)' }}
           >
             {t('room.rating.leave')}
           </button>
         ) : (
           <button
             onClick={onClose}
-            className="w-full rounded-[20px] border-none py-[13px] font-sans text-[14.5px] font-extrabold text-[#43596f] hover:!bg-[rgba(240,248,250,0.9)]"
-            style={{ background: 'rgba(240,248,250,0.9)' }}
+            className="w-full rounded-[20px] border-none py-[13px] font-sans text-[14.5px] font-extrabold text-[var(--c-3ji23s)] hover:!bg-[var(--c-1h0taci)]"
+            style={{ background: 'var(--c-1h0taci)' }}
           >
             {t('room.rating.close')}
           </button>

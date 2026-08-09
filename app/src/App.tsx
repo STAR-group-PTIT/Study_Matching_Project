@@ -9,6 +9,7 @@ import Matching from './routes/Matching'
 import Room from './routes/Room'
 import { supabase } from './lib/supabase'
 import { useAuthStore } from './store/auth'
+import { useThemeStore } from './store/theme'
 import { acceptRoomInvite, declineRoomInvite } from './lib/friends'
 import { dismissIncomingInvite, initFriendRealtime, teardownFriendRealtime, useFriendStore } from './store/friendNotifications'
 
@@ -18,6 +19,7 @@ export default function App() {
   const location = useLocation()
   const incomingInvite = useFriendStore((s) => s.incomingInvite)
   const [respondingInvite, setRespondingInvite] = useState(false)
+  const setTheme = useThemeStore((s) => s.setTheme)
 
   // Dashboard (main UI) mounts ONCE and stays mounted across '/' <-> '/matching' — trước đây
   // 2 route này swap qua <Routes> bình thường, mỗi lần rời '/' sang '/matching' (chỉ để xem
@@ -49,6 +51,27 @@ export default function App() {
       cancelled = true
     }
   }, [user])
+
+  // Theme (sáng/tối) — khách chưa đăng nhập dùng localStorage (đã áp ngay từ store/theme.ts
+  // lúc module load, tránh flash), tài khoản thật thì đồng bộ theo profiles.theme qua thiết
+  // bị khi đăng nhập (giống accent_hue ở trên), KHÔNG reset khi đăng xuất — khác accent vì
+  // theme vẫn nên giữ nguyên lựa chọn cục bộ của trình duyệt cho khách.
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    supabase
+      .from('profiles')
+      .select('theme')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        if (data.theme === 'light' || data.theme === 'dark') setTheme(data.theme)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user, setTheme])
 
   // Bạn bè + lời mời vào room: mount 1 lần ở đây, KHÔNG theo từng route, vì lời mời
   // phải làm gián đoạn người dùng bất kể họ đang ở Dashboard hay đang ở một room khác

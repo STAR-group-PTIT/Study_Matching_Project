@@ -5,6 +5,16 @@
   "common": {
     "loading": "Đang tải…"
   },
+  "onboarding": {
+    "title": "Chào mừng đến FocusFlow",
+    "subtitle": "Ứng dụng học tập theo phương pháp Pomodoro, có thể học cùng người khác.",
+    "freeTitle": "Dùng ngay, không cần đăng nhập",
+    "freeBody": "Đồng hồ Pomodoro, to-do, hình nền và nhạc nền — cứ thử thoải mái.",
+    "lockedTitle": "Cần đăng nhập để…",
+    "lockedBody": "lưu tiến độ lâu dài, kết bạn và ghép/tạo phòng học chung với người khác.",
+    "loginCta": "Đăng nhập / Đăng ký",
+    "guestCta": "Dùng thử trước, đăng nhập sau"
+  },
   "auth": {
     "tabs": { "login": "Đăng nhập", "signup": "Đăng ký" },
     "title": { "login": "Chào bạn trở lại", "signup": "Tạo tài khoản mới" },
@@ -166,10 +176,6 @@
   },
   "matching": {
     "headerTag": "Ghép cặp học chung",
-    "authNotice": {
-      "text": "Cần đăng nhập để tạo phòng, ghép ngẫu nhiên hoặc tham gia phòng thật.",
-      "login": "Đăng nhập"
-    },
     "roomTypes": {
       "chill": { "name": "Chill", "rule": "Bật nhạc, tự do bật/tắt cam và mic." },
       "hardcore": { "name": "Hardcore", "rule": "Bắt buộc bật cam, tắt nhạc và mic." },
@@ -380,6 +386,11 @@
       "blue": "Xanh dương",
       "green": "Xanh lá",
       "purple": "Tím"
+    },
+    "theme": {
+      "title": "Giao diện",
+      "light": "Sáng",
+      "dark": "Tối"
     },
     "devices": {
       "title": "Camera & micro mặc định",

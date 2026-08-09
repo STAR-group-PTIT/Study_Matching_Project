@@ -48,20 +48,20 @@ export default function EditInfoModal({
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center p-6"
-      style={{ background: 'rgba(38,66,86,0.32)', backdropFilter: 'blur(7px)' }}
+      style={{ background: 'var(--c-a8smro)', backdropFilter: 'blur(7px)' }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
       <div
         className="relative flex w-full max-w-[380px] flex-col gap-5 rounded-[30px] bg-white px-7 pt-7 pb-6"
-        style={{ boxShadow: '0 30px 70px rgba(38,66,86,0.3)' }}
+        style={{ boxShadow: '0 30px 70px var(--c-13a6mpo)' }}
       >
         <div className="flex items-center justify-between">
-          <h3 className="m-0 text-[18px] font-extrabold text-[#2c3f55]">{t('settings.editInfoModal.title')}</h3>
+          <h3 className="m-0 text-[18px] font-extrabold text-[var(--c-3bsl4p)]">{t('settings.editInfoModal.title')}</h3>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-[rgba(238,246,248,0.9)]"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-[var(--c-rucw5u)]"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
               <path d="M6 6l12 12M18 6L6 18" />
@@ -70,7 +70,7 @@ export default function EditInfoModal({
         </div>
 
         <label className="flex flex-col gap-[6px]">
-          <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+          <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
             {t('settings.editInfoModal.nameLabel')}
           </span>
           <input
@@ -85,24 +85,24 @@ export default function EditInfoModal({
             placeholder={t('settings.editInfoModal.namePlaceholder')}
             maxLength={MAX_NAME_LENGTH}
             autoFocus
-            className="rounded-[16px] border-none px-4 py-3 font-sans text-sm font-bold text-[#2c3f55] outline-none"
-            style={{ background: 'rgba(238,246,248,0.9)' }}
+            className="rounded-[16px] border-none px-4 py-3 font-sans text-sm font-bold text-[var(--c-3bsl4p)] outline-none"
+            style={{ background: 'var(--c-rucw5u)' }}
           />
         </label>
 
-        {error && <span className="text-[12.5px] font-semibold text-[#a13f2c]">{error}</span>}
+        {error && <span className="text-[12.5px] font-semibold text-[var(--c-otf3yh)]">{error}</span>}
 
         <div className="flex justify-end gap-[9px]">
           <button
             onClick={onClose}
-            className="rounded-[20px] border-[1.5px] border-[rgba(51,71,94,0.14)] bg-[rgba(255,255,255,0.8)] px-5 py-[12px] font-sans text-sm font-bold text-[#445c74] transition-colors duration-200 hover:!bg-white"
+            className="rounded-[20px] border-[1.5px] border-[var(--c-1kei5c6)] bg-[var(--c-ijr2vy)] px-5 py-[12px] font-sans text-sm font-bold text-[var(--c-3k2pts)] transition-colors duration-200 hover:!bg-white"
           >
             {t('settings.editInfoModal.cancel')}
           </button>
           <button
             onClick={() => void handleSave()}
             disabled={saving}
-            className="rounded-[20px] border-none px-5 py-[12px] font-sans text-sm font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
+            className="rounded-[20px] border-none px-5 py-[12px] font-sans text-sm font-extrabold text-[var(--c-2vtjkg)] transition-transform duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
             style={{ background: 'var(--ff-accent-soft)' }}
           >
             {saving ? t('settings.editInfoModal.saving') : t('settings.editInfoModal.save')}

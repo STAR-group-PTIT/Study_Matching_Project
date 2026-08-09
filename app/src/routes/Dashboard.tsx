@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
-import { useAuthStore } from '../store/auth'
+import { useAuthStore, useRequireAuth } from '../store/auth'
 import { playChime } from '../lib/sound'
 import { parseYoutubeUrl, loadYoutubeApi, DEFAULT_YOUTUBE_URL, MUSIC_YOUTUBE_KEY, loadStoredYoutubeUrlOverride, type YTPlayer } from '../lib/youtube'
 import { BUILTIN_TRACKS, type LibraryTrack } from '../lib/musicLibrary'
@@ -14,11 +14,13 @@ import LobbyWaiting from '../components/LobbyWaiting'
 import Settings from './Settings'
 import Stats from './Stats'
 import FriendsPanel from '../components/FriendsPanel'
+import GuestOnboarding from '../components/GuestOnboarding'
+import { hasSeenOnboarding } from '../lib/onboarding'
 import { useFriendStore } from '../store/friendNotifications'
 
 type WallpaperOption = { id: string; kind: 'gradient' | 'image' | 'video'; value: string }
 
-const BUILTIN_GRADIENTS: WallpaperOption[] = ['linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)'].map(
+const BUILTIN_GRADIENTS: WallpaperOption[] = ['linear-gradient(160deg, var(--c-1g0tv9u) 0%, var(--c-1fjrplj) 45%, var(--c-1frhffa) 100%)'].map(
   (value, i) => ({ id: 'gradient-' + i, kind: 'gradient' as const, value }),
 )
 
@@ -138,6 +140,12 @@ export default function Dashboard() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
+  const authLoading = useAuthStore((s) => s.loading)
+  const requireAuth = useRequireAuth()
+  const [onboardingOpen, setOnboardingOpen] = useState(false)
+  useEffect(() => {
+    if (!authLoading && !user && !hasSeenOnboarding()) setOnboardingOpen(true)
+  }, [authLoading, user])
   // Cài đặt giờ là overlay mở ngay trên Dashboard thay vì route /settings riêng — tránh
   // Dashboard unmount mỗi lần vào Cài đặt (trước đó làm mất camera đang bật + nhạc đang
   // phát, vì cả 2 đều sống trong state của chính component này).
@@ -154,11 +162,7 @@ export default function Dashboard() {
   // cần tuỳ chỉnh thật thì dùng "Duyệt phòng đang mở" bên dưới, vốn đã có đủ bộ lọc.
   const quick = useQuickMatch()
   function openStudyPanel() {
-    if (!user) {
-      navigate('/auth')
-      return
-    }
-    setPanel('study')
+    requireAuth(() => setPanel('study'))
   }
   function startGroupMatch() {
     setPanel(null)
@@ -986,7 +990,7 @@ export default function Dashboard() {
 
   return (
     <div
-      className="relative h-svh w-full overflow-hidden bg-cover bg-center font-sans text-[#33475e] antialiased"
+      className="relative h-svh w-full overflow-hidden bg-cover bg-center font-sans text-[var(--c-32fr7s)] antialiased"
       style={{
         backgroundImage:
           selectedWallpaper.kind === 'gradient'
@@ -1040,8 +1044,8 @@ export default function Dashboard() {
                 aspectRatio: '16 / 9',
                 opacity: musicPanelOpen && ytVideoVisible ? 1 : 0,
                 pointerEvents: musicPanelOpen && ytVideoVisible ? 'auto' : 'none',
-                background: 'rgba(0,0,0,0.85)',
-                boxShadow: musicPanelOpen && ytVideoVisible ? '0 10px 26px rgba(20,30,40,0.28)' : 'none',
+                background: 'var(--c-xhdzkp)',
+                boxShadow: musicPanelOpen && ytVideoVisible ? '0 10px 26px var(--c-xr2m53)' : 'none',
               }}
             >
               <div ref={ytContainerRef} className="block h-full w-full" />
@@ -1054,8 +1058,8 @@ export default function Dashboard() {
                 onClick={() => setMusicPanelOpen(true)}
                 title={t('dashboard.musicMini.open')}
                 aria-label={t('dashboard.musicMini.open')}
-                className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-200 hover:!bg-white"
-                style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px rgba(58,98,126,0.14)' }}
+                className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-200 hover:!bg-white"
+                style={{ background: 'var(--c-6rf0kc)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px var(--c-1k1wm30)' }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 18V6l10-2v12" />
@@ -1065,14 +1069,14 @@ export default function Dashboard() {
                 {playing && (
                   <span
                     className="absolute right-[3px] bottom-[3px] h-[9px] w-[9px] rounded-full"
-                    style={{ background: '#4bbf9a', boxShadow: '0 0 0 2px rgba(255,255,255,0.85)' }}
+                    style={{ background: 'var(--c-t8fca9)', boxShadow: '0 0 0 2px var(--c-6rf20v)' }}
                   />
                 )}
               </button>
             ) : ytActive ? (
               <div
                 className="flex items-center gap-[4px] rounded-full py-[8px] pr-[12px] pl-[8px]"
-                style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px rgba(58,98,126,0.14)' }}
+                style={{ background: 'var(--c-6rf0kc)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px var(--c-1k1wm30)' }}
               >
                 <button
                   onClick={() => {
@@ -1081,7 +1085,7 @@ export default function Dashboard() {
                   }}
                   title={t('dashboard.musicMini.collapse')}
                   aria-label={t('dashboard.musicMini.collapse')}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-200 hover:!bg-white"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-200 hover:!bg-white"
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M9 18V6l10-2v12" />
@@ -1093,7 +1097,7 @@ export default function Dashboard() {
                   onClick={() => setPlaying((p) => !p)}
                   title={playing ? t('dashboard.musicPopup.pause') : t('dashboard.musicPopup.play')}
                   aria-label={playing ? t('dashboard.musicPopup.pause') : t('dashboard.musicPopup.play')}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-200 hover:!bg-white"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-200 hover:!bg-white"
                 >
                   {playing ? (
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -1110,7 +1114,7 @@ export default function Dashboard() {
                   onClick={() => setYtMuted((m) => !m)}
                   title={ytMuted ? t('dashboard.musicMini.unmute') : t('dashboard.musicMini.mute')}
                   aria-label={ytMuted ? t('dashboard.musicMini.unmute') : t('dashboard.musicMini.mute')}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-200 hover:!bg-white"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-200 hover:!bg-white"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z" />
@@ -1133,8 +1137,8 @@ export default function Dashboard() {
                   onClick={() => setYtVideoVisible((v) => !v)}
                   title={ytVideoVisible ? t('dashboard.musicMini.hideVideo') : t('dashboard.musicMini.showVideo')}
                   aria-label={ytVideoVisible ? t('dashboard.musicMini.hideVideo') : t('dashboard.musicMini.showVideo')}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-200 hover:!bg-white"
-                  style={{ background: ytVideoVisible ? 'rgba(255,255,255,0.85)' : 'transparent' }}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-200 hover:!bg-white"
+                  style={{ background: ytVideoVisible ? 'var(--c-6rf20v)' : 'transparent' }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="5" width="18" height="14" rx="3" />
@@ -1145,9 +1149,9 @@ export default function Dashboard() {
             ) : (
               <div
                 className="flex w-[280px] max-w-[calc(100vw-52px)] flex-col gap-[8px] rounded-[22px] px-4 py-3"
-                style={{ background: 'rgba(255,255,255,0.66)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px rgba(58,98,126,0.14)' }}
+                style={{ background: 'var(--c-6rf0kc)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px var(--c-1k1wm30)' }}
               >
-                <span className="truncate text-[13px] font-bold text-[#2f4459]" title={tracks[track]?.name}>
+                <span className="truncate text-[13px] font-bold text-[var(--c-3dfktp)]" title={tracks[track]?.name}>
                   {tracks[track]?.name}
                 </span>
                 <div className="flex items-center justify-center gap-3">
@@ -1155,7 +1159,7 @@ export default function Dashboard() {
                     onClick={() => setMusicPanelOpen(false)}
                     title={t('dashboard.musicMini.collapse')}
                     aria-label={t('dashboard.musicMini.collapse')}
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-200 hover:!bg-white"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-200 hover:!bg-white"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M9 18V6l10-2v12" />
@@ -1166,8 +1170,8 @@ export default function Dashboard() {
                   <button
                     onClick={() => playRelativeTrack(-1)}
                     title={t('dashboard.musicPopup.prevTrack')}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
-                    style={{ background: 'rgba(255,255,255,0.6)' }}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-white"
+                    style={{ background: 'var(--c-ijr2u8)' }}
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                       <rect x="5" y="5" width="3" height="14" />
@@ -1177,8 +1181,8 @@ export default function Dashboard() {
                   <button
                     onClick={() => setPlaying((p) => !p)}
                     title={playing ? t('dashboard.musicPopup.pause') : t('dashboard.musicPopup.play')}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#21384f] transition-transform duration-200 hover:-translate-y-0.5"
-                    style={{ background: 'rgba(140,205,196,0.45)' }}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-2k9xd7)] transition-transform duration-200 hover:-translate-y-0.5"
+                    style={{ background: 'var(--c-hcls53)' }}
                   >
                     {playing ? (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -1194,8 +1198,8 @@ export default function Dashboard() {
                   <button
                     onClick={() => playRelativeTrack(1)}
                     title={t('dashboard.musicPopup.nextTrack')}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
-                    style={{ background: 'rgba(255,255,255,0.6)' }}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-white"
+                    style={{ background: 'var(--c-ijr2u8)' }}
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M6 5v14l8-7z" />
@@ -1216,7 +1220,7 @@ export default function Dashboard() {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-7 shrink-0 text-right text-[11px] font-semibold text-[rgba(51,71,94,0.5)] tabular-nums">
+                  <span className="w-7 shrink-0 text-right text-[11px] font-semibold text-[var(--c-mfvyic)] tabular-nums">
                     {fmtTrackTime(audioCurrentTime)}
                   </span>
                   <input
@@ -1229,7 +1233,7 @@ export default function Dashboard() {
                     disabled={!audioDuration}
                     className="ff-range w-full flex-1"
                   />
-                  <span className="w-7 shrink-0 text-[11px] font-semibold text-[rgba(51,71,94,0.5)] tabular-nums">
+                  <span className="w-7 shrink-0 text-[11px] font-semibold text-[var(--c-mfvyic)] tabular-nums">
                     {fmtTrackTime(audioDuration)}
                   </span>
                 </div>
@@ -1246,8 +1250,8 @@ export default function Dashboard() {
         className="absolute inset-0"
         style={
           selectedWallpaper.kind === 'image' || selectedWallpaper.kind === 'video'
-            ? { background: 'rgba(8,20,24,0.12)' }
-            : { backdropFilter: 'blur(2px)', background: 'rgba(255,255,255,0.14)' }
+            ? { background: 'var(--c-pz0zw9)' }
+            : { backdropFilter: 'blur(2px)', background: 'var(--c-6rewt5)' }
         }
       />
 
@@ -1267,21 +1271,21 @@ export default function Dashboard() {
         <div
           className="flex items-center gap-[11px] rounded-[22px] py-[9px] pr-[18px] pl-[13px]"
           style={{
-            background: 'rgba(255,255,255,0.6)',
-            boxShadow: '0 6px 20px rgba(64,102,128,0.09)',
+            background: 'var(--c-ijr2u8)',
+            boxShadow: '0 6px 20px var(--c-fc5pjb)',
             backdropFilter: 'blur(14px)',
           }}
         >
           <div
             className="h-5 w-5 rounded-lg"
             style={{
-              background: 'linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235))',
+              background: 'linear-gradient(135deg, var(--c-1feyjhs), var(--c-yr829))',
             }}
           />
-          <span className="text-base font-extrabold tracking-[-0.2px] text-[#2f4459]">
+          <span className="text-base font-extrabold tracking-[-0.2px] text-[var(--c-3dfktp)]">
             {t('app.name')}
           </span>
-          <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.5)]">
+          <span className="text-[13px] font-semibold text-[var(--c-mfvyic)]">
             · {isFocus ? t('dashboard.topbar.focusMode') : t('dashboard.topbar.dashboardMode')}
           </span>
         </div>
@@ -1290,10 +1294,10 @@ export default function Dashboard() {
           {!user && (
             <Link
               to="/auth"
-              className="rounded-[18px] px-4 py-[10px] font-sans text-[13px] font-extrabold text-[#1e3549] no-underline"
+              className="rounded-[18px] px-4 py-[10px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)] no-underline"
               style={{
                 background: 'var(--ff-accent-soft)',
-                boxShadow: '0 6px 20px rgba(64,102,128,0.09)',
+                boxShadow: '0 6px 20px var(--c-fc5pjb)',
               }}
             >
               {t('dashboard.topbar.login')}
@@ -1302,8 +1306,8 @@ export default function Dashboard() {
           <div
             className="flex gap-1 rounded-[20px] p-[5px]"
             style={{
-              background: 'rgba(255,255,255,0.6)',
-              boxShadow: '0 6px 20px rgba(64,102,128,0.09)',
+              background: 'var(--c-ijr2u8)',
+              boxShadow: '0 6px 20px var(--c-fc5pjb)',
               backdropFilter: 'blur(14px)',
             }}
           >
@@ -1314,8 +1318,8 @@ export default function Dashboard() {
               }}
               className="rounded-[15px] border-none px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
               style={{
-                background: isFocus ? 'rgba(255,255,255,0.95)' : 'transparent',
-                color: isFocus ? '#25415c' : 'rgba(51,71,94,0.55)',
+                background: isFocus ? 'var(--c-6rf2rk)' : 'transparent',
+                color: isFocus ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
               }}
             >
               {t('dashboard.topbar.tabFocus')}
@@ -1324,8 +1328,8 @@ export default function Dashboard() {
               onClick={() => setMode('dashboard')}
               className="rounded-[15px] border-none px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
               style={{
-                background: !isFocus ? 'rgba(255,255,255,0.95)' : 'transparent',
-                color: !isFocus ? '#25415c' : 'rgba(51,71,94,0.55)',
+                background: !isFocus ? 'var(--c-6rf2rk)' : 'transparent',
+                color: !isFocus ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
               }}
             >
               {t('dashboard.topbar.tabDashboard')}
@@ -1351,9 +1355,9 @@ export default function Dashboard() {
             style={{
               width: 'min(450px, 62vh, 92vw)',
               height: 'min(450px, 62vh, 92vw)',
-              background: 'rgba(255,255,255,0.42)',
+              background: 'var(--c-6reyzi)',
               backdropFilter: 'blur(18px)',
-              boxShadow: '0 24px 70px rgba(58,98,126,0.14)',
+              boxShadow: '0 24px 70px var(--c-1k1wm30)',
             }}
           />
           <svg
@@ -1370,7 +1374,7 @@ export default function Dashboard() {
               cy="165"
               r="146"
               fill="none"
-              stroke="rgba(255,255,255,0.65)"
+              stroke="var(--c-50bz5d)"
               strokeWidth="14"
             />
             {showProgressRing && (
@@ -1392,7 +1396,7 @@ export default function Dashboard() {
               !pomodoroStarted ? (
                 <>
                   <div className="flex flex-col items-center gap-[6px]">
-                    <span className="text-[13px] font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.62)] uppercase">
+                    <span className="text-[13px] font-extrabold tracking-[1.2px] text-[var(--c-1kei8zx)] uppercase">
                       {t('dashboard.clock.loopLabel')}
                     </span>
                     <div className="flex items-center">
@@ -1400,8 +1404,8 @@ export default function Dashboard() {
                         <button
                           onClick={() => nudgeLoopCount(-1)}
                           aria-label="-"
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
-                          style={{ background: 'rgba(255,255,255,0.85)' }}
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-3suggt)] shadow-sm transition-colors duration-200 hover:!bg-white"
+                          style={{ background: 'var(--c-6rf20v)' }}
                         >
                           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M15 6l-6 6 6 6" />
@@ -1419,14 +1423,14 @@ export default function Dashboard() {
                             if (e.key === 'Enter') commitEditField()
                             if (e.key === 'Escape') setEditingField(null)
                           }}
-                          className="rounded-lg border-none text-center text-3xl font-extrabold text-[#2c3f55] tabular-nums outline-none"
-                          style={{ width: '1.5em', background: 'rgba(255,255,255,0.7)' }}
+                          className="rounded-lg border-none text-center text-3xl font-extrabold text-[var(--c-3bsl4p)] tabular-nums outline-none"
+                          style={{ width: '1.5em', background: 'var(--c-ijr2v3)' }}
                         />
                       ) : (
                         <span
                           onClick={() => beginEditField('loop')}
                           title={t('dashboard.clock.editHint')}
-                          className="cursor-pointer text-3xl font-extrabold text-[#2c3f55] tabular-nums transition-opacity duration-200 hover:opacity-70"
+                          className="cursor-pointer text-3xl font-extrabold text-[var(--c-3bsl4p)] tabular-nums transition-opacity duration-200 hover:opacity-70"
                         >
                           {sessionCount}
                         </span>
@@ -1435,8 +1439,8 @@ export default function Dashboard() {
                         <button
                           onClick={() => nudgeLoopCount(1)}
                           aria-label="+"
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
-                          style={{ background: 'rgba(255,255,255,0.85)' }}
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-3suggt)] shadow-sm transition-colors duration-200 hover:!bg-white"
+                          style={{ background: 'var(--c-6rf20v)' }}
                         >
                           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M9 6l6 6-6 6" />
@@ -1447,15 +1451,15 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-start gap-9">
                     <div className="flex w-[76px] flex-col items-center">
-                      <span className="mb-[6px] text-[13px] font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.62)] uppercase">
+                      <span className="mb-[6px] text-[13px] font-extrabold tracking-[1.2px] text-[var(--c-1kei8zx)] uppercase">
                         {t('dashboard.clock.workLabel')}
                       </span>
                       <div className="h-0 w-9 shrink-0 overflow-hidden transition-[height,margin] duration-200 ease-out group-hover:mb-[6px] group-hover:h-9 focus-within:mb-[6px] focus-within:h-9">
                         <button
                           onClick={() => nudgeFocusMinutes(5)}
                           aria-label="+"
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
-                          style={{ background: 'rgba(255,255,255,0.85)' }}
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-3suggt)] shadow-sm transition-colors duration-200 hover:!bg-white"
+                          style={{ background: 'var(--c-6rf20v)' }}
                         >
                           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M6 15l6-6 6 6" />
@@ -1473,14 +1477,14 @@ export default function Dashboard() {
                             if (e.key === 'Enter') commitEditField()
                             if (e.key === 'Escape') setEditingField(null)
                           }}
-                          className="rounded-2xl border-none text-center font-extrabold text-[#2c3f55] tabular-nums outline-none"
-                          style={{ fontSize: 'clamp(40px, 7.5vh, 52px)', width: '2em', background: 'rgba(255,255,255,0.7)' }}
+                          className="rounded-2xl border-none text-center font-extrabold text-[var(--c-3bsl4p)] tabular-nums outline-none"
+                          style={{ fontSize: 'clamp(40px, 7.5vh, 52px)', width: '2em', background: 'var(--c-ijr2v3)' }}
                         />
                       ) : (
                         <span
                           onClick={() => beginEditField('work')}
                           title={t('dashboard.clock.editHint')}
-                          className="cursor-pointer leading-none font-extrabold text-[#2c3f55] tabular-nums transition-opacity duration-200 hover:opacity-70"
+                          className="cursor-pointer leading-none font-extrabold text-[var(--c-3bsl4p)] tabular-nums transition-opacity duration-200 hover:opacity-70"
                           style={{ fontSize: 'clamp(40px, 7.5vh, 52px)' }}
                         >
                           {focusMin}
@@ -1490,8 +1494,8 @@ export default function Dashboard() {
                         <button
                           onClick={() => nudgeFocusMinutes(-5)}
                           aria-label="-"
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
-                          style={{ background: 'rgba(255,255,255,0.85)' }}
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-3suggt)] shadow-sm transition-colors duration-200 hover:!bg-white"
+                          style={{ background: 'var(--c-6rf20v)' }}
                         >
                           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M6 9l6 6 6-6" />
@@ -1500,15 +1504,15 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="flex w-[76px] flex-col items-center">
-                      <span className="mb-[6px] text-[13px] font-extrabold tracking-[1.2px] text-[rgba(51,71,94,0.62)] uppercase">
+                      <span className="mb-[6px] text-[13px] font-extrabold tracking-[1.2px] text-[var(--c-1kei8zx)] uppercase">
                         {t('dashboard.clock.breakColumnLabel')}
                       </span>
                       <div className="h-0 w-9 shrink-0 overflow-hidden transition-[height,margin] duration-200 ease-out group-hover:mb-[6px] group-hover:h-9 focus-within:mb-[6px] focus-within:h-9">
                         <button
                           onClick={() => nudgeBreakMinutes(1)}
                           aria-label="+"
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
-                          style={{ background: 'rgba(255,255,255,0.85)' }}
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-3suggt)] shadow-sm transition-colors duration-200 hover:!bg-white"
+                          style={{ background: 'var(--c-6rf20v)' }}
                         >
                           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M6 15l6-6 6 6" />
@@ -1526,14 +1530,14 @@ export default function Dashboard() {
                             if (e.key === 'Enter') commitEditField()
                             if (e.key === 'Escape') setEditingField(null)
                           }}
-                          className="rounded-2xl border-none text-center font-extrabold text-[#2c3f55] tabular-nums outline-none"
-                          style={{ fontSize: 'clamp(40px, 7.5vh, 52px)', width: '2em', background: 'rgba(255,255,255,0.7)' }}
+                          className="rounded-2xl border-none text-center font-extrabold text-[var(--c-3bsl4p)] tabular-nums outline-none"
+                          style={{ fontSize: 'clamp(40px, 7.5vh, 52px)', width: '2em', background: 'var(--c-ijr2v3)' }}
                         />
                       ) : (
                         <span
                           onClick={() => beginEditField('break')}
                           title={t('dashboard.clock.editHint')}
-                          className="cursor-pointer leading-none font-extrabold text-[#2c3f55] tabular-nums transition-opacity duration-200 hover:opacity-70"
+                          className="cursor-pointer leading-none font-extrabold text-[var(--c-3bsl4p)] tabular-nums transition-opacity duration-200 hover:opacity-70"
                           style={{ fontSize: 'clamp(40px, 7.5vh, 52px)' }}
                         >
                           {breakMin}
@@ -1543,8 +1547,8 @@ export default function Dashboard() {
                         <button
                           onClick={() => nudgeBreakMinutes(-1)}
                           aria-label="-"
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#3c5470] shadow-sm transition-colors duration-200 hover:!bg-white"
-                          style={{ background: 'rgba(255,255,255,0.85)' }}
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-3suggt)] shadow-sm transition-colors duration-200 hover:!bg-white"
+                          style={{ background: 'var(--c-6rf20v)' }}
                         >
                           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M6 9l6 6 6-6" />
@@ -1556,8 +1560,8 @@ export default function Dashboard() {
                   <button
                     onClick={startPomodoro}
                     title={t('dashboard.controls.start')}
-                    className="flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-full border-none text-[#21384f] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(58,98,126,0.18)]"
-                    style={{ background: 'rgba(255,255,255,0.85)', boxShadow: '0 10px 26px rgba(58,98,126,0.14)' }}
+                    className="flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-full border-none text-[var(--c-2k9xd7)] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_var(--c-1k1wm6g)]"
+                    style={{ background: 'var(--c-6rf20v)', boxShadow: '0 10px 26px var(--c-1k1wm30)' }}
                   >
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M8 5v14l11-7z" />
@@ -1566,33 +1570,33 @@ export default function Dashboard() {
                 </>
               ) : done ? (
                 <>
-                  <span className="text-[13px] font-bold tracking-[1.6px] text-[rgba(51,71,94,0.55)] uppercase">
+                  <span className="text-[13px] font-bold tracking-[1.6px] text-[var(--c-1kei8bt)] uppercase">
                     {t('dashboard.clock.doneTitle')}
                   </span>
                   <span className="leading-none" style={{ fontSize: 'clamp(36px, 7vh, 60px)' }}>
                     🎉
                   </span>
-                  <span className="text-[13px] font-semibold text-[rgba(51,71,94,0.5)]">
+                  <span className="text-[13px] font-semibold text-[var(--c-mfvyic)]">
                     {t('dashboard.clock.doneHint', { count: sessionCount })}
                   </span>
                   <button
                     onClick={backToSetup}
-                    className="mt-1 rounded-[22px] border-none px-[26px] py-[13px] font-sans text-[15px] font-extrabold text-[#21384f] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(58,98,126,0.18)]"
-                    style={{ background: 'rgba(255,255,255,0.82)', boxShadow: '0 10px 26px rgba(58,98,126,0.14)' }}
+                    className="mt-1 rounded-[22px] border-none px-[26px] py-[13px] font-sans text-[15px] font-extrabold text-[var(--c-2k9xd7)] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_var(--c-1k1wm6g)]"
+                    style={{ background: 'var(--c-6rf1ya)', boxShadow: '0 10px 26px var(--c-1k1wm30)' }}
                   >
                     {t('dashboard.controls.newRound')}
                   </button>
                 </>
               ) : (
                 <>
-                  <span className="text-[13px] font-bold text-[rgba(51,71,94,0.5)] tabular-nums">
+                  <span className="text-[13px] font-bold text-[var(--c-mfvyic)] tabular-nums">
                     {round}/{sessionCount}
                   </span>
-                  <span className="text-[13px] font-bold tracking-[1.6px] text-[rgba(51,71,94,0.55)] uppercase">
+                  <span className="text-[13px] font-bold tracking-[1.6px] text-[var(--c-1kei8bt)] uppercase">
                     {phase === 'focus' ? t('dashboard.clock.focusing') : t('dashboard.clock.onBreak')}
                   </span>
                   <span
-                    className="leading-none font-extrabold text-[#2c3f55] tabular-nums"
+                    className="leading-none font-extrabold text-[var(--c-3bsl4p)] tabular-nums"
                     style={{ fontSize: 'clamp(34px, 7.5vh, 60px)', letterSpacing: '-2px' }}
                   >
                     {fmtHMS(left)}
@@ -1601,8 +1605,8 @@ export default function Dashboard() {
                     <button
                       onClick={cancelPomodoro}
                       title={t('dashboard.controls.cancel')}
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
-                      style={{ background: 'rgba(255,255,255,0.6)' }}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-white"
+                      style={{ background: 'var(--c-ijr2u8)' }}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                         <rect x="6" y="6" width="12" height="12" rx="2" />
@@ -1611,8 +1615,8 @@ export default function Dashboard() {
                     <button
                       onClick={toggleRun}
                       title={running ? t('dashboard.controls.pause') : t('dashboard.controls.resume')}
-                      className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-full border-none text-[#21384f] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5"
-                      style={{ background: 'rgba(255,255,255,0.85)', boxShadow: '0 10px 26px rgba(58,98,126,0.14)' }}
+                      className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-full border-none text-[var(--c-2k9xd7)] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5"
+                      style={{ background: 'var(--c-6rf20v)', boxShadow: '0 10px 26px var(--c-1k1wm30)' }}
                     >
                       {running ? (
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -1628,8 +1632,8 @@ export default function Dashboard() {
                     <button
                       onClick={skipPhase}
                       title={t('dashboard.controls.skip')}
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
-                      style={{ background: 'rgba(255,255,255,0.6)' }}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-white"
+                      style={{ background: 'var(--c-ijr2u8)' }}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M6 5v14l8-7z" />
@@ -1642,7 +1646,7 @@ export default function Dashboard() {
             ) : !endlessStarted ? (
               <>
                 <span
-                  className="leading-none font-extrabold text-[#2c3f55] tabular-nums"
+                  className="leading-none font-extrabold text-[var(--c-3bsl4p)] tabular-nums"
                   style={{ fontSize: 'clamp(34px, 7.5vh, 60px)', letterSpacing: '-2px' }}
                 >
                   {fmtHMS(0)}
@@ -1650,8 +1654,8 @@ export default function Dashboard() {
                 <button
                   onClick={startEndless}
                   title={t('dashboard.controls.start')}
-                  className="flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-full border-none text-[#21384f] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(58,98,126,0.18)]"
-                  style={{ background: 'rgba(255,255,255,0.85)', boxShadow: '0 10px 26px rgba(58,98,126,0.14)' }}
+                  className="flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-full border-none text-[var(--c-2k9xd7)] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_var(--c-1k1wm6g)]"
+                  style={{ background: 'var(--c-6rf20v)', boxShadow: '0 10px 26px var(--c-1k1wm30)' }}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M8 5v14l11-7z" />
@@ -1661,7 +1665,7 @@ export default function Dashboard() {
             ) : (
               <>
                 <span
-                  className="leading-none font-extrabold text-[#2c3f55] tabular-nums"
+                  className="leading-none font-extrabold text-[var(--c-3bsl4p)] tabular-nums"
                   style={{ fontSize: 'clamp(34px, 7.5vh, 60px)', letterSpacing: '-2px' }}
                 >
                   {fmtHMS(endlessSeconds)}
@@ -1670,8 +1674,8 @@ export default function Dashboard() {
                   <button
                     onClick={cancelEndless}
                     title={t('dashboard.controls.cancel')}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
-                    style={{ background: 'rgba(255,255,255,0.6)' }}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-white"
+                    style={{ background: 'var(--c-ijr2u8)' }}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                       <rect x="6" y="6" width="12" height="12" rx="2" />
@@ -1680,8 +1684,8 @@ export default function Dashboard() {
                   <button
                     onClick={toggleEndlessRun}
                     title={endlessRunning ? t('dashboard.controls.pause') : t('dashboard.controls.resume')}
-                    className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-full border-none text-[#21384f] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5"
-                    style={{ background: 'rgba(255,255,255,0.85)', boxShadow: '0 10px 26px rgba(58,98,126,0.14)' }}
+                    className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-full border-none text-[var(--c-2k9xd7)] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5"
+                    style={{ background: 'var(--c-6rf20v)', boxShadow: '0 10px 26px var(--c-1k1wm30)' }}
                   >
                     {endlessRunning ? (
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -1714,8 +1718,8 @@ export default function Dashboard() {
             title={t('dashboard.clock.pomodoroMode')}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none transition-colors duration-200"
             style={{
-              background: timerType === 'pomodoro' ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.5)',
-              color: timerType === 'pomodoro' ? '#21384f' : 'rgba(51,71,94,0.55)',
+              background: timerType === 'pomodoro' ? 'var(--c-6rf2oz)' : 'var(--c-ijr2td)',
+              color: timerType === 'pomodoro' ? 'var(--c-2k9xd7)' : 'var(--c-1kei8bt)',
             }}
           >
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -1729,8 +1733,8 @@ export default function Dashboard() {
             title={t('dashboard.clock.endlessMode')}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none transition-colors duration-200"
             style={{
-              background: timerType === 'endless' ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.5)',
-              color: timerType === 'endless' ? '#21384f' : 'rgba(51,71,94,0.55)',
+              background: timerType === 'endless' ? 'var(--c-6rf2oz)' : 'var(--c-ijr2td)',
+              color: timerType === 'endless' ? 'var(--c-2k9xd7)' : 'var(--c-1kei8bt)',
             }}
           >
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -1755,33 +1759,33 @@ export default function Dashboard() {
         <div
           className="rounded-[24px] px-5 py-[18px]"
           style={{
-            background: 'rgba(255,255,255,0.62)',
+            background: 'var(--c-6rf0gw)',
             backdropFilter: 'blur(16px)',
-            boxShadow: '0 10px 28px rgba(58,98,126,0.1)',
+            boxShadow: '0 10px 28px var(--c-1w98bua)',
           }}
         >
-          <div className="text-[13px] leading-tight font-bold text-[rgba(51,71,94,0.6)]">
+          <div className="text-[13px] leading-tight font-bold text-[var(--c-mfvyj7)]">
             {clockDateText}
           </div>
-          <div className="mt-1 text-[34px] leading-none font-extrabold text-[#2c3f55] tabular-nums">
+          <div className="mt-1 text-[34px] leading-none font-extrabold text-[var(--c-3bsl4p)] tabular-nums">
             {clockTimeText}
           </div>
         </div>
         <div
           className="rounded-[24px] px-5 py-[18px]"
           style={{
-            background: 'rgba(255,255,255,0.62)',
+            background: 'var(--c-6rf0gw)',
             backdropFilter: 'blur(16px)',
-            boxShadow: '0 10px 28px rgba(58,98,126,0.1)',
+            boxShadow: '0 10px 28px var(--c-1w98bua)',
           }}
         >
-          <div className="mb-[10px] text-xs font-bold tracking-[1.2px] text-[rgba(51,71,94,0.5)] uppercase">
+          <div className="mb-[10px] text-xs font-bold tracking-[1.2px] text-[var(--c-mfvyic)] uppercase">
             {t('dashboard.leftWidgets.inProgress')}
           </div>
-          <div className="text-[15px] leading-[1.4] font-bold text-[#2c3f55]">
+          <div className="text-[15px] leading-[1.4] font-bold text-[var(--c-3bsl4p)]">
             {active ? active.name : t('dashboard.leftWidgets.allDone')}
           </div>
-          <div className="mt-[6px] text-[13px] font-semibold text-[rgba(51,71,94,0.5)]">
+          <div className="mt-[6px] text-[13px] font-semibold text-[var(--c-mfvyic)]">
             {t('dashboard.leftWidgets.remaining', {
               open: openCount,
               done: tasks.length - openCount,
@@ -1803,14 +1807,14 @@ export default function Dashboard() {
           onClick={openStudyPanel}
           className="flex w-full items-center gap-3 rounded-[24px] px-[18px] py-[15px] text-left text-inherit transition-[transform,background] duration-[220ms] hover:!bg-white hover:!-translate-y-0.5"
           style={{
-            background: panel === 'study' ? '#ffffff' : 'rgba(255,255,255,0.72)',
+            background: panel === 'study' ? 'var(--c-1gyy7ef)' : 'var(--c-6rf17l)',
             backdropFilter: 'blur(16px)',
-            boxShadow: '0 12px 30px rgba(58,98,126,0.14)',
+            boxShadow: '0 12px 30px var(--c-1k1wm30)',
           }}
         >
           <span
-            className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[14px] text-[#2c5b53]"
-            style={{ background: 'rgba(140,205,196,0.32)' }}
+            className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[14px] text-[var(--c-3bts4x)]"
+            style={{ background: 'var(--c-hclrbt)' }}
           >
             <svg
               width="19"
@@ -1828,10 +1832,10 @@ export default function Dashboard() {
             </svg>
           </span>
           <span className="flex flex-col gap-[2px]">
-            <span className="text-sm font-extrabold text-[#2c3f55]">
+            <span className="text-sm font-extrabold text-[var(--c-3bsl4p)]">
               {t('dashboard.rightColumn.studyTogether')}
             </span>
-            <span className="text-xs font-semibold text-[rgba(51,71,94,0.55)]">
+            <span className="text-xs font-semibold text-[var(--c-1kei8bt)]">
               {t('dashboard.rightColumn.findStudyBuddy')}
             </span>
           </span>
@@ -1846,17 +1850,17 @@ export default function Dashboard() {
       {panel === 'study' && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(20,32,42,0.42)', backdropFilter: 'blur(2px)' }}
+          style={{ background: 'var(--c-1klvacf)', backdropFilter: 'blur(2px)' }}
           onClick={(e) => {
             if (e.target === e.currentTarget) setPanel(null)
           }}
         >
           <div
-            className="relative flex w-full max-w-[380px] flex-col overflow-hidden rounded-[28px] font-sans text-[#33475e] antialiased"
+            className="relative flex w-full max-w-[380px] flex-col overflow-hidden rounded-[28px] font-sans text-[var(--c-32fr7s)] antialiased"
             style={{
               maxHeight: '88vh',
-              background: 'linear-gradient(170deg, #e4f1f4 0%, #dbeaf2 50%, #e6f4ee 100%)',
-              boxShadow: '0 30px 80px rgba(20,32,42,0.35)',
+              background: 'linear-gradient(170deg, var(--c-1fqdrzz) 0%, var(--c-1fyn1i5) 50%, var(--c-1frhffa) 100%)',
+              boxShadow: '0 30px 80px var(--c-1klv9ob)',
             }}
           >
             <div className="flex-1 overflow-y-auto">
@@ -1864,15 +1868,15 @@ export default function Dashboard() {
                 <div className="flex items-center gap-[11px]">
                   <div
                     className="h-[20px] w-[20px] rounded-[8px]"
-                    style={{ background: 'linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235))' }}
+                    style={{ background: 'linear-gradient(135deg, var(--c-1feyjhs), var(--c-yr829))' }}
                   />
-                  <span className="text-[16px] font-extrabold tracking-[-0.2px] text-[#2f4459]">{t('app.name')}</span>
+                  <span className="text-[16px] font-extrabold tracking-[-0.2px] text-[var(--c-3dfktp)]">{t('app.name')}</span>
                   <button
                     onClick={() => setPanel(null)}
                     title={t('dashboard.wallpaperPopup.close')}
                     aria-label={t('dashboard.wallpaperPopup.close')}
-                    className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
-                    style={{ background: 'rgba(255,255,255,0.7)' }}
+                    className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-white"
+                    style={{ background: 'var(--c-ijr2v3)' }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                       <path d="M6 6l12 12M18 6L6 18" />
@@ -1880,12 +1884,12 @@ export default function Dashboard() {
                   </button>
                 </div>
 
-                <span className="text-[19px] font-extrabold tracking-[-0.3px] text-[#1e3549]">
+                <span className="text-[19px] font-extrabold tracking-[-0.3px] text-[var(--c-2vtjkg)]">
                   {t('dashboard.studyPopup.title')}
                 </span>
 
-                <div className="flex items-center gap-3 rounded-[16px] px-5 py-[12px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
-                  <span className="text-[13.5px] font-bold text-[#2c3f55]">
+                <div className="flex items-center gap-3 rounded-[16px] px-5 py-[12px]" style={{ background: 'var(--c-rucw5u)' }}>
+                  <span className="text-[13.5px] font-bold text-[var(--c-3bsl4p)]">
                     {RANDOM_MATCH_CONFIG.focus_minutes} / {RANDOM_MATCH_CONFIG.focus_minutes === 25 ? 5 : 10} · Tiếng Việt
                   </span>
                 </div>
@@ -1895,13 +1899,13 @@ export default function Dashboard() {
                     onClick={startGroupMatch}
                     className="w-full rounded-[18px] border-none py-[15px] text-center font-sans text-[15px] font-extrabold text-white transition-transform duration-200 hover:-translate-y-0.5"
                     style={{
-                      background: 'linear-gradient(135deg, oklch(0.6 0.1 175), oklch(0.53 0.1 235))',
-                      boxShadow: '0 14px 30px rgba(30,80,72,0.3)',
+                      background: 'linear-gradient(135deg, var(--c-cvfsr8), var(--c-ecaxup))',
+                      boxShadow: '0 14px 30px var(--c-10f8f7j)',
                     }}
                   >
                     {t('dashboard.studyPopup.tabRandom')}
                   </button>
-                  <span className="text-center text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">
+                  <span className="text-center text-[12px] font-semibold text-[var(--c-mfvyic)]">
                     {t('dashboard.studyPopup.randomHint')}
                   </span>
                 </div>
@@ -1910,7 +1914,7 @@ export default function Dashboard() {
                   to="/matching"
                   onClick={() => setPanel(null)}
                   className="text-center font-sans text-[13.5px] font-extrabold no-underline"
-                  style={{ color: '#1e6b5c' }}
+                  style={{ color: 'var(--c-2vwdyb)' }}
                 >
                   {t('dashboard.studyPopup.tabBrowse')} →
                 </Link>
@@ -1925,9 +1929,9 @@ export default function Dashboard() {
         className="absolute bottom-[34px] left-1/2 flex max-w-[calc(100vw-24px)] items-center gap-1 overflow-x-auto rounded-[26px] p-[8px] md:max-w-none md:gap-2 md:p-[10px]"
         style={{
           ...dashStyleBase,
-          background: 'rgba(255,255,255,0.66)',
+          background: 'var(--c-6rf0kc)',
           backdropFilter: 'blur(18px)',
-          boxShadow: '0 14px 34px rgba(58,98,126,0.14)',
+          boxShadow: '0 14px 34px var(--c-1k1wm30)',
           transform: `translate(-50%, ${dashVisible ? '0px' : '26px'})`,
           transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
         }}
@@ -1935,8 +1939,8 @@ export default function Dashboard() {
         <button
           onClick={() => togglePanel('wp')}
           title={t('dashboard.taskbar.wallpaperTitle')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:px-5"
-          style={{ background: panel === 'wp' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)' }}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:px-5"
+          style={{ background: panel === 'wp' ? 'var(--c-6rf2rk)' : 'var(--c-6reybe)' }}
         >
           <svg
             width="18"
@@ -1956,9 +1960,9 @@ export default function Dashboard() {
         <button
           onClick={() => togglePanel('music')}
           title={t('dashboard.taskbar.musicTitle')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:px-5"
           style={{
-            background: panel === 'music' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)',
+            background: panel === 'music' ? 'var(--c-6rf2rk)' : 'var(--c-6reybe)',
           }}
         >
           <svg
@@ -1979,8 +1983,8 @@ export default function Dashboard() {
         <button
           onClick={() => togglePanel('todo')}
           title={t('dashboard.taskbar.todoTitle')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:px-5"
-          style={{ background: panel === 'todo' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)' }}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:px-5"
+          style={{ background: panel === 'todo' ? 'var(--c-6rf2rk)' : 'var(--c-6reybe)' }}
         >
           <svg
             width="18"
@@ -1998,8 +2002,8 @@ export default function Dashboard() {
           </svg>
           <span className="hidden md:inline">{t('dashboard.taskbar.todoLabel')}</span>
           <span
-            className="rounded-full px-2 py-[2px] text-xs font-extrabold text-[#2c5b53]"
-            style={{ background: 'rgba(120,190,180,0.28)' }}
+            className="rounded-full px-2 py-[2px] text-xs font-extrabold text-[var(--c-3bts4x)]"
+            style={{ background: 'var(--c-iz1xfk)' }}
           >
             {openCount}
           </span>
@@ -2008,8 +2012,8 @@ export default function Dashboard() {
           onClick={openStudyPanel}
           title={t('dashboard.taskbar.studyTogetherTitle')}
           aria-label={t('dashboard.taskbar.studyTogetherTitle')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:hidden"
-          style={{ background: panel === 'study' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)' }}
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
+          style={{ background: panel === 'study' ? 'var(--c-ijr2wt)' : 'var(--c-6reybe)' }}
         >
           <svg
             width="18"
@@ -2028,17 +2032,15 @@ export default function Dashboard() {
         </button>
         <button
           type="button"
-          onClick={() => {
-            if (!user) {
-              navigate('/auth')
-              return
-            }
-            setPanel(null)
-            setStatsOpen(true)
-          }}
+          onClick={() =>
+            requireAuth(() => {
+              setPanel(null)
+              setStatsOpen(true)
+            })
+          }
           title={t('dashboard.taskbar.stats')}
-          className="flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-[12px] font-extrabold text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:hidden"
-          style={{ background: 'rgba(255,255,255,0.35)' }}
+          className="flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-[12px] font-extrabold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
+          style={{ background: 'var(--c-6reybe)' }}
         >
           {t('dashboard.taskbar.stats')}
         </button>
@@ -2048,24 +2050,22 @@ export default function Dashboard() {
           (tròn, frosted glass) với Stats/Settings/camera. Badge đỏ hiện số lời mời kết bạn
           đang chờ, lấy từ friendNotifications store (subscribe realtime ở App.tsx). */}
       <button
-        onClick={() => {
-          if (!user) {
-            navigate('/auth')
-            return
-          }
-          setPanel(null)
-          setFriendsOpen(true)
-        }}
+        onClick={() =>
+          requireAuth(() => {
+            setPanel(null)
+            setFriendsOpen(true)
+          })
+        }
         title={t('dashboard.taskbar.friendsTitle')}
         aria-label={t('dashboard.taskbar.friendsTitle')}
-        className="absolute right-[180px] bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:right-[200px]"
+        className="absolute right-[180px] bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:right-[200px]"
         style={{
           ...dashStyleBase,
           opacity: dashVisible && panel === null ? 1 : 0,
           pointerEvents: dashVisible && panel === null ? 'auto' : 'none',
-          background: 'rgba(255,255,255,0.66)',
+          background: 'var(--c-6rf0kc)',
           backdropFilter: 'blur(18px)',
-          boxShadow: '0 14px 34px rgba(58,98,126,0.14)',
+          boxShadow: '0 14px 34px var(--c-1k1wm30)',
           transform: `translateY(${dashVisible ? '0px' : '26px'})`,
           transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
         }}
@@ -2079,7 +2079,7 @@ export default function Dashboard() {
         {pendingFriendRequestCount > 0 && (
           <span
             className="absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white"
-            style={{ background: '#c0524a' }}
+            style={{ background: 'var(--c-1ep8226)' }}
           >
             {pendingFriendRequestCount > 9 ? '9+' : pendingFriendRequestCount}
           </span>
@@ -2097,14 +2097,14 @@ export default function Dashboard() {
         onClick={() => setCameraOn((c) => !c)}
         title={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
         aria-label={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
-        className="absolute right-[124px] bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:right-[144px]"
+        className="absolute right-[124px] bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:right-[144px]"
         style={{
           ...dashStyleBase,
           opacity: dashVisible && panel === null ? 1 : 0,
           pointerEvents: dashVisible && panel === null ? 'auto' : 'none',
-          background: 'rgba(255,255,255,0.66)',
+          background: 'var(--c-6rf0kc)',
           backdropFilter: 'blur(18px)',
-          boxShadow: '0 14px 34px rgba(58,98,126,0.14)',
+          boxShadow: '0 14px 34px var(--c-1k1wm30)',
           transform: `translateY(${dashVisible ? '0px' : '26px'})`,
           transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
         }}
@@ -2117,7 +2117,7 @@ export default function Dashboard() {
         {cameraOn && (
           <span
             className="absolute right-[3px] bottom-[3px] h-[9px] w-[9px] rounded-full"
-            style={{ background: '#4bbf9a', boxShadow: '0 0 0 2px rgba(255,255,255,0.85)' }}
+            style={{ background: 'var(--c-t8fca9)', boxShadow: '0 0 0 2px var(--c-6rf20v)' }}
           />
         )}
       </button>
@@ -2130,16 +2130,16 @@ export default function Dashboard() {
           className="absolute right-3 bottom-[90px] w-[214px] rounded-[24px] p-3 md:right-8"
           style={{
             ...dashStyleBase,
-            background: 'rgba(255,255,255,0.62)',
+            background: 'var(--c-6rf0gw)',
             backdropFilter: 'blur(16px)',
-            boxShadow: '0 10px 28px rgba(58,98,126,0.1)',
+            boxShadow: '0 10px 28px var(--c-1w98bua)',
             transform: `translateY(${dashVisible ? '0px' : '26px'})`,
             transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
           }}
         >
           <div
             className="relative flex h-[148px] items-center justify-center overflow-hidden rounded-[18px]"
-            style={{ background: 'linear-gradient(150deg, oklch(0.86 0.045 205), oklch(0.79 0.055 235))' }}
+            style={{ background: 'linear-gradient(150deg, var(--c-1b2b91a), var(--c-1yu9b2))' }}
           >
             <video
               ref={videoRef}
@@ -2150,17 +2150,17 @@ export default function Dashboard() {
               style={{ transform: 'scaleX(-1)' }}
             />
             <div
-              className="absolute top-[10px] left-[10px] flex items-center gap-[6px] rounded-full px-[9px] py-1 text-[11px] font-extrabold tracking-[0.4px] text-[#2c3f55]"
-              style={{ background: 'rgba(255,255,255,0.82)' }}
+              className="absolute top-[10px] left-[10px] flex items-center gap-[6px] rounded-full px-[9px] py-1 text-[11px] font-extrabold tracking-[0.4px] text-[var(--c-3bsl4p)]"
+              style={{ background: 'var(--c-6rf1ya)' }}
             >
-              <span className="h-[7px] w-[7px] rounded-full" style={{ background: '#4bbf9a' }} />
+              <span className="h-[7px] w-[7px] rounded-full" style={{ background: 'var(--c-t8fca9)' }} />
               {t('dashboard.rightColumn.you')}
             </div>
           </div>
           <button
             onClick={() => setCameraOn(false)}
-            className="mt-[10px] w-full rounded-[15px] border-none py-[10px] font-sans text-[13px] font-extrabold text-[#2c3f55] transition-colors duration-[220ms] hover:!bg-white"
-            style={{ background: 'rgba(255,255,255,0.72)' }}
+            className="mt-[10px] w-full rounded-[15px] border-none py-[10px] font-sans text-[13px] font-extrabold text-[var(--c-3bsl4p)] transition-colors duration-[220ms] hover:!bg-white"
+            style={{ background: 'var(--c-6rf17l)' }}
           >
             {t('dashboard.rightColumn.turnOffCamera')}
           </button>
@@ -2171,24 +2171,22 @@ export default function Dashboard() {
           kiểu (tròn, frosted glass) — thay cho link text "Stats" trước đây nằm rời trong
           card "Study together". Cùng pattern hiện/ẩn theo dashVisible/panel với gear. */}
       <button
-        onClick={() => {
-          if (!user) {
-            navigate('/auth')
-            return
-          }
-          setPanel(null)
-          setStatsOpen(true)
-        }}
+        onClick={() =>
+          requireAuth(() => {
+            setPanel(null)
+            setStatsOpen(true)
+          })
+        }
         title={t('dashboard.taskbar.stats')}
         aria-label={t('dashboard.taskbar.stats')}
-        className="absolute right-[68px] bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] no-underline transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:right-[88px]"
+        className="absolute right-[68px] bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] no-underline transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:right-[88px]"
         style={{
           ...dashStyleBase,
           opacity: dashVisible && panel === null ? 1 : 0,
           pointerEvents: dashVisible && panel === null ? 'auto' : 'none',
-          background: 'rgba(255,255,255,0.66)',
+          background: 'var(--c-6rf0kc)',
           backdropFilter: 'blur(18px)',
-          boxShadow: '0 14px 34px rgba(58,98,126,0.14)',
+          boxShadow: '0 14px 34px var(--c-1k1wm30)',
           transform: `translateY(${dashVisible ? '0px' : '26px'})`,
           transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
         }}
@@ -2205,17 +2203,15 @@ export default function Dashboard() {
           redirect qua RequireAuth); đã đăng nhập thì mở overlay ngay tại chỗ, không điều
           hướng — Dashboard không unmount nên camera/nhạc đang phát không bị ngắt. */}
       <button
-        onClick={() => {
-          if (!user) {
-            navigate('/auth')
-            return
-          }
-          setPanel(null)
-          setSettingsOpen(true)
-        }}
+        onClick={() =>
+          requireAuth(() => {
+            setPanel(null)
+            setSettingsOpen(true)
+          })
+        }
         title={t('dashboard.taskbar.settingsTitle')}
         aria-label={t('dashboard.taskbar.settingsTitle')}
-        className="absolute right-3 bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[#354c65] no-underline transition-colors duration-[240ms] hover:!bg-[rgba(255,255,255,0.9)] md:right-8"
+        className="absolute right-3 bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] no-underline transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:right-8"
         style={{
           ...dashStyleBase,
           // popup nào cũng nổi đè lên đúng góc này (todo panel full-height bên phải, wallpaper/music
@@ -2223,9 +2219,9 @@ export default function Dashboard() {
           // không bao giờ đè lên chữ/nút trong popup dù ở kích thước màn hình nào.
           opacity: dashVisible && panel === null ? 1 : 0,
           pointerEvents: dashVisible && panel === null ? 'auto' : 'none',
-          background: 'rgba(255,255,255,0.66)',
+          background: 'var(--c-6rf0kc)',
           backdropFilter: 'blur(18px)',
-          boxShadow: '0 14px 34px rgba(58,98,126,0.14)',
+          boxShadow: '0 14px 34px var(--c-1k1wm30)',
           transform: `translateY(${dashVisible ? '0px' : '26px'})`,
           transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
         }}
@@ -2247,6 +2243,7 @@ export default function Dashboard() {
       {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} />}
       {statsOpen && <Stats onClose={() => setStatsOpen(false)} />}
       {friendsOpen && <FriendsPanel onClose={() => setFriendsOpen(false)} />}
+      {onboardingOpen && <GuestOnboarding onClose={() => setOnboardingOpen(false)} />}
 
       {/* quick match — lobby thật (GĐ10 tiếp): thấy ngay ai đã vào qua Realtime thay vì
           spinner trắng + số đếm ước lượng cũ */}
@@ -2278,9 +2275,9 @@ export default function Dashboard() {
       <div
         className="absolute bottom-[108px] left-1/2 w-[340px] rounded-[26px] p-5"
         style={{
-          background: 'rgba(255,255,255,0.8)',
+          background: 'var(--c-ijr2vy)',
           backdropFilter: 'blur(20px)',
-          boxShadow: '0 18px 44px rgba(58,98,126,0.16)',
+          boxShadow: '0 18px 44px var(--c-1k1wm4q)',
           opacity: panel === 'wp' ? 1 : 0,
           transform: `translate(-50%, ${panel === 'wp' ? '0px' : '14px'})`,
           pointerEvents: panel === 'wp' ? 'auto' : 'none',
@@ -2288,12 +2285,12 @@ export default function Dashboard() {
         }}
       >
         <div className="mb-[14px] flex items-center justify-between">
-          <span className="text-[15px] font-extrabold text-[#2c3f55]">
+          <span className="text-[15px] font-extrabold text-[var(--c-3bsl4p)]">
             {t('dashboard.wallpaperPopup.title')}
           </span>
           <button
             onClick={() => setPanel(null)}
-            className="border-none bg-transparent font-sans text-[13px] font-bold text-[rgba(51,71,94,0.5)]"
+            className="border-none bg-transparent font-sans text-[13px] font-bold text-[var(--c-mfvyic)]"
           >
             {t('dashboard.wallpaperPopup.close')}
           </button>
@@ -2311,8 +2308,8 @@ export default function Dashboard() {
                     : option.kind === 'image'
                       ? `url(${option.value})`
                       : undefined,
-                border: option.id === wp ? `2px solid ${ACCENT}` : '2px solid rgba(255,255,255,0.7)',
-                boxShadow: '0 4px 12px rgba(58,98,126,0.1)',
+                border: option.id === wp ? `2px solid ${ACCENT}` : '2px solid var(--c-ijr2v3)',
+                boxShadow: '0 4px 12px var(--c-1w98bua)',
               }}
             >
               {/* Popup này LUÔN mounted trong DOM (chỉ ẩn/hiện qua opacity, xem style của popup
@@ -2333,7 +2330,7 @@ export default function Dashboard() {
             </button>
           ))}
         </div>
-        <div className="mt-[14px] text-xs font-semibold text-[rgba(51,71,94,0.5)]">
+        <div className="mt-[14px] text-xs font-semibold text-[var(--c-mfvyic)]">
           {t('dashboard.wallpaperPopup.hint')}
         </div>
       </div>
@@ -2342,9 +2339,9 @@ export default function Dashboard() {
       <div
         className="absolute bottom-[108px] left-1/2 w-[320px] rounded-[26px] p-5"
         style={{
-          background: 'rgba(255,255,255,0.8)',
+          background: 'var(--c-ijr2vy)',
           backdropFilter: 'blur(20px)',
-          boxShadow: '0 18px 44px rgba(58,98,126,0.16)',
+          boxShadow: '0 18px 44px var(--c-1k1wm4q)',
           opacity: panel === 'music' ? 1 : 0,
           transform: `translate(-50%, ${panel === 'music' ? '0px' : '14px'})`,
           pointerEvents: panel === 'music' ? 'auto' : 'none',
@@ -2352,29 +2349,29 @@ export default function Dashboard() {
         }}
       >
         <div className="mb-[14px] flex items-center justify-between">
-          <span className="text-[15px] font-extrabold text-[#2c3f55]">
+          <span className="text-[15px] font-extrabold text-[var(--c-3bsl4p)]">
             {t('dashboard.musicPopup.title')}
           </span>
           <button
             onClick={() => setPanel(null)}
-            className="border-none bg-transparent font-sans text-[13px] font-bold text-[rgba(51,71,94,0.5)]"
+            className="border-none bg-transparent font-sans text-[13px] font-bold text-[var(--c-mfvyic)]"
           >
             {t('dashboard.musicPopup.close')}
           </button>
         </div>
 
-        <div className="mb-[10px] flex gap-[7px] rounded-[18px] p-[5px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
+        <div className="mb-[10px] flex gap-[7px] rounded-[18px] p-[5px]" style={{ background: 'var(--c-rucw5u)' }}>
           <button
             onClick={() => setActiveTab('library')}
             className="flex-1 rounded-xl border-none px-[6px] py-[8px] font-sans text-[12px] font-extrabold transition-all duration-[220ms]"
-            style={{ background: activeTab === 'library' ? 'white' : 'transparent', color: activeTab === 'library' ? '#22483f' : 'rgba(51,71,94,0.55)' }}
+            style={{ background: activeTab === 'library' ? 'white' : 'transparent', color: activeTab === 'library' ? 'var(--c-2kucx8)' : 'var(--c-1kei8bt)' }}
           >
             {t('dashboard.musicPopup.sourceLibrary')}
           </button>
           <button
             onClick={() => setActiveTab('youtube')}
             className="flex-1 rounded-xl border-none px-[6px] py-[8px] font-sans text-[12px] font-extrabold transition-all duration-[220ms]"
-            style={{ background: activeTab === 'youtube' ? 'white' : 'transparent', color: activeTab === 'youtube' ? '#22483f' : 'rgba(51,71,94,0.55)' }}
+            style={{ background: activeTab === 'youtube' ? 'white' : 'transparent', color: activeTab === 'youtube' ? 'var(--c-2kucx8)' : 'var(--c-1kei8bt)' }}
           >
             {t('dashboard.musicPopup.sourceYoutube')}
           </button>
@@ -2383,7 +2380,7 @@ export default function Dashboard() {
         {activeTab === 'library' && (
           <div className="flex max-h-[220px] flex-col gap-[6px] overflow-y-auto">
             {tracks.length === 0 && (
-              <span className="px-[14px] py-3 text-xs font-semibold text-[rgba(51,71,94,0.5)]">
+              <span className="px-[14px] py-3 text-xs font-semibold text-[var(--c-mfvyic)]">
                 {t('dashboard.musicPopup.empty')}
               </span>
             )}
@@ -2395,13 +2392,13 @@ export default function Dashboard() {
                   setPlaying(true)
                   setMusicSource('library')
                 }}
-                className="flex items-center gap-3 rounded-[17px] border-none px-[14px] py-3 text-left font-sans transition-colors duration-200 hover:!bg-[rgba(140,200,205,0.16)]"
-                style={{ background: i === track ? 'rgba(140,200,205,0.22)' : 'rgba(255,255,255,0.55)' }}
+                className="flex items-center gap-3 rounded-[17px] border-none px-[14px] py-3 text-left font-sans transition-colors duration-200 hover:!bg-[var(--c-40zs1j)]"
+                style={{ background: i === track ? 'var(--c-40zsos)' : 'var(--c-6rezss)' }}
               >
-                <span className="min-w-0 flex-1 truncate text-sm font-bold text-[#2f4459]" title={tr.name}>
+                <span className="min-w-0 flex-1 truncate text-sm font-bold text-[var(--c-3dfktp)]" title={tr.name}>
                   {tr.name}
                 </span>
-                <span className="shrink-0 text-xs font-semibold text-[rgba(51,71,94,0.45)]">
+                <span className="shrink-0 text-xs font-semibold text-[var(--c-1kei7l4)]">
                   {i === track && musicSource === 'library'
                     ? playing
                       ? t('dashboard.musicPopup.nowPlaying')
@@ -2423,22 +2420,22 @@ export default function Dashboard() {
                   setYtError(false)
                 }}
                 placeholder={t('dashboard.musicPopup.youtubeInputPlaceholder')}
-                className="min-w-0 flex-1 rounded-[15px] border-none px-[13px] py-[9px] font-sans text-[13px] font-semibold text-[#2c3f55] outline-none"
-                style={{ background: 'rgba(238,246,248,0.9)' }}
+                className="min-w-0 flex-1 rounded-[15px] border-none px-[13px] py-[9px] font-sans text-[13px] font-semibold text-[var(--c-3bsl4p)] outline-none"
+                style={{ background: 'var(--c-rucw5u)' }}
               />
               <button
                 onClick={applyYoutubeLink}
                 disabled={!ytInput.trim()}
-                className="shrink-0 rounded-[15px] border-none px-[14px] py-[9px] font-sans text-[12.5px] font-extrabold text-[#21384f] disabled:opacity-50"
-                style={{ background: 'rgba(140,205,196,0.35)' }}
+                className="shrink-0 rounded-[15px] border-none px-[14px] py-[9px] font-sans text-[12.5px] font-extrabold text-[var(--c-2k9xd7)] disabled:opacity-50"
+                style={{ background: 'var(--c-hclree)' }}
               >
                 {t('dashboard.musicPopup.youtubeUse')}
               </button>
             </div>
-            {ytError && <span className="text-[12px] font-semibold text-[#a13f2c]">{t('dashboard.musicPopup.youtubeInvalid')}</span>}
+            {ytError && <span className="text-[12px] font-semibold text-[var(--c-otf3yh)]">{t('dashboard.musicPopup.youtubeInvalid')}</span>}
             {youtubeUrl && !ytError && (
               <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-[12px] font-semibold text-[rgba(51,71,94,0.5)]">
+                <span className="truncate text-[12px] font-semibold text-[var(--c-mfvyic)]">
                   {musicSource === 'youtube'
                     ? t('dashboard.musicPopup.youtubeCurrent', { url: youtubeUrl })
                     : t('dashboard.musicPopup.youtubeSaved', { url: youtubeUrl })}
@@ -2449,8 +2446,8 @@ export default function Dashboard() {
                       setMusicSource('youtube')
                       setPlaying(true)
                     }}
-                    className="shrink-0 rounded-[15px] border-none px-[14px] py-[9px] font-sans text-[12.5px] font-extrabold text-[#21384f]"
-                    style={{ background: 'rgba(140,205,196,0.35)' }}
+                    className="shrink-0 rounded-[15px] border-none px-[14px] py-[9px] font-sans text-[12.5px] font-extrabold text-[var(--c-2k9xd7)]"
+                    style={{ background: 'var(--c-hclree)' }}
                   >
                     {t('dashboard.musicPopup.play')}
                   </button>
@@ -2458,7 +2455,7 @@ export default function Dashboard() {
               </div>
             )}
             {!youtubeUrl && (
-              <span className="px-[14px] py-3 text-xs font-semibold text-[rgba(51,71,94,0.5)]">
+              <span className="px-[14px] py-3 text-xs font-semibold text-[var(--c-mfvyic)]">
                 {t('dashboard.musicPopup.youtubeEmpty')}
               </span>
             )}
@@ -2471,9 +2468,9 @@ export default function Dashboard() {
       <div
         className="absolute top-0 right-0 bottom-0 z-30 flex w-[352px] flex-col gap-4 px-[26px] pt-24 pb-[34px]"
         style={{
-          background: 'rgba(255,255,255,0.78)',
+          background: 'var(--c-6rf1cr)',
           backdropFilter: 'blur(22px)',
-          boxShadow: '-18px 0 50px rgba(58,98,126,0.14)',
+          boxShadow: '-18px 0 50px var(--c-1k1wm30)',
           borderTopLeftRadius: 32,
           borderBottomLeftRadius: 32,
           transform: `translateX(${panel === 'todo' ? '0px' : '380px'})`,
@@ -2483,10 +2480,10 @@ export default function Dashboard() {
         }}
       >
         <div className="flex items-center justify-between">
-          <span className="text-xl font-extrabold text-[#2c3f55]">{t('dashboard.todoPanel.title')}</span>
+          <span className="text-xl font-extrabold text-[var(--c-3bsl4p)]">{t('dashboard.todoPanel.title')}</span>
           <button
             onClick={() => setPanel(null)}
-            className="border-none bg-transparent font-sans text-[13px] font-bold text-[rgba(51,71,94,0.5)]"
+            className="border-none bg-transparent font-sans text-[13px] font-bold text-[var(--c-mfvyic)]"
           >
             {t('dashboard.todoPanel.close')}
           </button>
@@ -2496,14 +2493,14 @@ export default function Dashboard() {
             <div
               key={task.id}
               onClick={() => toggleTask(task)}
-              className="flex cursor-pointer items-center gap-[13px] rounded-[20px] px-[15px] py-[14px] transition-colors duration-200 hover:!bg-[rgba(255,255,255,0.95)]"
-              style={{ background: 'rgba(255,255,255,0.66)', boxShadow: '0 4px 14px rgba(58,98,126,0.07)' }}
+              className="flex cursor-pointer items-center gap-[13px] rounded-[20px] px-[15px] py-[14px] transition-colors duration-200 hover:!bg-[var(--c-6rf2rk)]"
+              style={{ background: 'var(--c-6rf0kc)', boxShadow: '0 4px 14px var(--c-1k1wlew)' }}
             >
               <div
                 className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-lg"
                 style={{
-                  border: task.done ? `2px solid ${ACCENT}` : '2px solid rgba(51,71,94,0.18)',
-                  background: task.done ? ACCENT : 'rgba(255,255,255,0.9)',
+                  border: task.done ? `2px solid ${ACCENT}` : '2px solid var(--c-dhk6uu)',
+                  background: task.done ? ACCENT : 'var(--c-ijr2wt)',
                 }}
               >
                 <svg
@@ -2511,7 +2508,7 @@ export default function Dashboard() {
                   height="13"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="#fff"
+                  stroke="var(--c-s0owyd)"
                   strokeWidth="3.2"
                   strokeLinecap="round"
                   style={{ opacity: task.done ? 1 : 0 }}
@@ -2523,20 +2520,20 @@ export default function Dashboard() {
                 <span
                   className="text-sm font-bold"
                   style={{
-                    color: task.done ? 'rgba(51,71,94,0.42)' : '#2c3f55',
+                    color: task.done ? 'var(--c-1kei7ij)' : 'var(--c-3bsl4p)',
                     textDecoration: task.done ? 'line-through' : 'none',
                   }}
                 >
                   {task.name}
                 </span>
-                <span className="text-xs font-semibold text-[rgba(51,71,94,0.42)]">{task.meta}</span>
+                <span className="text-xs font-semibold text-[var(--c-1kei7ij)]">{task.meta}</span>
               </div>
             </div>
           ))}
         </div>
         <div
           className="flex items-center gap-[10px] rounded-[20px] py-[6px] pr-[6px] pl-4"
-          style={{ background: 'rgba(255,255,255,0.7)', boxShadow: '0 4px 14px rgba(58,98,126,0.07)' }}
+          style={{ background: 'var(--c-ijr2v3)', boxShadow: '0 4px 14px var(--c-1k1wlew)' }}
         >
           <input
             value={draft}
@@ -2545,12 +2542,12 @@ export default function Dashboard() {
               if (e.key === 'Enter') addTask()
             }}
             placeholder={t('dashboard.todoPanel.placeholder')}
-            className="flex-1 border-none bg-transparent py-[10px] font-sans text-sm font-semibold text-[#2c3f55] outline-none"
+            className="flex-1 border-none bg-transparent py-[10px] font-sans text-sm font-semibold text-[var(--c-3bsl4p)] outline-none"
           />
           <button
             onClick={addTask}
-            className="rounded-2xl border-none px-[18px] py-[10px] font-sans text-sm font-extrabold text-[#21384f]"
-            style={{ background: 'rgba(140,205,196,0.38)' }}
+            className="rounded-2xl border-none px-[18px] py-[10px] font-sans text-sm font-extrabold text-[var(--c-2k9xd7)]"
+            style={{ background: 'var(--c-hclrgz)' }}
           >
             {t('dashboard.todoPanel.add')}
           </button>

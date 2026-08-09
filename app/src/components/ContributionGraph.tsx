@@ -70,9 +70,9 @@ export default function ContributionGraph({
   const summary = t('stats.contributions.summaryMonth', { count: activeDays, month: monthYearLabel })
 
   const cardStyle = {
-    background: 'rgba(255,255,255,0.78)',
+    background: 'var(--c-6rf1cr)',
     backdropFilter: 'blur(18px)',
-    boxShadow: '0 14px 36px rgba(58,98,126,0.1)',
+    boxShadow: '0 14px 36px var(--c-1w98bua)',
   }
 
   return (
@@ -80,14 +80,14 @@ export default function ContributionGraph({
       {/* trái: lưới lịch tháng — rộng cố định theo 7 cột, không kéo giãn để khỏi méo ô ngày */}
       <div className="flex w-fit shrink-0 flex-col gap-[14px]">
         <div className="flex flex-col gap-[2px]">
-          <span className="text-[16.5px] font-extrabold text-[#2c3f55]">{t('stats.contributions.title')}</span>
-          <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">{summary}</span>
+          <span className="text-[16.5px] font-extrabold text-[var(--c-3bsl4p)]">{t('stats.contributions.title')}</span>
+          <span className="text-[13px] font-bold text-[var(--c-1kei7np)]">{summary}</span>
         </div>
 
         <div className="flex w-fit flex-col gap-[5px]">
           <div className="grid gap-[5px]" style={{ gridTemplateColumns: 'repeat(7, 32px)' }}>
             {WEEKDAY_ROW_KEYS.map((key) => (
-              <span key={key} className="text-center text-[10px] font-bold text-[rgba(51,71,94,0.4)]">
+              <span key={key} className="text-center text-[10px] font-bold text-[var(--c-mfvyhh)]">
                 {t(`stats.weekdaysShort.${key}`)}
               </span>
             ))}
@@ -111,7 +111,7 @@ export default function ContributionGraph({
                     className="flex h-[32px] w-[32px] items-center justify-center rounded-[7px] text-[11px] font-bold"
                     style={{
                       background: contributionCellColor(day.level),
-                      color: day.level >= 3 ? 'rgba(255,255,255,0.92)' : 'rgba(51,71,94,0.6)',
+                      color: day.level >= 3 ? 'var(--c-50c1av)' : 'var(--c-mfvyj7)',
                     }}
                   >
                     {day.date.getDate()}
@@ -123,22 +123,22 @@ export default function ContributionGraph({
         </div>
 
         <div className="flex items-center justify-center gap-[7px]">
-          <span className="text-[11.5px] font-bold text-[rgba(51,71,94,0.42)]">{t('stats.heatmap.less')}</span>
+          <span className="text-[11.5px] font-bold text-[var(--c-1kei7ij)]">{t('stats.heatmap.less')}</span>
           {([0, 1, 2, 3, 4] as const).map((lv) => (
             <div key={lv} className="h-[13px] w-[13px] rounded" style={{ background: contributionCellColor(lv) }} />
           ))}
-          <span className="text-[11.5px] font-bold text-[rgba(51,71,94,0.42)]">{t('stats.heatmap.more')}</span>
+          <span className="text-[11.5px] font-bold text-[var(--c-1kei7ij)]">{t('stats.heatmap.more')}</span>
         </div>
       </div>
 
-      <div className="hidden shrink-0 self-stretch lg:block" style={{ borderLeft: '1px solid rgba(51,71,94,0.08)' }} />
+      <div className="hidden shrink-0 self-stretch lg:block" style={{ borderLeft: '1px solid var(--c-dhk645)' }} />
 
       {/* phải: "7 ngày gần nhất" — trước là 1 thẻ riêng bên dưới, giờ ghép cùng hàng để lấp
           khoảng trống bên phải lưới lịch thay vì để trắng. */}
       <div className="flex min-w-0 flex-1 flex-col gap-5 pt-1">
         <div className="flex items-baseline justify-between gap-3">
-          <span className="text-[16.5px] font-extrabold text-[#2c3f55]">{t('stats.contributions.last7Title')}</span>
-          <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">
+          <span className="text-[16.5px] font-extrabold text-[var(--c-3bsl4p)]">{t('stats.contributions.last7Title')}</span>
+          <span className="text-[13px] font-bold text-[var(--c-1kei7np)]">
             {last7Best
               ? t('stats.contributions.last7Highest', {
                   day: t(`stats.weekdaysShort.${WEEKDAY_ROW_KEYS[(last7Best.date.getDay() + 6) % 7]}`),
@@ -152,7 +152,7 @@ export default function ContributionGraph({
             const weekdayKey = WEEKDAY_ROW_KEYS[(d.date.getDay() + 6) % 7]
             return (
               <div key={d.key} className="flex h-full flex-1 flex-col items-center justify-end gap-[9px]">
-                <span className="text-[12.5px] font-extrabold" style={{ color: isBest ? '#22483f' : 'rgba(51,71,94,0.55)' }}>
+                <span className="text-[12.5px] font-extrabold" style={{ color: isBest ? 'var(--c-2kucx8)' : 'var(--c-1kei8bt)' }}>
                   {d.totalMinutes}
                 </span>
                 <div
@@ -160,10 +160,10 @@ export default function ContributionGraph({
                   style={{
                     height: Math.round((d.totalMinutes / last7Max) * 100) + '%',
                     background: isBest ? mixAccent(58) : mixAccent(32),
-                    boxShadow: '0 6px 14px rgba(58,98,126,0.08)',
+                    boxShadow: '0 6px 14px var(--c-1k1wlfr)',
                   }}
                 />
-                <span className="text-[12.5px] font-bold" style={{ color: isBest ? '#2c3f55' : 'rgba(51,71,94,0.5)' }}>
+                <span className="text-[12.5px] font-bold" style={{ color: isBest ? 'var(--c-3bsl4p)' : 'var(--c-mfvyic)' }}>
                   {t(`stats.weekdaysShort.${weekdayKey}`)}
                 </span>
               </div>

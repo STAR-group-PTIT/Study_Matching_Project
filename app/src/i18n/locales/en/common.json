@@ -5,6 +5,16 @@
   "common": {
     "loading": "Loading…"
   },
+  "onboarding": {
+    "title": "Welcome to FocusFlow",
+    "subtitle": "A Pomodoro study app you can also use together with others.",
+    "freeTitle": "Try it now, no account needed",
+    "freeBody": "Pomodoro timer, to-dos, wallpaper and background music — go ahead and try it.",
+    "lockedTitle": "Sign in to…",
+    "lockedBody": "keep your progress long-term, add friends, and join or create a study room with others.",
+    "loginCta": "Log in / Sign up",
+    "guestCta": "Try it first, sign in later"
+  },
   "auth": {
     "tabs": { "login": "Log in", "signup": "Sign up" },
     "title": { "login": "Welcome back", "signup": "Create your account" },
@@ -166,10 +176,6 @@
   },
   "matching": {
     "headerTag": "Study matching",
-    "authNotice": {
-      "text": "Sign in to create a room, get randomly matched, or join a real room.",
-      "login": "Log in"
-    },
     "roomTypes": {
       "chill": { "name": "Chill", "rule": "Music on, camera and mic optional." },
       "hardcore": { "name": "Hardcore", "rule": "Camera required, no music or mic." },
@@ -380,6 +386,11 @@
       "blue": "Blue",
       "green": "Green",
       "purple": "Purple"
+    },
+    "theme": {
+      "title": "Appearance",
+      "light": "Light",
+      "dark": "Dark"
     },
     "devices": {
       "title": "Default camera & microphone",

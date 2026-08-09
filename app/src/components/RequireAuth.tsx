@@ -9,7 +9,7 @@ export default function RequireAuth() {
   if (loading) {
     return (
       <div
-        className="flex min-h-svh w-full items-center justify-center font-sans text-sm font-semibold text-[rgba(51,71,94,0.55)]"
+        className="flex min-h-svh w-full items-center justify-center font-sans text-sm font-semibold text-[var(--c-1kei8bt)]"
         style={{ background: 'var(--ff-page-bg)' }}
       >
         {t('common.loading')}

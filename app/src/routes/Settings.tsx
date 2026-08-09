@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
+import { useThemeStore } from '../store/theme'
 import { parseYoutubeUrl, DEFAULT_YOUTUBE_URL } from '../lib/youtube'
 import { isVideoWallpaper } from '../lib/wallpaper'
 import { loadStoredAutoFullscreenFocus, saveStoredAutoFullscreenFocus } from '../lib/focusFullscreen'
@@ -11,12 +12,12 @@ import ChangeAvatarModal from '../components/ChangeAvatarModal'
 import EditInfoModal from '../components/EditInfoModal'
 
 const GRADIENTS = [
-  'linear-gradient(160deg, #dff1f4 0%, #cfe6f2 45%, #e6f4ee 100%)',
-  'linear-gradient(150deg, #e8f4f0 0%, #d5e9f4 100%)',
-  'linear-gradient(200deg, #d9ecf5 0%, #eaf5f1 60%, #dceef0 100%)',
-  'linear-gradient(135deg, #eef3f8 0%, #dbeaf0 50%, #cfe4e6 100%)',
-  'radial-gradient(120% 100% at 20% 10%, #e9f6f2 0%, #d3e6f0 70%)',
-  'linear-gradient(175deg, #f0f6f7 0%, #d8eaf0 55%, #cde5df 100%)',
+  'linear-gradient(160deg, var(--c-1g0tv9u) 0%, var(--c-1fjrplj) 45%, var(--c-1frhffa) 100%)',
+  'linear-gradient(150deg, var(--c-1fsl0le) 0%, var(--c-1f9vh56) 100%)',
+  'linear-gradient(200deg, var(--c-1fc3int) 0%, var(--c-1gf4lnx) 60%, var(--c-1fz6x28) 100%)',
+  'linear-gradient(135deg, var(--c-1ghbqk6) 0%, var(--c-1fyn1i3) 50%, var(--c-1fjro3e) 100%)',
+  'radial-gradient(120% 100% at 20% 10%, var(--c-1ft4uo7) 0%, var(--c-1f8rtq9) 70%)',
+  'linear-gradient(175deg, var(--c-1g58bqa) 0%, var(--c-1fbjokx) 55%, var(--c-1fio3nu) 100%)',
 ]
 
 const MAX_WALLPAPER_BYTES = 5 * 1024 * 1024
@@ -104,6 +105,8 @@ export default function Settings({ onClose }: { onClose: () => void }) {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
+  const theme = useThemeStore((s) => s.theme)
+  const setTheme = useThemeStore((s) => s.setTheme)
 
   const [activeTab, setActiveTab] = useState<Tab>('profile')
 
@@ -332,6 +335,18 @@ export default function Settings({ onClose }: { onClose: () => void }) {
       })
   }
 
+  function selectTheme(next: 'light' | 'dark') {
+    setTheme(next)
+    if (!user) return
+    supabase
+      .from('profiles')
+      .update({ theme: next })
+      .eq('id', user.id)
+      .then(({ error }) => {
+        if (error) console.error('update theme failed', error)
+      })
+  }
+
   function selectCamera(deviceId: string) {
     setPreferredCameraId(deviceId)
     if (!user) return
@@ -496,17 +511,17 @@ export default function Settings({ onClose }: { onClose: () => void }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(20,32,42,0.42)', backdropFilter: 'blur(2px)' }}
+      style={{ background: 'var(--c-1klvacf)', backdropFilter: 'blur(2px)' }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
       <div
-        className="relative flex w-full max-w-[880px] flex-col overflow-hidden rounded-[32px] font-sans text-[#33475e] antialiased"
+        className="relative flex w-full max-w-[880px] flex-col overflow-hidden rounded-[32px] font-sans text-[var(--c-32fr7s)] antialiased"
         style={{
           maxHeight: '88vh',
-          background: 'linear-gradient(170deg, #e4f1f4 0%, #dbeaf2 50%, #e6f4ee 100%)',
-          boxShadow: '0 30px 80px rgba(20,32,42,0.35)',
+          background: 'linear-gradient(170deg, var(--c-1fqdrzz) 0%, var(--c-1fyn1i5) 50%, var(--c-1frhffa) 100%)',
+          boxShadow: '0 30px 80px var(--c-1klv9ob)',
         }}
       >
         <div className="flex-1 overflow-y-auto">
@@ -514,18 +529,18 @@ export default function Settings({ onClose }: { onClose: () => void }) {
             <div className="flex items-center gap-[11px]">
               <div
                 className="h-[22px] w-[22px] rounded-[9px]"
-                style={{ background: 'linear-gradient(135deg, oklch(0.82 0.09 175), oklch(0.76 0.08 235))' }}
+                style={{ background: 'linear-gradient(135deg, var(--c-1feyjhs), var(--c-yr829))' }}
               />
-              <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[#2f4459]">{t('app.name')}</span>
-              <span className="text-sm font-semibold text-[rgba(51,71,94,0.5)]">
+              <span className="text-[18px] font-extrabold tracking-[-0.2px] text-[var(--c-3dfktp)]">{t('app.name')}</span>
+              <span className="text-sm font-semibold text-[var(--c-mfvyic)]">
                 · {t('settings.headerTag')}
               </span>
               <button
                 onClick={onClose}
                 title={t('settings.close')}
                 aria-label={t('settings.close')}
-                className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[#4a637d] transition-colors duration-200 hover:!bg-white"
-                style={{ background: 'rgba(255,255,255,0.7)' }}
+                className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-white"
+                style={{ background: 'var(--c-ijr2v3)' }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                   <path d="M6 6l12 12M18 6L6 18" />
@@ -536,7 +551,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
             {/* tabs */}
         <div
           className="flex w-fit gap-1 rounded-[20px] p-[5px]"
-          style={{ background: 'rgba(255,255,255,0.6)', boxShadow: '0 6px 20px rgba(64,102,128,0.09)', backdropFilter: 'blur(14px)' }}
+          style={{ background: 'var(--c-ijr2u8)', boxShadow: '0 6px 20px var(--c-fc5pjb)', backdropFilter: 'blur(14px)' }}
         >
           {(['profile', 'app'] as const).map((tab) => (
             <button
@@ -544,8 +559,8 @@ export default function Settings({ onClose }: { onClose: () => void }) {
               onClick={() => setActiveTab(tab)}
               className="rounded-[15px] border-none px-5 py-[10px] font-sans text-sm font-bold transition-all duration-[240ms]"
               style={{
-                background: activeTab === tab ? 'rgba(255,255,255,0.95)' : 'transparent',
-                color: activeTab === tab ? '#25415c' : 'rgba(51,71,94,0.55)',
+                background: activeTab === tab ? 'var(--c-6rf2rk)' : 'transparent',
+                color: activeTab === tab ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
               }}
             >
               {t(`settings.tabs.${tab}`)}
@@ -558,60 +573,60 @@ export default function Settings({ onClose }: { onClose: () => void }) {
             {/* profile */}
             <div
               className="flex flex-wrap items-center gap-5 rounded-[32px] px-7 py-[26px]"
-              style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
+              style={{ background: 'var(--c-ijr2vy)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px var(--c-1w98bua)' }}
             >
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
                   alt={profileName}
                   className="h-[84px] w-[84px] shrink-0 rounded-[28px] object-cover"
-                  style={{ boxShadow: '0 8px 22px rgba(58,98,126,0.12)' }}
+                  style={{ boxShadow: '0 8px 22px var(--c-1k1wm1a)' }}
                 />
               ) : (
                 <div
-                  className="flex h-[84px] w-[84px] shrink-0 items-center justify-center rounded-[28px] text-[28px] font-extrabold text-[#294a5f]"
+                  className="flex h-[84px] w-[84px] shrink-0 items-center justify-center rounded-[28px] text-[28px] font-extrabold text-[var(--c-2opriy)]"
                   style={{
-                    background: 'linear-gradient(140deg, rgba(140,205,196,0.6), rgba(160,200,225,0.6))',
-                    boxShadow: '0 8px 22px rgba(58,98,126,0.12)',
+                    background: 'linear-gradient(140deg, var(--c-9q3js4), var(--c-1g0dok))',
+                    boxShadow: '0 8px 22px var(--c-1k1wm1a)',
                   }}
                 >
                   {initials(profileName || user?.email || '?')}
                 </div>
               )}
               <div className="flex min-w-0 flex-[1_1_200px] flex-col gap-1">
-                <span className="text-[22px] font-extrabold tracking-[-0.3px] text-[#2c3f55]">
+                <span className="text-[22px] font-extrabold tracking-[-0.3px] text-[var(--c-3bsl4p)]">
                   {profileName || t('settings.profile.defaultName')}
                 </span>
-                <span className="text-sm font-semibold break-words text-[rgba(51,71,94,0.55)]">{user?.email}</span>
+                <span className="text-sm font-semibold break-words text-[var(--c-1kei8bt)]">{user?.email}</span>
                 {profileTag && (
                   <div className="flex flex-wrap items-center gap-[9px]">
-                    <span className="text-[12.5px] font-bold tabular-nums text-[rgba(51,71,94,0.5)]">
+                    <span className="text-[12.5px] font-bold tabular-nums text-[var(--c-mfvyic)]">
                       {t('settings.profile.friendCode', { handle: `${profileName}#${profileTag}` })}
                     </span>
                     <button
                       onClick={copyFriendCode}
-                      className="shrink-0 rounded-[10px] border-none px-[9px] py-[3px] font-sans text-[11.5px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
-                      style={{ background: ACCENT_SOFT }}
+                      className="shrink-0 rounded-[10px] border-none px-[9px] py-[3px] font-sans text-[11.5px] font-extrabold text-[var(--ff-btn-soft-fg)] transition-transform duration-200 hover:-translate-y-0.5"
+                      style={{ background: 'var(--ff-btn-soft-bg)' }}
                     >
                       {codeCopied ? t('settings.profile.codeCopied') : t('settings.profile.copyCode')}
                     </button>
                   </div>
                 )}
-                <span className="text-[13px] font-bold text-[#2c5b53]">
+                <span className="text-[13px] font-bold text-[var(--c-3bts4x)]">
                   {t('settings.profile.streak', { days: streak, sessions: sessionsThisWeek })}
                 </span>
               </div>
               <div className="flex flex-wrap gap-[9px]">
                 <button
                   onClick={() => setAvatarModalOpen(true)}
-                  className="rounded-[20px] border-none px-5 py-[13px] font-sans text-sm font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
-                  style={{ background: ACCENT_SOFT }}
+                  className="rounded-[20px] border-none px-5 py-[13px] font-sans text-sm font-extrabold text-[var(--ff-btn-primary-fg)] transition-transform duration-200 hover:-translate-y-0.5"
+                  style={{ background: 'var(--ff-btn-primary-bg)' }}
                 >
                   {t('settings.profile.changeAvatar')}
                 </button>
                 <button
                   onClick={() => setEditInfoModalOpen(true)}
-                  className="rounded-[20px] border-[1.5px] border-[rgba(51,71,94,0.14)] bg-[rgba(255,255,255,0.8)] px-[18px] py-[13px] font-sans text-sm font-bold text-[#445c74] transition-colors duration-200 hover:!bg-white"
+                  className="rounded-[20px] border-[1.5px] border-[var(--c-1kei5c6)] bg-[var(--c-ijr2vy)] px-[18px] py-[13px] font-sans text-sm font-bold text-[var(--c-3k2pts)] transition-colors duration-200 hover:!bg-white"
                 >
                   {t('settings.profile.editInfo')}
                 </button>
@@ -621,11 +636,11 @@ export default function Settings({ onClose }: { onClose: () => void }) {
             {/* wallpapers */}
             <div
               className="flex flex-col gap-4 rounded-[32px] px-7 pt-[26px] pb-6"
-              style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
+              style={{ background: 'var(--c-ijr2vy)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px var(--c-1w98bua)' }}
             >
               <div className="flex items-baseline justify-between gap-3">
-                <span className="text-[17px] font-extrabold text-[#2c3f55]">{t('settings.wallpapers.title')}</span>
-                <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">
+                <span className="text-[17px] font-extrabold text-[var(--c-3bsl4p)]">{t('settings.wallpapers.title')}</span>
+                <span className="text-[13px] font-bold text-[var(--c-1kei7np)]">
                   {t('settings.wallpapers.count', { count: wallpapers.length })}
                 </span>
               </div>
@@ -642,8 +657,8 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                         : !w.url
                           ? { background: GRADIENTS[i % GRADIENTS.length] }
                           : {}),
-                      boxShadow: '0 6px 16px rgba(58,98,126,0.1)',
-                      border: i === 0 ? '2px solid var(--ff-accent-border)' : '2px solid rgba(255,255,255,0.75)',
+                      boxShadow: '0 6px 16px var(--c-1w98bua)',
+                      border: i === 0 ? '2px solid var(--ff-accent-border)' : '2px solid var(--c-6rf1a6)',
                     }}
                   >
                     {isVideo && (
@@ -660,17 +675,23 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                         }}
                       />
                     )}
-                    <span
-                      className="absolute bottom-[9px] left-[11px] rounded-[9px] px-2 py-1 font-mono text-[10.5px] text-[rgba(51,71,94,0.62)]"
-                      style={{ background: 'rgba(255,255,255,0.72)' }}
-                    >
+                    {/* scrim — filename must stay readable over an arbitrary user photo, not
+                        just whatever the theme's surface color happens to be, so this stays
+                        a fixed dark gradient in both themes instead of a token */}
+                    <div
+                      className="pointer-events-none absolute inset-x-0 bottom-0 h-10"
+                      style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.75))' }}
+                    />
+                    {/* fixed light color, not a theme token — always sits on the dark
+                        scrim above regardless of light/dark theme */}
+                    <span className="absolute bottom-[9px] left-[11px] px-1 font-mono text-[10.5px]" style={{ color: '#e6edef' }}>
                       {w.name}
                     </span>
                     <button
                       onClick={() => removeWallpaper(w)}
                       title={t('settings.wallpapers.delete')}
-                      className="absolute top-2 right-2 flex h-[26px] w-[26px] items-center justify-center rounded-[10px] border-none text-[#7a3f2c] opacity-50 transition-all duration-200 hover:!bg-[oklch(0.88_0.05_45)] hover:opacity-100"
-                      style={{ background: 'rgba(255,255,255,0.8)' }}
+                      className="absolute top-2 right-2 flex h-[26px] w-[26px] items-center justify-center rounded-[10px] border-none text-[var(--c-5nx3vn)] opacity-50 transition-all duration-200 hover:!bg-[var(--c-1eu539k)] hover:opacity-100"
+                      style={{ background: 'var(--c-ijr2vy)' }}
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
                         <path d="M6 6l12 12M18 6L6 18" />
@@ -681,8 +702,8 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                 })}
                 <button
                   onClick={() => wallpaperInputRef.current?.click()}
-                  className="flex h-[100px] cursor-pointer flex-col items-center justify-center gap-[5px] rounded-[22px] border-2 border-dashed border-[rgba(51,71,94,0.18)] font-sans text-[13px] font-bold text-[rgba(51,71,94,0.55)] transition-all duration-[220ms] hover:!border-[rgba(126,201,198,0.9)] hover:!text-[#2c5b53]"
-                  style={{ background: 'rgba(238,246,248,0.6)' }}
+                  className="flex h-[100px] cursor-pointer flex-col items-center justify-center gap-[5px] rounded-[22px] border-2 border-dashed border-[var(--c-1kei5fm)] font-sans text-[13px] font-bold text-[var(--c-1kei8bt)] transition-all duration-[220ms] hover:!border-[var(--c-125fipz)] hover:!text-[var(--c-3bts4x)]"
+                  style={{ background: 'var(--c-rucw39)' }}
                 >
                   <span className="text-[22px] leading-none font-bold">+</span>
                   {t('settings.wallpapers.add')}
@@ -695,7 +716,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                   onChange={handleWallpaperFile}
                 />
               </div>
-              <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.45)]">
+              <span className="text-[12.5px] font-semibold text-[var(--c-1kei7l4)]">
                 {t('settings.wallpapers.hint')}
               </span>
             </div>
@@ -703,11 +724,11 @@ export default function Settings({ onClose }: { onClose: () => void }) {
             {/* music */}
             <div
               className="flex flex-col gap-[14px] rounded-[32px] px-7 pt-[26px] pb-6"
-              style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
+              style={{ background: 'var(--c-ijr2vy)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px var(--c-1w98bua)' }}
             >
               <div className="flex items-baseline justify-between gap-3">
-                <span className="text-[17px] font-extrabold text-[#2c3f55]">{t('settings.music.title')}</span>
-                <span className="text-[13px] font-bold text-[rgba(51,71,94,0.48)]">
+                <span className="text-[17px] font-extrabold text-[var(--c-3bsl4p)]">{t('settings.music.title')}</span>
+                <span className="text-[13px] font-bold text-[var(--c-1kei7np)]">
                   {t('settings.music.count', { count: tracks.length })}
                 </span>
               </div>
@@ -716,11 +737,11 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                   <div
                     key={track.id}
                     className="flex items-center gap-[13px] rounded-[22px] px-4 py-[13px] transition-colors duration-200 hover:!bg-white"
-                    style={{ background: 'rgba(238,246,248,0.72)' }}
+                    style={{ background: 'var(--c-arr030)' }}
                   >
                     <div
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[#2c5b53]"
-                      style={{ background: 'rgba(140,205,196,0.34)' }}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[var(--c-3bts4x)]"
+                      style={{ background: 'var(--c-hclrdj)' }}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
                         <circle cx="7" cy="17" r="3" />
@@ -733,13 +754,13 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                         value={track.name}
                         onChange={(e) => renameTrack(track.id, e.target.value)}
                         onBlur={() => commitTrackName(track)}
-                        className="w-full rounded-lg border-none bg-transparent py-[2px] font-sans text-[14.5px] font-bold text-[#2c3f55] outline-none focus:!bg-[rgba(126,201,198,0.14)]"
+                        className="w-full rounded-lg border-none bg-transparent py-[2px] font-sans text-[14.5px] font-bold text-[var(--c-3bsl4p)] outline-none focus:!bg-[var(--c-1bxn4ij)]"
                       />
-                      <span className="font-mono text-[11.5px] text-[rgba(51,71,94,0.45)]">
+                      <span className="font-mono text-[11.5px] text-[var(--c-1kei7l4)]">
                         {track.path.split('/').pop()}
                       </span>
                     </div>
-                    <span className="text-[13px] font-bold text-[rgba(51,71,94,0.5)]">
+                    <span className="text-[13px] font-bold text-[var(--c-mfvyic)]">
                       {fmtDuration(track.durationSeconds)}
                     </span>
                     <button
@@ -747,8 +768,8 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                       title={track.isDefault ? t('settings.music.unsetDefault') : t('settings.music.setDefault')}
                       className="shrink-0 rounded-full border-none px-3 py-[6px] font-sans text-[11.5px] font-extrabold whitespace-nowrap transition-all duration-200"
                       style={{
-                        background: track.isDefault ? 'var(--ff-accent-chip-active)' : 'rgba(255,255,255,0.9)',
-                        color: track.isDefault ? '#134034' : 'rgba(51,71,94,0.55)',
+                        background: track.isDefault ? 'var(--ff-accent-chip-active)' : 'var(--c-ijr2wt)',
+                        color: track.isDefault ? 'var(--c-24cd5g)' : 'var(--c-1kei8bt)',
                       }}
                     >
                       {track.isDefault ? t('settings.music.isDefault') : t('settings.music.setDefault')}
@@ -756,8 +777,8 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                     <button
                       onClick={() => removeTrack(track)}
                       title={t('settings.music.delete')}
-                      className="flex h-[30px] w-[30px] items-center justify-center rounded-xl border-none text-[#7a3f2c] opacity-60 transition-all duration-200 hover:!bg-[oklch(0.88_0.05_45)] hover:opacity-100"
-                      style={{ background: 'rgba(255,255,255,0.9)' }}
+                      className="flex h-[30px] w-[30px] items-center justify-center rounded-xl border-none text-[var(--c-5nx3vn)] opacity-60 transition-all duration-200 hover:!bg-[var(--c-1eu539k)] hover:opacity-100"
+                      style={{ background: 'var(--c-ijr2wt)' }}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                         <path d="M6 6l12 12M18 6L6 18" />
@@ -768,14 +789,14 @@ export default function Settings({ onClose }: { onClose: () => void }) {
               </div>
               <button
                 onClick={() => trackInputRef.current?.click()}
-                className="flex items-center justify-center gap-[7px] rounded-[22px] border-2 border-dashed border-[rgba(51,71,94,0.18)] py-[14px] font-sans text-sm font-bold text-[rgba(51,71,94,0.55)] transition-all duration-[220ms] hover:!border-[rgba(126,201,198,0.9)] hover:!text-[#2c5b53]"
-                style={{ background: 'rgba(238,246,248,0.6)' }}
+                className="flex items-center justify-center gap-[7px] rounded-[22px] border-2 border-dashed border-[var(--c-1kei5fm)] py-[14px] font-sans text-sm font-bold text-[var(--c-1kei8bt)] transition-all duration-[220ms] hover:!border-[var(--c-125fipz)] hover:!text-[var(--c-3bts4x)]"
+                style={{ background: 'var(--c-rucw39)' }}
               >
                 <span className="text-[19px] leading-none font-bold">+</span>
                 {t('settings.music.upload')}
               </button>
               <input ref={trackInputRef} type="file" accept="audio/mpeg,audio/wav,audio/*" hidden onChange={handleTrackFile} />
-              <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.45)]">
+              <span className="text-[12.5px] font-semibold text-[var(--c-1kei7l4)]">
                 {t('settings.music.hint')}
               </span>
             </div>
@@ -787,11 +808,11 @@ export default function Settings({ onClose }: { onClose: () => void }) {
             {/* pomodoro defaults */}
             <div
               className="flex flex-col gap-5 rounded-[32px] px-7 pt-[26px] pb-6"
-              style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
+              style={{ background: 'var(--c-ijr2vy)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px var(--c-1w98bua)' }}
             >
-              <span className="text-[17px] font-extrabold text-[#2c3f55]">{t('settings.pomodoro.title')}</span>
+              <span className="text-[17px] font-extrabold text-[var(--c-3bsl4p)]">{t('settings.pomodoro.title')}</span>
               <div className="flex flex-col gap-[9px]">
-                <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                   {t('settings.pomodoro.presetsLabel')}
                 </span>
                 <div className="flex gap-2">
@@ -799,9 +820,9 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                     onClick={() => applyPreset(25, 5)}
                     className="rounded-[18px] border-[1.5px] px-5 py-[10px] font-sans text-sm font-bold transition-all duration-[220ms]"
                     style={{
-                      background: focus === 25 && brk === 5 ? 'var(--ff-accent-chip-active)' : 'rgba(255,255,255,0.72)',
-                      borderColor: focus === 25 && brk === 5 ? 'var(--ff-accent-border)' : 'rgba(51,71,94,0.12)',
-                      color: focus === 25 && brk === 5 ? '#22483f' : 'rgba(51,71,94,0.68)',
+                      background: focus === 25 && brk === 5 ? 'var(--ff-accent-chip-active)' : 'var(--c-6rf17l)',
+                      borderColor: focus === 25 && brk === 5 ? 'var(--ff-accent-border)' : 'var(--c-1kei5ag)',
+                      color: focus === 25 && brk === 5 ? 'var(--c-2kucx8)' : 'var(--c-1kei953)',
                     }}
                   >
                     25 : 5
@@ -810,9 +831,9 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                     onClick={() => applyPreset(50, 10)}
                     className="rounded-[18px] border-[1.5px] px-5 py-[10px] font-sans text-sm font-bold transition-all duration-[220ms]"
                     style={{
-                      background: focus === 50 && brk === 10 ? 'var(--ff-accent-chip-active)' : 'rgba(255,255,255,0.72)',
-                      borderColor: focus === 50 && brk === 10 ? 'var(--ff-accent-border)' : 'rgba(51,71,94,0.12)',
-                      color: focus === 50 && brk === 10 ? '#22483f' : 'rgba(51,71,94,0.68)',
+                      background: focus === 50 && brk === 10 ? 'var(--ff-accent-chip-active)' : 'var(--c-6rf17l)',
+                      borderColor: focus === 50 && brk === 10 ? 'var(--ff-accent-border)' : 'var(--c-1kei5ag)',
+                      color: focus === 50 && brk === 10 ? 'var(--c-2kucx8)' : 'var(--c-1kei953)',
                     }}
                   >
                     50 : 10
@@ -822,10 +843,10 @@ export default function Settings({ onClose }: { onClose: () => void }) {
               <div className="grid gap-[22px]" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
                 <div className="flex flex-col gap-[6px]">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                       {t('settings.pomodoro.focusMinutes')}
                     </span>
-                    <span className="text-[15px] font-extrabold text-[#2c5b53]">
+                    <span className="text-[15px] font-extrabold text-[var(--c-3bts4x)]">
                       {t('settings.pomodoro.minutesValue', { count: focus })}
                     </span>
                   </div>
@@ -838,17 +859,17 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                     onChange={(e) => setFocus(Number(e.target.value))}
                     className="ff-range-lg"
                   />
-                  <div className="flex justify-between text-[11.5px] font-semibold text-[rgba(51,71,94,0.4)]">
+                  <div className="flex justify-between text-[11.5px] font-semibold text-[var(--c-mfvyhh)]">
                     <span>5</span>
                     <span>120</span>
                   </div>
                 </div>
                 <div className="flex flex-col gap-[6px]">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                       {t('settings.pomodoro.breakMinutes')}
                     </span>
-                    <span className="text-[15px] font-extrabold text-[#2c5b53]">
+                    <span className="text-[15px] font-extrabold text-[var(--c-3bts4x)]">
                       {t('settings.pomodoro.minutesValue', { count: brk })}
                     </span>
                   </div>
@@ -861,17 +882,17 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                     onChange={(e) => setBrk(Number(e.target.value))}
                     className="ff-range-lg"
                   />
-                  <div className="flex justify-between text-[11.5px] font-semibold text-[rgba(51,71,94,0.4)]">
+                  <div className="flex justify-between text-[11.5px] font-semibold text-[var(--c-mfvyhh)]">
                     <span>1</span>
                     <span>20</span>
                   </div>
                 </div>
                 <div className="flex flex-col gap-[6px]">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                       {t('settings.pomodoro.sessionCount')}
                     </span>
-                    <span className="text-[15px] font-extrabold text-[#2c5b53]">
+                    <span className="text-[15px] font-extrabold text-[var(--c-3bts4x)]">
                       {t('settings.pomodoro.sessionsValue', { count: sessionCount })}
                     </span>
                   </div>
@@ -884,7 +905,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                     onChange={(e) => setSessionCount(Number(e.target.value))}
                     className="ff-range-lg"
                   />
-                  <div className="flex justify-between text-[11.5px] font-semibold text-[rgba(51,71,94,0.4)]">
+                  <div className="flex justify-between text-[11.5px] font-semibold text-[var(--c-mfvyhh)]">
                     <span>1</span>
                     <span>12</span>
                   </div>
@@ -892,61 +913,61 @@ export default function Settings({ onClose }: { onClose: () => void }) {
               </div>
               <div
                 className="flex flex-wrap items-center justify-between gap-[14px] rounded-[22px] px-[18px] py-[15px]"
-                style={{ background: 'rgba(238,246,248,0.72)' }}
+                style={{ background: 'var(--c-arr030)' }}
               >
                 <div className="flex flex-col gap-[2px]">
-                  <span className="text-[14.5px] font-bold text-[#2c3f55]">
+                  <span className="text-[14.5px] font-bold text-[var(--c-3bsl4p)]">
                     {t('settings.pomodoro.autoStartTitle')}
                   </span>
-                  <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.48)]">
+                  <span className="text-[12.5px] font-semibold text-[var(--c-1kei7np)]">
                     {t('settings.pomodoro.autoStartDesc')}
                   </span>
                 </div>
                 <button
                   onClick={() => setAuto((a) => !a)}
                   className="relative h-8 w-[58px] shrink-0 rounded-full border-none transition-colors duration-[240ms]"
-                  style={{ background: auto ? 'var(--ff-accent-chip-active)' : 'rgba(51,71,94,0.18)' }}
+                  style={{ background: auto ? 'var(--ff-accent-chip-active)' : 'var(--c-dhk6uu)' }}
                 >
                   <span
                     className="absolute top-1 h-6 w-6 rounded-full bg-white transition-[left] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
-                    style={{ left: auto ? '30px' : '4px', boxShadow: '0 3px 8px rgba(58,98,126,0.22)' }}
+                    style={{ left: auto ? '30px' : '4px', boxShadow: '0 3px 8px var(--c-1k1wmrz)' }}
                   />
                 </button>
               </div>
               <div
                 className="flex flex-wrap items-center justify-between gap-[14px] rounded-[22px] px-[18px] py-[15px]"
-                style={{ background: 'rgba(238,246,248,0.72)' }}
+                style={{ background: 'var(--c-arr030)' }}
               >
                 <div className="flex flex-col gap-[2px]">
-                  <span className="text-[14.5px] font-bold text-[#2c3f55]">
+                  <span className="text-[14.5px] font-bold text-[var(--c-3bsl4p)]">
                     {t('settings.pomodoro.autoFullscreenTitle')}
                   </span>
-                  <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.48)]">
+                  <span className="text-[12.5px] font-semibold text-[var(--c-1kei7np)]">
                     {t('settings.pomodoro.autoFullscreenDesc')}
                   </span>
                 </div>
                 <button
                   onClick={toggleAutoFullscreenFocus}
                   className="relative h-8 w-[58px] shrink-0 rounded-full border-none transition-colors duration-[240ms]"
-                  style={{ background: autoFullscreenFocus ? 'var(--ff-accent-chip-active)' : 'rgba(51,71,94,0.18)' }}
+                  style={{ background: autoFullscreenFocus ? 'var(--ff-accent-chip-active)' : 'var(--c-dhk6uu)' }}
                 >
                   <span
                     className="absolute top-1 h-6 w-6 rounded-full bg-white transition-[left] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
-                    style={{ left: autoFullscreenFocus ? '30px' : '4px', boxShadow: '0 3px 8px rgba(58,98,126,0.22)' }}
+                    style={{ left: autoFullscreenFocus ? '30px' : '4px', boxShadow: '0 3px 8px var(--c-1k1wmrz)' }}
                   />
                 </button>
               </div>
               <div className="flex flex-wrap gap-[9px]">
                 <button
                   onClick={saveDefaults}
-                  className="rounded-[22px] border-none px-[26px] py-[14px] font-sans text-[14.5px] font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
+                  className="rounded-[22px] border-none px-[26px] py-[14px] font-sans text-[14.5px] font-extrabold text-[var(--c-2vtjkg)] transition-transform duration-200 hover:-translate-y-0.5"
                   style={{ background: ACCENT_SOFT }}
                 >
                   {saved ? t('settings.pomodoro.saved') : t('settings.pomodoro.save')}
                 </button>
                 <button
                   onClick={resetDefaults}
-                  className="rounded-[22px] border-[1.5px] border-[rgba(51,71,94,0.14)] bg-[rgba(255,255,255,0.8)] px-5 py-[14px] font-sans text-[14.5px] font-bold text-[#445c74] transition-colors duration-200 hover:!bg-white"
+                  className="rounded-[22px] border-[1.5px] border-[var(--c-1kei5c6)] bg-[var(--c-ijr2vy)] px-5 py-[14px] font-sans text-[14.5px] font-bold text-[var(--c-3k2pts)] transition-colors duration-200 hover:!bg-white"
                 >
                   {t('settings.pomodoro.resetDefault')}
                 </button>
@@ -956,10 +977,10 @@ export default function Settings({ onClose }: { onClose: () => void }) {
             {/* language */}
             <div
               className="flex flex-wrap items-center justify-between gap-[14px] rounded-[32px] px-7 py-[22px]"
-              style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
+              style={{ background: 'var(--c-ijr2vy)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px var(--c-1w98bua)' }}
             >
-              <span className="text-[14.5px] font-bold text-[#2c3f55]">{t('settings.language.title')}</span>
-              <div className="flex gap-1 rounded-[20px] p-[5px]" style={{ background: 'rgba(238,246,248,0.9)' }}>
+              <span className="text-[14.5px] font-bold text-[var(--c-3bsl4p)]">{t('settings.language.title')}</span>
+              <div className="flex gap-1 rounded-[20px] p-[5px]" style={{ background: 'var(--c-rucw5u)' }}>
                 {(['vi', 'en'] as const).map((lng) => {
                   const on = i18n.resolvedLanguage === lng
                   return (
@@ -968,9 +989,9 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                       onClick={() => void i18n.changeLanguage(lng)}
                       className="rounded-2xl border-none px-4 py-[9px] font-sans text-[13px] font-bold transition-all duration-[240ms]"
                       style={{
-                        color: on ? '#25415c' : 'rgba(51,71,94,0.55)',
-                        background: on ? 'rgba(255,255,255,0.98)' : 'transparent',
-                        boxShadow: on ? '0 4px 12px rgba(58,98,126,0.1)' : 'none',
+                        color: on ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
+                        background: on ? 'var(--c-6rf2u5)' : 'transparent',
+                        boxShadow: on ? '0 4px 12px var(--c-1w98bua)' : 'none',
                       }}
                     >
                       {t(`settings.language.${lng}`)}
@@ -983,9 +1004,9 @@ export default function Settings({ onClose }: { onClose: () => void }) {
             {/* accent color */}
             <div
               className="flex flex-wrap items-center justify-between gap-[18px] rounded-[32px] px-7 py-[22px]"
-              style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
+              style={{ background: 'var(--c-ijr2vy)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px var(--c-1w98bua)' }}
             >
-              <span className="text-[14.5px] font-bold text-[#2c3f55]">{t('settings.accent.title')}</span>
+              <span className="text-[14.5px] font-bold text-[var(--c-3bsl4p)]">{t('settings.accent.title')}</span>
               <div className="flex gap-3">
                 {ACCENT_PRESETS.map((preset) => (
                   <button
@@ -998,12 +1019,12 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                       background: `oklch(0.74 0.085 ${preset.hue})`,
                       boxShadow:
                         accentHue === preset.hue
-                          ? '0 0 0 3px rgba(255,255,255,0.95), 0 0 0 5px rgba(51,71,94,0.35)'
-                          : '0 4px 12px rgba(58,98,126,0.18)',
+                          ? '0 0 0 3px var(--c-6rf2rk), 0 0 0 5px var(--c-dhk89n)'
+                          : '0 4px 12px var(--c-1k1wm6g)',
                     }}
                   >
                     {accentHue === preset.hue && (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3549" strokeWidth="3" strokeLinecap="round">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--c-2vtjkg)" strokeWidth="3" strokeLinecap="round">
                         <path d="M5 12.5l4.5 4.5L19 7" />
                       </svg>
                     )}
@@ -1012,23 +1033,50 @@ export default function Settings({ onClose }: { onClose: () => void }) {
               </div>
             </div>
 
+            {/* theme (light/dark) */}
+            <div
+              className="flex flex-wrap items-center justify-between gap-[14px] rounded-[32px] px-7 py-[22px]"
+              style={{ background: 'var(--c-ijr2vy)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px var(--c-1w98bua)' }}
+            >
+              <span className="text-[14.5px] font-bold text-[var(--c-3bsl4p)]">{t('settings.theme.title')}</span>
+              <div className="flex gap-1 rounded-[20px] p-[5px]" style={{ background: 'var(--c-rucw5u)' }}>
+                {(['light', 'dark'] as const).map((mode) => {
+                  const on = theme === mode
+                  return (
+                    <button
+                      key={mode}
+                      onClick={() => selectTheme(mode)}
+                      className="rounded-2xl border-none px-4 py-[9px] font-sans text-[13px] font-bold transition-all duration-[240ms]"
+                      style={{
+                        color: on ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
+                        background: on ? 'var(--c-6rf2u5)' : 'transparent',
+                        boxShadow: on ? '0 4px 12px var(--c-1w98bua)' : 'none',
+                      }}
+                    >
+                      {t(`settings.theme.${mode}`)}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
             {/* camera / mic devices */}
             <div
               className="flex flex-col gap-4 rounded-[32px] px-7 pt-[26px] pb-6"
-              style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
+              style={{ background: 'var(--c-ijr2vy)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px var(--c-1w98bua)' }}
             >
-              <span className="text-[17px] font-extrabold text-[#2c3f55]">{t('settings.devices.title')}</span>
+              <span className="text-[17px] font-extrabold text-[var(--c-3bsl4p)]">{t('settings.devices.title')}</span>
               {devicesReady ? (
                 <div className="grid gap-[18px]" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
                   <div className="flex flex-col gap-[6px]">
-                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                       {t('settings.devices.cameraLabel')}
                     </span>
                     <select
                       value={preferredCameraId}
                       onChange={(e) => selectCamera(e.target.value)}
-                      className="rounded-[16px] border-none px-4 py-3 font-sans text-sm font-bold text-[#2c3f55] outline-none"
-                      style={{ background: 'rgba(238,246,248,0.9)' }}
+                      className="rounded-[16px] border-none px-4 py-3 font-sans text-sm font-bold text-[var(--c-3bsl4p)] outline-none"
+                      style={{ background: 'var(--c-rucw5u)' }}
                     >
                       <option value="">{t('settings.devices.systemDefault')}</option>
                       {cameras.map((d) => (
@@ -1039,14 +1087,14 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                     </select>
                   </div>
                   <div className="flex flex-col gap-[6px]">
-                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[rgba(51,71,94,0.5)] uppercase">
+                    <span className="text-[12.5px] font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
                       {t('settings.devices.micLabel')}
                     </span>
                     <select
                       value={preferredMicId}
                       onChange={(e) => selectMic(e.target.value)}
-                      className="rounded-[16px] border-none px-4 py-3 font-sans text-sm font-bold text-[#2c3f55] outline-none"
-                      style={{ background: 'rgba(238,246,248,0.9)' }}
+                      className="rounded-[16px] border-none px-4 py-3 font-sans text-sm font-bold text-[var(--c-3bsl4p)] outline-none"
+                      style={{ background: 'var(--c-rucw5u)' }}
                     >
                       <option value="">{t('settings.devices.systemDefault')}</option>
                       {mics.map((d) => (
@@ -1061,19 +1109,19 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                 <div className="flex flex-col items-start gap-3">
                   <button
                     onClick={requestDevicePermission}
-                    className="rounded-[18px] border-none px-5 py-[12px] font-sans text-sm font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
+                    className="rounded-[18px] border-none px-5 py-[12px] font-sans text-sm font-extrabold text-[var(--c-2vtjkg)] transition-transform duration-200 hover:-translate-y-0.5"
                     style={{ background: ACCENT_SOFT }}
                   >
                     {t('settings.devices.grantPermission')}
                   </button>
                   {devicePermission === 'denied' && (
-                    <span className="text-[12.5px] font-semibold text-[#7a3f2c]">
+                    <span className="text-[12.5px] font-semibold text-[var(--c-5nx3vn)]">
                       {t('settings.devices.permissionDenied')}
                     </span>
                   )}
                 </div>
               )}
-              <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.45)]">
+              <span className="text-[12.5px] font-semibold text-[var(--c-1kei7l4)]">
                 {t('settings.devices.hint')}
               </span>
             </div>
@@ -1081,10 +1129,10 @@ export default function Settings({ onClose }: { onClose: () => void }) {
             {/* default youtube background music */}
             <div
               className="flex flex-col gap-[10px] rounded-[32px] px-7 pt-[26px] pb-6"
-              style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
+              style={{ background: 'var(--c-ijr2vy)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px var(--c-1w98bua)' }}
             >
-              <span className="text-[17px] font-extrabold text-[#2c3f55]">{t('settings.defaultMusic.title')}</span>
-              <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.48)]">
+              <span className="text-[17px] font-extrabold text-[var(--c-3bsl4p)]">{t('settings.defaultMusic.title')}</span>
+              <span className="text-[12.5px] font-semibold text-[var(--c-1kei7np)]">
                 {t('settings.defaultMusic.desc')}
               </span>
               <div className="flex flex-wrap gap-[7px]">
@@ -1095,21 +1143,21 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                     setDefaultYoutubeError(false)
                   }}
                   placeholder={DEFAULT_YOUTUBE_URL}
-                  className="min-w-0 flex-1 rounded-[16px] border-none px-4 py-3 font-sans text-sm font-semibold text-[#2c3f55] outline-none"
-                  style={{ background: 'rgba(238,246,248,0.9)' }}
+                  className="min-w-0 flex-1 rounded-[16px] border-none px-4 py-3 font-sans text-sm font-semibold text-[var(--c-3bsl4p)] outline-none"
+                  style={{ background: 'var(--c-rucw5u)' }}
                 />
                 <button
                   onClick={saveDefaultYoutubeUrl}
-                  className="shrink-0 rounded-[16px] border-none px-5 py-3 font-sans text-sm font-extrabold text-[#1e3549] transition-transform duration-200 hover:-translate-y-0.5"
+                  className="shrink-0 rounded-[16px] border-none px-5 py-3 font-sans text-sm font-extrabold text-[var(--c-2vtjkg)] transition-transform duration-200 hover:-translate-y-0.5"
                   style={{ background: ACCENT_SOFT }}
                 >
                   {defaultYoutubeSaved ? t('settings.defaultMusic.saved') : t('settings.defaultMusic.save')}
                 </button>
               </div>
               {defaultYoutubeError && (
-                <span className="text-[12px] font-semibold text-[#a13f2c]">{t('settings.defaultMusic.invalid')}</span>
+                <span className="text-[12px] font-semibold text-[var(--c-otf3yh)]">{t('settings.defaultMusic.invalid')}</span>
               )}
-              <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.45)]">
+              <span className="text-[12.5px] font-semibold text-[var(--c-1kei7l4)]">
                 {defaultYoutubeUrl ? t('settings.defaultMusic.hintCustom') : t('settings.defaultMusic.hintDefault')}
               </span>
             </div>
@@ -1117,22 +1165,22 @@ export default function Settings({ onClose }: { onClose: () => void }) {
             {/* notifications */}
             <div
               className="flex flex-wrap items-center justify-between gap-[14px] rounded-[32px] px-7 py-[22px]"
-              style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px rgba(58,98,126,0.1)' }}
+              style={{ background: 'var(--c-ijr2vy)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 36px var(--c-1w98bua)' }}
             >
               <div className="flex flex-col gap-[2px]">
-                <span className="text-[14.5px] font-bold text-[#2c3f55]">{t('settings.notifications.soundTitle')}</span>
-                <span className="text-[12.5px] font-semibold text-[rgba(51,71,94,0.48)]">
+                <span className="text-[14.5px] font-bold text-[var(--c-3bsl4p)]">{t('settings.notifications.soundTitle')}</span>
+                <span className="text-[12.5px] font-semibold text-[var(--c-1kei7np)]">
                   {t('settings.notifications.soundDesc')}
                 </span>
               </div>
               <button
                 onClick={toggleNotificationSound}
                 className="relative h-8 w-[58px] shrink-0 rounded-full border-none transition-colors duration-[240ms]"
-                style={{ background: notificationSound ? 'var(--ff-accent-chip-active)' : 'rgba(51,71,94,0.18)' }}
+                style={{ background: notificationSound ? 'var(--ff-accent-chip-active)' : 'var(--c-dhk6uu)' }}
               >
                 <span
                   className="absolute top-1 h-6 w-6 rounded-full bg-white transition-[left] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
-                  style={{ left: notificationSound ? '30px' : '4px', boxShadow: '0 3px 8px rgba(58,98,126,0.22)' }}
+                  style={{ left: notificationSound ? '30px' : '4px', boxShadow: '0 3px 8px var(--c-1k1wmrz)' }}
                 />
               </button>
             </div>
@@ -1142,9 +1190,9 @@ export default function Settings({ onClose }: { onClose: () => void }) {
         {/* logout */}
         <div
           className="mt-[14px] flex flex-wrap items-center justify-between gap-[14px] pt-[22px]"
-          style={{ borderTop: '1.5px solid rgba(51,71,94,0.1)' }}
+          style={{ borderTop: '1.5px solid var(--c-wihkuc)' }}
         >
-          <span className="max-w-[420px] text-[13.5px] leading-[1.55] font-semibold text-[rgba(51,71,94,0.5)]">
+          <span className="max-w-[420px] text-[13.5px] leading-[1.55] font-semibold text-[var(--c-mfvyic)]">
             {t('settings.logout.hint')}
           </span>
           <button
@@ -1153,8 +1201,8 @@ export default function Settings({ onClose }: { onClose: () => void }) {
               onClose()
               navigate('/auth')
             }}
-            className="flex items-center gap-[9px] rounded-[22px] border-[1.5px] px-6 py-[14px] font-sans text-[14.5px] font-extrabold text-[#7a3f2c] transition-colors duration-[220ms] hover:!bg-[oklch(0.88_0.05_45)]"
-            style={{ borderColor: 'oklch(0.82 0.06 45)', background: 'oklch(0.93 0.03 45)' }}
+            className="flex items-center gap-[9px] rounded-[22px] border-[1.5px] px-6 py-[14px] font-sans text-[14.5px] font-extrabold text-[var(--c-5nx3vn)] transition-colors duration-[220ms] hover:!bg-[var(--c-1eu539k)]"
+            style={{ borderColor: 'var(--c-p573sp)', background: 'var(--c-11c6fho)' }}
           >
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
               <path d="M15 5.5V4a2 2 0 00-2-2H6a2 2 0 00-2 2v16a2 2 0 002 2h7a2 2 0 002-2v-1.5" />

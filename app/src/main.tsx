@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import './i18n'
 import './store/auth'
+import './store/theme'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(

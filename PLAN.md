@@ -144,5 +144,21 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Nhạc main UI không còn bị ngắt khi chuyển từ Dashboard sang "Duyệt phòng" (`/matching`) — Dashboard giờ mount 1 lần, giữ nguyên xuyên suốt `/` ↔ `/matching` (ẩn qua opacity+inert khi ở `/matching`, không unmount), chỉ mất khi vào Room thật/`/auth` (đúng ý, Room có hệ thống nhạc riêng) — xong 2026-08-09, xem CONTEXT.md "Giai đoạn 10 (phần 5)"
 - [ ] User chạy `0021_avatars_storage.sql` + `0022_room_members_avatar.sql` trong Supabase SQL Editor, rồi tự test: đổi avatar/tên, copy mã bạn bè, avatar hiện trong Room, nhạc YouTube tự phát + thu gọn đúng trong Room, và nhạc main UI không tắt khi chuyển sang "Duyệt phòng" (vẫn tắt khi vào Room thật — đúng ý)
 
+## Giai đoạn 10 (phần 6) — Dark mode (ngoài kế hoạch gốc, 2026-08-09)
+- [x] Toàn bộ UI hoá màu literal (221 giá trị hex/rgba/oklch khác nhau, không dùng biến CSS) thành token `--c-*` sinh tự động bằng script (đảo lightness theo HSL/OKLCH, phân loại vai trò text/surface theo ngữ cảnh để không đảo sai chữ↔nền, giữ nguyên riêng nhóm màu shadow/overlay đã sẵn tối) + 25 token thiết kế gốc `--ff-*` (page-bg, text, surface, danger/warning, shadow, slider) chỉnh tay cho `:root[data-theme='dark']` — xong 2026-08-09
+- [x] Toggle Sáng/Tối trong Settings, cạnh mục "Màu nhấn" (cùng khu "Giao diện", cùng cách lưu `profiles.theme` như accent_hue), migration `0023` — xong 2026-08-09
+- [x] Khách chưa đăng nhập: tự theo `prefers-color-scheme` hệ thống, lưu lựa chọn ở localStorage (`ff-theme`), có boot script trong `index.html` chống flash sáng trước khi React mount — xong 2026-08-09
+- [x] Verify qua browser thật: build production sạch (`tsc`/`oxlint`/39 test/`vite build`), computed style đúng token ở cả 2 theme trên Dashboard/Settings/Auth, không lỗi console mới — xong 2026-08-09
+- [ ] User chạy `0023_profile_theme.sql` trong Supabase SQL Editor, rồi tự test: bật Sáng/Tối trong Settings, F5 lại xem theme còn giữ, đăng nhập ở máy khác xem có đồng bộ đúng theo tài khoản
+- Phạm vi CHƯA làm (để sau nếu cần polish thêm): badge loại phòng theo room-hue và preset màu accent vẫn giữ nguyên màu pastel gốc ở cả 2 theme (quyết định có chủ đích, xem CONTEXT.md) — có thể cần tinh chỉnh tay thêm vài chỗ nếu user thấy tương phản chưa ổn ở dark mode sau khi tự dùng thật.
+- [x] Sửa tiếp theo phản hồi user sau khi tự dùng thật (ảnh chụp + spec màu + mock HTML): fix bug chữ vô hình trên nút accent-soft (2 literal hex hardcode bị script đảo nhầm), fix elevation card lẫn vào nền, thêm scrim thật dưới tên file wallpaper, tông accent rực hơn cho 2 nút mẫu (Đổi ảnh đại diện/Sao chép) — xong 2026-08-09, xem CONTEXT.md "Giai đoạn 10 (phần 6)"
+
+## Giai đoạn 10 (phần 7) — Gộp guard đăng nhập thành 1 policy + màn giới thiệu khách lần đầu (ngoài kế hoạch gốc, 2026-08-09)
+- [x] Gộp guard: thêm `useRequireAuth()` (app/src/store/auth.ts) làm nguồn sự thật duy nhất cho "tính năng nào cần đăng nhập" — thay 5 chỗ `if (!user) { navigate('/auth'); return }` lặp lại trong Dashboard.tsx (Học cùng nhau/Thống kê x2/Bạn bè/Cài đặt) — xong 2026-08-09
+- [x] Xoá code chết trong Matching.tsx: hàm `requireAuth()`/banner "Cần đăng nhập" cũ không còn chạy được từ khi `/matching` bị route-guard chặn thẳng (còn sót lại từ trước khi đổi chính sách) — xong 2026-08-09
+- [x] Màn giới thiệu ngắn cho khách lần đầu (`components/GuestOnboarding.tsx`, mới) — hiện đúng 1 lần (nhớ qua localStorage `ff-onboarding-seen`), giải thích Pomodoro dùng ngay không cần đăng nhập vs. cần đăng nhập để lưu tiến độ/kết bạn/ghép phòng — xong 2026-08-09
+- [x] Fix bug tiện thể phát hiện khi làm: `i18next-browser-languagedetector` tự dò ngôn ngữ trình duyệt trước `fallbackLng`, khiến khách máy để tiếng Anh thấy UI tiếng Anh ngay từ đầu dù mặc định phải là tiếng Việt — đổi `detection.order` chỉ còn `localStorage` (bỏ tự dò `navigator`) — xong 2026-08-09
+- Verify: `tsc`/`oxlint`/39 test/`vite build` sạch, qua browser thật xác nhận: onboarding hiện đúng 1 lần cho khách mới rồi không hiện lại sau F5, `/matching` vẫn redirect `/auth`, nút Cài đặt vẫn redirect `/auth` đúng qua policy mới.
+
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).
