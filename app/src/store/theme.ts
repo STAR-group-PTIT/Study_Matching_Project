@@ -4,14 +4,12 @@ export type Theme = 'light' | 'dark'
 
 const STORAGE_KEY = 'ff-theme'
 
-function systemPrefersDark() {
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
-}
-
 function readInitialTheme(): Theme {
   const stored = localStorage.getItem(STORAGE_KEY)
   if (stored === 'light' || stored === 'dark') return stored
-  return systemPrefersDark() ? 'dark' : 'light'
+  // Mặc định light mode khi chưa có lựa chọn nào được lưu (khách mới, hoặc user vừa
+  // đăng nhập lần đầu) — không theo system preference để tránh vào web bị tối bất ngờ.
+  return 'light'
 }
 
 // The `data-theme` attribute drives every dark-mode CSS override in index.css. index.html
