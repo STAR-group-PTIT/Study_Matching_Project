@@ -92,6 +92,8 @@
     "leftWidgets": {
       "inProgress": "Đang làm",
       "allDone": "Xong hết việc hôm nay 🎉",
+      "empty": "Chưa có việc nào",
+      "emptyHint": "+ Thêm việc đầu tiên",
       "remaining": "{{open}} việc còn lại · {{done}} đã xong"
     },
     "rightColumn": {
@@ -210,7 +212,8 @@
       "joinGeneric": "Có lỗi xảy ra, thử lại.",
       "invalidCode": "Mã phòng không đúng.",
       "roomFull": "Phòng đã đầy.",
-      "createFailed": "Không tạo được phòng, thử lại sau."
+      "createFailed": "Không tạo được phòng, thử lại sau.",
+      "alreadyInRoom": "Bạn đang ở một phòng khác rồi — rời phòng đó trước khi tạo/tham gia phòng mới nhé."
     },
     "rooms": {
       "title": "Phòng công khai đang mở",
@@ -478,7 +481,8 @@
     "roomInvitesTitle": "Lời mời vào phòng ({{count}})",
     "roomInviteSubtitle": "mời bạn vào phòng \"{{room}}\"",
     "roomInviteFull": "Phòng đã đầy, không vào được nữa.",
-    "roomInviteClosed": "Phòng này đã đóng."
+    "roomInviteClosed": "Phòng này đã đóng.",
+    "roomInviteAlreadyInRoom": "Bạn đang ở một phòng khác — rời phòng đó trước khi vào phòng được mời."
   },
   "roomInvite": {
     "title": "Lời mời học cùng!",

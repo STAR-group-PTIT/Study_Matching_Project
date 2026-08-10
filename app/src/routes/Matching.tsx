@@ -131,6 +131,11 @@ export default function Matching() {
   const [roomFilter, setRoomFilter] = useState<{ roomType: RoomTypeKey; focusMinutes: number; language: Language } | null>(null)
   const [roomPage, setRoomPage] = useState(1)
 
+  // Mã phòng khác mà user đang thực sự ở (GĐ10 tiếp, chặn 1 user vào 2 phòng cùng lúc) — có
+  // giá trị thì disable tạo/tham gia phòng mới + hiện banner trỏ về phòng đó, thay vì để user
+  // bấm rồi mới nhận lỗi.
+  const [blockedRoomCode, setBlockedRoomCode] = useState<string | null>(null)
+
   const copyTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => () => clearTimeout(copyTimer.current), [])
@@ -153,20 +158,44 @@ export default function Matching() {
   useEffect(() => {
     let cancelled = false
     setLoadingRooms(true)
-    supabase
-      .from('room_public_list')
-      .select('*')
-      .order('member_count', { ascending: false })
-      .limit(PUBLIC_ROOMS_FETCH_LIMIT)
-      .then(({ data, error }) => {
-        if (cancelled) return
-        setLoadingRooms(false)
-        if (!error && data) setPublicRooms(data as PublicRoomRow[])
-      })
+    // Dọn lười hàng room_members bỏ hoang trước khi tải danh sách (GĐ10 tiếp) — cùng pattern
+    // TTL lười đã dùng cho matching_queue, không cần pg_cron.
+    void supabase.rpc('cleanup_stale_room_members').then(() =>
+      supabase
+        .from('room_public_list')
+        .select('*')
+        .order('member_count', { ascending: false })
+        .limit(PUBLIC_ROOMS_FETCH_LIMIT)
+        .then(({ data, error }) => {
+          if (cancelled) return
+          setLoadingRooms(false)
+          if (!error && data) setPublicRooms(data as PublicRoomRow[])
+        }),
+    )
     return () => {
       cancelled = true
     }
   }, [])
+
+  // Chặn sớm (GĐ10 tiếp): nếu user đã có 1 phòng active khác, disable tạo/tham gia phòng mới
+  // ngay từ đầu thay vì để họ bấm rồi mới nhận lỗi.
+  useEffect(() => {
+    if (!user) {
+      setBlockedRoomCode(null)
+      return
+    }
+    let cancelled = false
+    supabase
+      .rpc('find_other_active_room')
+      .then(({ data }) => {
+        if (cancelled) return
+        const row = data?.[0] as { room_code: string } | undefined
+        setBlockedRoomCode(row?.room_code ?? null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   async function submitJoinCode() {
     const code = joinCode.trim().toUpperCase()
@@ -179,13 +208,20 @@ export default function Matching() {
       setJoinError(t('matching.errors.joinGeneric'))
       return
     }
-    const row = data?.[0] as { status: string; room_id: string; member_status: string } | undefined
+    const row = data?.[0] as
+      | { status: string; room_id: string; member_status: string; other_room_code: string | null }
+      | undefined
     if (!row || row.status === 'not_found') {
       setJoinError(t('matching.errors.invalidCode'))
       return
     }
     if (row.status === 'full') {
       setJoinError(t('matching.errors.roomFull'))
+      return
+    }
+    if (row.status === 'already_in_another_room') {
+      setBlockedRoomCode(row.other_room_code)
+      setJoinError(t('matching.errors.alreadyInRoom'))
       return
     }
     navigate('/room/' + code)
@@ -195,8 +231,13 @@ export default function Matching() {
     setJoinError('')
     const { data, error } = await supabase.rpc('join_room_by_code', { p_code: code })
     if (error) return
-    const row = data?.[0] as { status: string } | undefined
+    const row = data?.[0] as { status: string; other_room_code: string | null } | undefined
     if (!row || row.status === 'not_found' || row.status === 'full') return
+    if (row.status === 'already_in_another_room') {
+      setBlockedRoomCode(row.other_room_code)
+      setJoinError(t('matching.errors.alreadyInRoom'))
+      return
+    }
     navigate('/room/' + code)
   }
 
@@ -247,26 +288,25 @@ export default function Matching() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
     const genCode = () => Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 
-    let inserted: { id: string; code: string } | null = null
-    for (let attempt = 0; attempt < 5 && !inserted; attempt++) {
+    // create_room (migration 0024) gộp guard "không đang ở phòng khác" + insert rooms/
+    // room_members vào 1 RPC — trước đây createRoom() làm 2 insert riêng từ client, không
+    // enforce được guard này ở đâu. Mã trùng vẫn retry y hệt cũ (unique_violation -> 23505).
+    let result: { status: string; room_code: string; other_room_code: string | null } | null = null
+    for (let attempt = 0; attempt < 5 && !result; attempt++) {
       const code = genCode()
-      const { data, error } = await supabase
-        .from('rooms')
-        .insert({
-          code,
-          name: roomName.trim() || defaultRoomName,
-          host_id: user.id,
-          room_type: roomType,
-          duration_minutes: focusMinutes,
-          break_minutes: breakMinutes,
-          language: language === 'Tiếng Việt' ? 'vi' : 'en',
-          capacity,
-          visibility,
-        })
-        .select('id, code')
-        .single()
-      if (!error && data) {
-        inserted = data
+      const { data, error } = await supabase.rpc('create_room', {
+        p_code: code,
+        p_name: roomName.trim() || defaultRoomName,
+        p_room_type: roomType,
+        p_duration_minutes: focusMinutes,
+        p_break_minutes: breakMinutes,
+        p_language: language === 'Tiếng Việt' ? 'vi' : 'en',
+        p_capacity: capacity,
+        p_visibility: visibility,
+      })
+      const row = data?.[0] as { status: string; room_code: string; other_room_code: string | null } | undefined
+      if (!error && row) {
+        result = row
         break
       }
       if (error && error.code !== '23505') {
@@ -276,14 +316,20 @@ export default function Matching() {
       }
     }
 
-    if (!inserted) {
+    if (!result) {
       setCreateError(t('matching.errors.createFailed'))
       setCreating(false)
       return
     }
 
-    await supabase.from('room_members').insert({ room_id: inserted.id, user_id: user.id, status: 'member' })
-    setRoomId(inserted.code)
+    if (result.status === 'already_in_another_room') {
+      setCreating(false)
+      setModal(false)
+      setBlockedRoomCode(result.other_room_code)
+      return
+    }
+
+    setRoomId(result.room_code)
     setCreated(true)
     setCreating(false)
   }
@@ -354,6 +400,22 @@ export default function Matching() {
                 </button>
               )}
             </div>
+
+            {blockedRoomCode && (
+              <div
+                className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] p-[14px] text-[13px] font-semibold text-[var(--c-1kei7l4)]"
+                style={{ background: 'var(--c-ijr2u8)' }}
+              >
+                <span>{t('matching.errors.alreadyInRoom')}</span>
+                <button
+                  onClick={() => navigate('/room/' + blockedRoomCode)}
+                  className="shrink-0 rounded-[16px] border-none px-4 py-[9px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)]"
+                  style={{ background: ACCENT_SOFT }}
+                >
+                  {t('matching.create.enterRoom')}
+                </button>
+              </div>
+            )}
 
             {joinError && <span className="text-[12.5px] font-semibold text-[var(--c-5nx3vn)]">{joinError}</span>}
 
@@ -426,13 +488,13 @@ export default function Matching() {
                         {p.member_count}/{p.capacity}
                       </div>
                       <button
-                        onClick={() => !full && joinPublicRoom(p.code)}
-                        disabled={full}
+                        onClick={() => !full && !blockedRoomCode && joinPublicRoom(p.code)}
+                        disabled={full || !!blockedRoomCode}
                         className="rounded-[18px] border-none px-[22px] py-[11px] font-sans text-sm font-extrabold transition-transform duration-200 hover:enabled:-translate-y-px"
                         style={{
-                          cursor: full ? 'not-allowed' : 'pointer',
-                          color: full ? 'var(--c-1kei7ij)' : 'var(--c-2vtjkg)',
-                          background: full ? 'var(--c-dhk645)' : ACCENT_SOFT,
+                          cursor: full || blockedRoomCode ? 'not-allowed' : 'pointer',
+                          color: full || blockedRoomCode ? 'var(--c-1kei7ij)' : 'var(--c-2vtjkg)',
+                          background: full || blockedRoomCode ? 'var(--c-dhk645)' : ACCENT_SOFT,
                         }}
                       >
                         {full ? t('matching.rooms.full') : t('matching.rooms.joinAction')}
@@ -628,7 +690,8 @@ export default function Matching() {
 
                 <button
                   onClick={openCreate}
-                  className="w-full rounded-[22px] border-[1.5px] bg-white px-3 py-[15px] font-sans text-[15.5px] font-extrabold text-[var(--c-2kucx8)] transition-[transform,background] duration-200 hover:-translate-y-0.5 hover:!bg-[var(--c-6rf21q)]"
+                  disabled={!!blockedRoomCode}
+                  className="w-full rounded-[22px] border-[1.5px] bg-white px-3 py-[15px] font-sans text-[15.5px] font-extrabold text-[var(--c-2kucx8)] transition-[transform,background] duration-200 hover:-translate-y-0.5 hover:!bg-[var(--c-6rf21q)] disabled:opacity-50 disabled:hover:translate-y-0"
                   style={{ borderColor: ACCENT_BORDER }}
                 >
                   {t('matching.filters.createRoom')}
@@ -655,7 +718,7 @@ export default function Matching() {
                     />
                     <button
                       onClick={submitJoinCode}
-                      disabled={joining || joinCode.trim().length < 6}
+                      disabled={joining || joinCode.trim().length < 6 || !!blockedRoomCode}
                       className="shrink-0 rounded-[18px] border-none px-5 py-[13px] font-sans text-sm font-extrabold text-[var(--c-2vtjkg)] disabled:opacity-50"
                       style={{ background: ACCENT_SOFT }}
                     >

@@ -91,7 +91,15 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
         navigate('/room/' + result.room_code)
         return
       }
-      setInviteResultMsg({ id: inv.id, key: result.status === 'full' ? 'roomInviteFull' : 'roomInviteClosed' })
+      setInviteResultMsg({
+        id: inv.id,
+        key:
+          result.status === 'full'
+            ? 'roomInviteFull'
+            : result.status === 'already_in_another_room'
+              ? 'roomInviteAlreadyInRoom'
+              : 'roomInviteClosed',
+      })
       refreshInvites()
     } catch {
       setInviteResultMsg({ id: inv.id, key: 'roomInviteFull' })

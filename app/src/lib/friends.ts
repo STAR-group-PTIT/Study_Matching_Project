@@ -154,7 +154,10 @@ export async function declineRoomInvite(id: string) {
   if (error) throw error
 }
 
-export type AcceptRoomInviteResult = { status: 'joined' | 'full' | 'room_closed'; room_code: string | null }
+export type AcceptRoomInviteResult = {
+  status: 'joined' | 'full' | 'room_closed' | 'already_in_another_room'
+  room_code: string | null
+}
 
 export async function acceptRoomInvite(id: string): Promise<AcceptRoomInviteResult> {
   const { data, error } = await supabase.rpc('accept_room_invite', { p_invite_id: id })

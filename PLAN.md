@@ -160,5 +160,21 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - [x] Fix bug tiện thể phát hiện khi làm: `i18next-browser-languagedetector` tự dò ngôn ngữ trình duyệt trước `fallbackLng`, khiến khách máy để tiếng Anh thấy UI tiếng Anh ngay từ đầu dù mặc định phải là tiếng Việt — đổi `detection.order` chỉ còn `localStorage` (bỏ tự dò `navigator`) — xong 2026-08-09
 - Verify: `tsc`/`oxlint`/39 test/`vite build` sạch, qua browser thật xác nhận: onboarding hiện đúng 1 lần cho khách mới rồi không hiện lại sau F5, `/matching` vẫn redirect `/auth`, nút Cài đặt vẫn redirect `/auth` đúng qua policy mới.
 
+## Giai đoạn 10 (phần 8) — Preview redesign Dashboard + implement khối trái/logo topbar (ngoài kế hoạch gốc, 2026-08-10)
+- [x] Dựng bản HTML xem trước tương tác (Trước/Sau, nền Sáng/Tối, chú thích 6 hạng mục ưu tiên) theo file đánh giá layout Dashboard user gửi, dùng đúng token thật của app (font Nunito, accent, glass) — không code thẳng vào app trước khi chốt
+- [x] Redesign popup "Học cùng nhau" trong preview qua 3 vòng góp ý (bớt rườm rà → đem CTA + room list quay lại main UI → cắt tối giản còn 1 tiêu đề/1 nút/1 list) — **chỉ có trong preview, chưa vào code thật**, chờ user chốt tiếp
+- [x] Implement thật khối trái (đồng hồ + "Đang làm"): gộp 2 card rời thành 1 panel viền hairline + divider, micro-label + chấm pulse, vòng progress mini theo tiến độ to-do thật, fix đúng bug empty-state (3 trạng thái: chưa có việc/đang làm/xong hết — trước chỉ 2 nhánh, tự nói dối "xong hết" dù chưa từng thêm to-do) — xong 2026-08-10, xem CONTEXT.md "Giai đoạn 10 (phần 8)"
+- [x] Bỏ pill/khung quanh logo "FocusFlow" ở topbar cho hoà vào wallpaper, thêm drop-shadow 2 lớp thay thế để không mất chữ trên wallpaper ảnh/video tự upload độ sáng bất kỳ — xong 2026-08-10
+- Không có việc gì cần user làm thêm — thuần UI/logic client, không đụng schema.
+
+## Giai đoạn 10 (phần 9) — Bỏ label "HÔM NAY" khỏi khối trái Dashboard (ngoài kế hoạch gốc, 2026-08-10)
+- [x] Xoá label + chấm pulse, cân lại padding/spacing panel giờ/ngày, dọn key i18n không dùng — xong 2026-08-10, xem CONTEXT.md "Giai đoạn 10 (phần 9)"
+
+## Giai đoạn 10 (phần 10) — Fix phòng "ma" + chặn 1 user vào 2 phòng cùng lúc (ngoài kế hoạch gốc, 2026-08-10)
+- [x] Nhịp tim `room_members.last_seen_at` (Room.tsx tự cập nhật mỗi 45s, chỉ dừng khi tab thực đóng) + freshness filter 3 phút cho mọi chỗ đếm member/capacity/guard, dọn lười (lazy TTL) hàng quá 10 phút (tự chuyển host/đóng phòng)
+- [x] Chặn cứng 1 user vào 2 phòng cùng lúc ở cả 4 điểm tạo `room_members` (`join_room_by_code`, `find_or_create_lobby`, `accept_room_invite`, `create_room` RPC mới thay 2 insert rời rạc cũ) — báo lỗi + link về phòng đang ở, không tự rời phòng cũ giùm user
+- xong 2026-08-10, `tsc`/`oxlint`/39 test/`vite build` sạch, xem CONTEXT.md "Giai đoạn 10 (phần 10)"
+- **User cần chạy migration** [0024_room_membership_guard_and_heartbeat.sql](app/supabase/migrations/0024_room_membership_guard_and_heartbeat.sql) rồi tự test 2 tài khoản (chưa verify được real mode trong sandbox)
+
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).

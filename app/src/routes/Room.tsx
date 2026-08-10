@@ -984,6 +984,24 @@ export default function Room() {
     }
   }, [roomId, user])
 
+  // Nhịp tim room_members.last_seen_at (GĐ10 tiếp) — báo "vẫn còn thực sự mở phòng" để phòng
+  // không bị coi là bỏ hoang khi user chỉ chuyển sang tab khác (setInterval vẫn chạy nền, chỉ
+  // dừng khi tab thực sự đóng/unmount). Server dùng cột này để ẩn phòng ma khỏi danh sách công
+  // khai + tự dọn hàng quá cũ (xem migration 0024).
+  useEffect(() => {
+    if (!isRealMode || !roomId || !user || !myStatus) return
+    const touch = () => {
+      void supabase
+        .from('room_members')
+        .update({ last_seen_at: new Date().toISOString() })
+        .eq('room_id', roomId)
+        .eq('user_id', user.id)
+    }
+    touch()
+    const id = setInterval(touch, 45_000)
+    return () => clearInterval(id)
+  }, [isRealMode, roomId, user, myStatus])
+
   const lkRoomRef = useRef<LiveKitRoom | null>(null)
   const [videoTracks, setVideoTracks] = useState<Record<string, MediaStreamTrack>>({})
   const [audioTracks, setAudioTracks] = useState<Record<string, MediaStreamTrack>>({})

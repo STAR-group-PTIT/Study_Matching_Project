@@ -92,6 +92,8 @@
     "leftWidgets": {
       "inProgress": "In progress",
       "allDone": "All done for today 🎉",
+      "empty": "No tasks yet",
+      "emptyHint": "+ Add your first task",
       "remaining": "{{open}} left · {{done}} done"
     },
     "rightColumn": {
@@ -210,7 +212,8 @@
       "joinGeneric": "Something went wrong — try again.",
       "invalidCode": "That room code isn't right.",
       "roomFull": "This room is full.",
-      "createFailed": "Couldn't create the room — try again later."
+      "createFailed": "Couldn't create the room — try again later.",
+      "alreadyInRoom": "You're already in another room — leave it before creating or joining a new one."
     },
     "rooms": {
       "title": "Public rooms open now",
@@ -478,7 +481,8 @@
     "roomInvitesTitle": "Room invites ({{count}})",
     "roomInviteSubtitle": "invited you to \"{{room}}\"",
     "roomInviteFull": "That room is full now.",
-    "roomInviteClosed": "That room is closed now."
+    "roomInviteClosed": "That room is closed now.",
+    "roomInviteAlreadyInRoom": "You're already in another room — leave it before joining the one you were invited to."
   },
   "roomInvite": {
     "title": "Study invite!",
