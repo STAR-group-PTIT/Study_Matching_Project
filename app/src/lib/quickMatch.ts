@@ -42,12 +42,13 @@ export type QuickMatchStage = 'idle' | 'lobby' | 'matched' | 'expired'
 export { levelFromTotalMinutes }
 
 type LobbyResult = {
-  status: 'lobby' | 'active' | 'expired'
+  status: 'lobby' | 'active' | 'expired' | 'already_in_another_room'
   room_id: string
   room_code: string
   member_count: number
   capacity: number
   lobby_expires_at: string | null
+  other_room_code: string | null
 }
 
 // Hook ghép ngẫu nhiên (0019): thay vì xếp hàng vô hình rồi chờ đủ 5 mới hiện phòng, giờ
@@ -231,7 +232,12 @@ export function useQuickMatch() {
       return true
     }
 
-    if (result.status === 'active') {
+    if (result.status === 'already_in_another_room') {
+      // Chặn hẳn (GĐ10 tiếp) thay vì tự rời phòng cũ giùm user — tái dùng đúng khung 'expired'
+      // sẵn có (matchError hiện message + nút Huỷ), không cần thêm stage/UI riêng.
+      setMatchError('alreadyInRoom')
+      setStage('expired')
+    } else if (result.status === 'active') {
       const partnerStats = await loadOthers(result.room_id, user.id)
       setPartners(partnerStats)
       setRoomCode(result.room_code)

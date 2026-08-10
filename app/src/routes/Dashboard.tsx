@@ -766,6 +766,8 @@ export default function Dashboard() {
 
   const openCount = tasks.filter((task) => !task.done).length
   const active = tasks.find((task) => !task.done)
+  const doneCount = tasks.length - openCount
+  const hasTasks = tasks.length > 0
 
   function toggleRun() {
     // Bấm Tạm dừng (đang running -> dừng) thoát auto-fullscreen/trả UI về Dashboard, giống
@@ -1269,11 +1271,12 @@ export default function Dashboard() {
         }}
       >
         <div
-          className="flex items-center gap-[11px] rounded-[22px] py-[9px] pr-[18px] pl-[13px]"
+          className="flex items-center gap-[11px]"
           style={{
-            background: 'var(--c-ijr2u8)',
-            boxShadow: '0 6px 20px var(--c-fc5pjb)',
-            backdropFilter: 'blur(14px)',
+            // Không có card đỡ phía sau nữa (chữ nổi thẳng lên wallpaper) — user có thể tự tải
+            // ảnh/video bất kỳ làm nền (xem wallpaperPopup.hint), nên cần bóng đổ nhẹ để chữ luôn
+            // tách khỏi nền, không riêng gì bộ gradient sáng có sẵn.
+            filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.28)) drop-shadow(0 2px 10px rgba(0,0,0,0.16))',
           }}
         >
           <div
@@ -1747,9 +1750,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* left widgets — hidden on mobile (would overlap the right column at narrow widths) */}
+      {/* left widgets — hidden on mobile (would overlap the right column at narrow widths).
+          1 panel liền (viền hairline + divider giữa 2 section) thay vì 2 card rời không viền —
+          tránh cảm giác "hộp trôi nổi", xem thêm ghi chú thiết kế trong PLAN.md giai đoạn 10. */}
       <div
-        className="absolute top-24 left-8 hidden w-[232px] flex-col gap-[14px] md:flex"
+        className="absolute top-24 left-8 hidden w-[232px] flex-col md:flex"
         style={{
           ...dashStyleBase,
           transform: `translateX(${dashVisible ? '0px' : '-24px'})`,
@@ -1757,39 +1762,56 @@ export default function Dashboard() {
         }}
       >
         <div
-          className="rounded-[24px] px-5 py-[18px]"
+          className="overflow-hidden rounded-[24px]"
           style={{
             background: 'var(--c-6rf0gw)',
-            backdropFilter: 'blur(16px)',
+            backdropFilter: 'blur(20px) saturate(140%)',
             boxShadow: '0 10px 28px var(--c-1w98bua)',
+            border: '1px solid var(--ff-border)',
           }}
         >
-          <div className="text-[13px] leading-tight font-bold text-[var(--c-mfvyj7)]">
-            {clockDateText}
+          <div className="px-5 py-[18px]">
+            <div className="text-[34px] leading-none font-extrabold text-[var(--c-3bsl4p)] tabular-nums">
+              {clockTimeText}
+            </div>
+            <div className="mt-[6px] text-[13px] leading-tight font-bold text-[var(--c-mfvyj7)]">
+              {clockDateText}
+            </div>
           </div>
-          <div className="mt-1 text-[34px] leading-none font-extrabold text-[var(--c-3bsl4p)] tabular-nums">
-            {clockTimeText}
-          </div>
-        </div>
-        <div
-          className="rounded-[24px] px-5 py-[18px]"
-          style={{
-            background: 'var(--c-6rf0gw)',
-            backdropFilter: 'blur(16px)',
-            boxShadow: '0 10px 28px var(--c-1w98bua)',
-          }}
-        >
-          <div className="mb-[10px] text-xs font-bold tracking-[1.2px] text-[var(--c-mfvyic)] uppercase">
-            {t('dashboard.leftWidgets.inProgress')}
-          </div>
-          <div className="text-[15px] leading-[1.4] font-bold text-[var(--c-3bsl4p)]">
-            {active ? active.name : t('dashboard.leftWidgets.allDone')}
-          </div>
-          <div className="mt-[6px] text-[13px] font-semibold text-[var(--c-mfvyic)]">
-            {t('dashboard.leftWidgets.remaining', {
-              open: openCount,
-              done: tasks.length - openCount,
-            })}
+          <div className="px-5 py-[16px]" style={{ borderTop: '1px solid var(--ff-border)' }}>
+            <div className="mb-[10px] text-xs font-bold tracking-[1.2px] text-[var(--c-mfvyic)] uppercase">
+              {t('dashboard.leftWidgets.inProgress')}
+            </div>
+            <div className="flex items-start gap-[10px]">
+              <svg width="26" height="26" viewBox="0 0 36 36" className="mt-[2px] shrink-0">
+                <circle cx="18" cy="18" r="14" fill="none" stroke="var(--c-50bz5d)" strokeWidth="4" />
+                {hasTasks && (
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="14"
+                    fill="none"
+                    stroke={ACCENT}
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 14}
+                    strokeDashoffset={2 * Math.PI * 14 * (1 - doneCount / tasks.length)}
+                    style={{ transition: 'stroke-dashoffset 480ms ease' }}
+                    transform="rotate(-90 18 18)"
+                  />
+                )}
+              </svg>
+              <div>
+                <div className="text-[15px] leading-[1.4] font-bold text-[var(--c-3bsl4p)]">
+                  {!hasTasks ? t('dashboard.leftWidgets.empty') : active ? active.name : t('dashboard.leftWidgets.allDone')}
+                </div>
+                <div className="mt-[6px] text-[13px] font-semibold text-[var(--c-mfvyic)]">
+                  {!hasTasks
+                    ? t('dashboard.leftWidgets.emptyHint')
+                    : t('dashboard.leftWidgets.remaining', { open: openCount, done: doneCount })}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
