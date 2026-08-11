@@ -7,7 +7,15 @@ import { playChime } from '../lib/sound'
 import { parseYoutubeUrl, loadYoutubeApi, DEFAULT_YOUTUBE_URL, MUSIC_YOUTUBE_KEY, loadStoredYoutubeUrlOverride, type YTPlayer } from '../lib/youtube'
 import { BUILTIN_TRACKS, type LibraryTrack } from '../lib/musicLibrary'
 import { RANDOM_MATCH_CONFIG, useQuickMatch } from '../lib/quickMatch'
-import { isVideoWallpaper, prepareWallpaperFile, WallpaperFileError } from '../lib/wallpaper'
+import {
+  isVideoWallpaper,
+  prepareWallpaperFile,
+  WallpaperFileError,
+  readWallpaperUrlCache,
+  refreshWallpaperUrlCache,
+  writeWallpaperUrlCache,
+  cacheWallpaperUrl,
+} from '../lib/wallpaper'
 import { loadStoredAutoFullscreenFocus } from '../lib/focusFullscreen'
 import MatchFound from '../components/MatchFound'
 import LobbyWaiting from '../components/LobbyWaiting'
@@ -121,11 +129,12 @@ type Task = {
 const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 }
 // Xoay vòng khi bấm chấm ưu tiên: Cao → Trung bình → Thấp → Cao.
 const PRIORITY_CYCLE: Record<Priority, Priority> = { high: 'medium', medium: 'low', low: 'high' }
-// Màu chấm ưu tiên dùng token có sẵn để tự thích ứng sáng/tối (danger/warning/text-3).
+// Màu chấm ưu tiên dùng token riêng theo theme — đỏ/cam/xám phân biệt rõ 3 mức
+// (trước dùng danger-text/warning-text: ở light theme 2 màu nâu đất gần như giống nhau).
 const PRIORITY_COLOR: Record<Priority, string> = {
-  high: 'var(--ff-danger-text)',
-  medium: 'var(--ff-warning-text)',
-  low: 'var(--ff-text-3)',
+  high: 'var(--ff-priority-high)',
+  medium: 'var(--ff-priority-medium)',
+  low: 'var(--ff-priority-low)',
 }
 const PRIORITY_LABEL_KEY: Record<Priority, string> = {
   high: 'dashboard.todoPanel.priorityHigh',
@@ -246,7 +255,16 @@ export default function Dashboard() {
   // Lưu vào localStorage — chọn hình nền xong rồi rời trang (Settings/Matching...) quay lại phải
   // vẫn giữ đúng lựa chọn, không reset về mặc định (component Dashboard unmount/mount lại theo route).
   const [wp, setWp] = useState(loadStoredWallpaperId)
-  const [customWallpapers, setCustomWallpapers] = useState<WallpaperOption[]>([])
+  // Khởi tạo NGAY từ cache signed URL (nếu có) thay vì chờ effect fetch Supabase — nếu không,
+  // mỗi lần reload trang sẽ render gradient mặc định trước rồi mới nhảy sang ảnh custom khi
+  // fetch xong, gây hiện tượng "nháy" mà user báo. Entry hết hạn (URL đã 403) thì bỏ qua.
+  const [customWallpapers, setCustomWallpapers] = useState<WallpaperOption[]>(() => {
+    const cache = readWallpaperUrlCache()
+    const now = Date.now()
+    return Object.entries(cache)
+      .filter(([, e]) => e.expiresAt > now && e.url)
+      .map(([id, e]) => ({ id, kind: e.kind, value: e.url }))
+  })
   const wallpaperOptions = useMemo(() => [...BUILTIN_WALLPAPERS, ...customWallpapers], [customWallpapers])
   const selectedWallpaper = wallpaperOptions.find((w) => w.id === wp) ?? BUILTIN_WALLPAPERS[0]
 
@@ -641,17 +659,36 @@ export default function Dashboard() {
           if (!cancelled) setCustomWallpapers([])
           return
         }
-        const paths = data.map((r) => r.storage_path)
-        const { data: signed } = await supabase.storage.from('wallpapers').createSignedUrls(paths, 3600)
+        const rows = data.map((r) => ({
+          id: r.id,
+          kind: isVideoWallpaper(r.storage_path) ? ('video' as const) : ('image' as const),
+        }))
+        // Chỉ tạo signed URL mới cho ảnh không còn entry cache tươi — giữ nguyên URL cũ cho ảnh
+        // còn hạn (URL khác nhau mỗi lần tạo, mà đổi URL lại gây nháy nền lần nữa).
+        const { fresh, next } = refreshWallpaperUrlCache(rows.map((r) => r.id))
+        const toSign = rows.filter((r) => !fresh[r.id])
+        const signedMap: Record<string, string> = { ...fresh }
+        if (toSign.length > 0) {
+          const { data: signed } = await supabase.storage
+            .from('wallpapers')
+            .createSignedUrls(
+              toSign.map((r) => data.find((d) => d.id === r.id)?.storage_path ?? ''),
+              3600,
+            )
+          if (cancelled) return
+          signed?.forEach((s, i) => {
+            const r = toSign[i]
+            if (s?.signedUrl && r) {
+              signedMap[r.id] = s.signedUrl
+              next[r.id] = { url: s.signedUrl, expiresAt: Date.now() + 3600 * 1000, kind: r.kind }
+            }
+          })
+        }
+        // Luôn ghi kể cả khi không tạo URL mới — để dọn entry của ảnh đã xoá ở Settings khỏi cache.
+        writeWallpaperUrlCache(next)
         if (cancelled) return
         setCustomWallpapers(
-          data
-            .map((r, i) => ({
-              id: r.id,
-              kind: isVideoWallpaper(r.storage_path) ? ('video' as const) : ('image' as const),
-              value: signed?.[i]?.signedUrl ?? '',
-            }))
-            .filter((w) => w.value),
+          rows.filter((r) => signedMap[r.id]).map((r) => ({ id: r.id, kind: r.kind, value: signedMap[r.id] })),
         )
       })
     return () => {
@@ -687,6 +724,7 @@ export default function Dashboard() {
       if (insErr || !row) throw insErr ?? new Error('no wallpaper row')
       const { data: signed } = await supabase.storage.from('wallpapers').createSignedUrl(path, 3600)
       if (!signed?.signedUrl) throw new Error('no signed url')
+      cacheWallpaperUrl(row.id, signed.signedUrl, isVideoWallpaper(path) ? 'video' : 'image')
       setCustomWallpapers((ws) => [
         ...ws,
         { id: row.id, kind: isVideoWallpaper(path) ? ('video' as const) : ('image' as const), value: signed.signedUrl },
@@ -1484,12 +1522,16 @@ export default function Dashboard() {
         }}
       >
         <div
-          className="flex items-center gap-[11px]"
+          className="flex items-center gap-[9px] rounded-[14px] px-[14px] py-[8px]"
           style={{
-            // Không có card đỡ phía sau nữa (chữ nổi thẳng lên wallpaper) — user có thể tự tải
-            // ảnh/video bất kỳ làm nền (xem wallpaperPopup.hint), nên cần bóng đổ nhẹ để chữ luôn
-            // tách khỏi nền, không riêng gì bộ gradient sáng có sẵn.
-            filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.28)) drop-shadow(0 2px 10px rgba(0,0,0,0.16))',
+            // Nền kính mờ nhẹ (theo theme) — user tự tải ảnh/video bất kỳ làm nền (xem
+            // wallpaperPopup.hint), kể cả ảnh tối trùng tông chữ, nên drop-shadow đơn thuần
+            // không đủ. Glass + blur đảm bảo chữ navy/sáng luôn tách khỏi mọi wallpaper.
+            background: 'var(--ff-logo-glass)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            border: '1px solid var(--ff-border)',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
           }}
         >
           <div
@@ -2819,8 +2861,8 @@ export default function Dashboard() {
                     }}
                     title={t('dashboard.todoPanel.priorityLabel', { level: t(PRIORITY_LABEL_KEY[task.priority]) })}
                     aria-label={t('dashboard.todoPanel.priorityLabel', { level: t(PRIORITY_LABEL_KEY[task.priority]) })}
-                    className="h-[13px] w-[13px] shrink-0 rounded-full border-none p-0"
-                    style={{ background: PRIORITY_COLOR[task.priority], cursor: 'pointer' }}
+                    className="h-[20px] w-[20px] shrink-0 cursor-pointer rounded-full border-[3px] border-[var(--c-6rf2rk)] p-0"
+                    style={{ background: PRIORITY_COLOR[task.priority] }}
                   />
                   <div
                     className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-lg"

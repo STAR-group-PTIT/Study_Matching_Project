@@ -24,6 +24,58 @@ const RESIZABLE_STATIC_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']
 
 export type PreparedWallpaper = { file: File; isVideo: boolean }
 
+// Cache signed URL của wallpaper riêng (upload ở Settings/popup) vào localStorage để lần reload
+// tiếp theo render đúng ảnh NGAY lần mount đầu, không phải chờ fetch Supabase + tạo signed URL
+// xong mới đổi từ gradient mặc định sang ảnh — chính cái chờ đó gây "nháy" khi load lại trang.
+// Signed URL chỉ sống 3600s nên phải lưu kèm thời hạn, hết hạn thì tạo URL mới như bình thường.
+export const WALLPAPER_CACHE_KEY = 'ff-wallpaper-url-cache'
+// Dự trữ 5 phút an toàn — không dùng URL đang sắp hết hạn (tránh render ảnh vỡ giữa chừng).
+const WALLPAPER_CACHE_FRESH_MS = 5 * 60 * 1000
+const WALLPAPER_CACHE_TTL_MS = 3600 * 1000
+
+export type WallpaperCacheEntry = { url: string; expiresAt: number; kind: 'image' | 'video' }
+export type WallpaperUrlCache = Record<string, WallpaperCacheEntry>
+
+export function readWallpaperUrlCache(): WallpaperUrlCache {
+  try {
+    const raw = localStorage.getItem(WALLPAPER_CACHE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    if (typeof parsed !== 'object' || parsed === null) return {}
+    return parsed as WallpaperUrlCache
+  } catch {
+    return {}
+  }
+}
+
+export function writeWallpaperUrlCache(cache: WallpaperUrlCache) {
+  try {
+    localStorage.setItem(WALLPAPER_CACHE_KEY, JSON.stringify(cache))
+  } catch {
+    // best-effort — hết dung lượng localStorage thì bỏ qua, vẫn hoạt động bình thường
+  }
+}
+
+// Giữ lại đúng entries đang còn "tươi" (chưa hết hạn) cho danh sách ids đưa vào, xoá các entry
+// không còn trong danh sách (vd user xoá ảnh ở Settings). Trả cache mới + map id → URL dùng được.
+export function refreshWallpaperUrlCache(ids: string[], now: number = Date.now()) {
+  const cache = readWallpaperUrlCache()
+  const fresh: Record<string, string> = {}
+  const next: WallpaperUrlCache = {}
+  for (const id of ids) {
+    const entry = cache[id]
+    if (entry && entry.expiresAt > now + WALLPAPER_CACHE_FRESH_MS) {
+      fresh[id] = entry.url
+      next[id] = entry
+    }
+  }
+  return { fresh, next }
+}
+
+export function cacheWallpaperUrl(id: string, url: string, kind: 'image' | 'video', now: number = Date.now()) {
+  writeWallpaperUrlCache({ ...readWallpaperUrlCache(), [id]: { url, expiresAt: now + WALLPAPER_CACHE_TTL_MS, kind } })
+}
+
 export class WallpaperFileError extends Error {
   readonly code: 'tooLarge' | 'tooLargeVideo'
   constructor(code: 'tooLarge' | 'tooLargeVideo') {

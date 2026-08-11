@@ -3,6 +3,8 @@
 Theo dõi tiến độ, quyết định kỹ thuật, và những gì đã/chưa làm. Đọc kèm [PLAN.md](PLAN.md) và [README.md](README.md).
 
 ## Trạng thái hiện tại
+**Giai đoạn 10 (phần 12) — Fix 2 bug + 1 yêu cầu UI từ góp ý tiếp theo của user: logo top bar mất contrast khi wallpaper trùng màu (ảnh tối tự upload nuốt chữ navy → thêm nền kính mờ `--ff-logo-glass` + blur theo theme, chốt hướng qua `AskUserQuestion`), ảnh nền tự upload bị "nháy" khi load lại trang (cache signed URL trong localStorage, `customWallpapers` khởi tạo lazy từ cache — hết nháy + đỡ request), chấm ưu tiên to-do 3 mức chỉ thấy "nâu + xám" (danger/warning-text light gần giống hệt → 3 token `--ff-priority-high/medium/low` đỏ/cam/xám riêng cả 2 theme + chấm 13px→20px viền trắng dễ click) — xong 2026-08-11, `tsc`/`oxlint`/39 test/`vite build` sạch. Xem mục "Giai đoạn 10 (phần 12)" bên dưới.**
+
 **Giai đoạn 10 (phần 11) — Đợt UI/UX update đầu tiên theo loạt góp ý user: to-do nâng cấp (nút xoá + kéo-thả sắp xếp + 3 mức ưu tiên + mục "Đã xong"), popup Hình nền cho kéo-thả upload (chỉ đã đăng nhập, hint trung thực), dark mode nâng contrast text tiers + bỏ nền trắng chói ở tab-switcher nhạc — code xong 2026-08-11 trên branch `UI-UX-update`, `tsc`/`oxlint`/39 test/`vite build` sạch, `supabase db push` đã chạy (cùng lúc áp luôn 0021–0024 còn treo từ các phần trước). Migration [0025_todo_priority_and_order.sql](app/supabase/migrations/0025_todo_priority_and_order.sql) ĐÃ chạy. Xem mục "Giai đoạn 10 (phần 11)" bên dưới.**
 
 **Giai đoạn 10 (phần 10) — Fix 2 bug user tự phát hiện khi dùng bản thật: phòng "ma" (bỏ tab không bấm "Rời phòng" thì hiện mãi trong danh sách công khai) + 1 user vào được 2 phòng cùng lúc. Thêm nhịp tim `room_members.last_seen_at` (Room.tsx tự cập nhật mỗi 45s, chỉ dừng khi tab thực đóng) + hàng "tươi" trong 3 phút mới tính active, quá 10 phút bị dọn hẳn (tự chuyển host/đóng phòng); chặn cứng (không tự rời phòng cũ giùm user) ở cả 4 điểm tạo `room_members` (`join_room_by_code`, `find_or_create_lobby`, `accept_room_invite`, `create_room` RPC mới thay 2 insert rời rạc cũ trong Matching.tsx) — xong 2026-08-10, `tsc`/`oxlint`/39 test/`vite build` sạch. Migration [0024_room_membership_guard_and_heartbeat.sql](app/supabase/migrations/0024_room_membership_guard_and_heartbeat.sql) ĐÃ chạy (db push 2026-08-11). Xem mục "Giai đoạn 10 (phần 10)" bên dưới.**
@@ -861,6 +863,25 @@ User tự dùng app thật, báo 2 bug: (1) có phòng đã thoát từ lâu (đ
 - i18n: `matching.errors.alreadyInRoom`, `friends.roomInviteAlreadyInRoom` (vi + en).
 
 **Verify:** `tsc -b`/`oxlint` (2 warning cũ, không liên quan)/39 test/`npm run build` sạch. **Chưa verify được bằng dữ liệu real mode** (cần 2 tài khoản thật + chờ thật 3-10 phút, sandbox không làm được). **Việc user cần làm:** chạy migration `0024_...` trong Supabase SQL Editor, rồi tự test: (a) đang ở phòng A, thử tạo/join mã/ghép ngẫu nhiên/nhận lời mời phòng B → bị chặn kèm link quay lại A; (b) vào phòng, đóng tab thẳng (không bấm Rời phòng), đợi ~3-4 phút → phòng biến mất khỏi danh sách công khai; đợi đủ 10-11 phút → hàng `room_members` bị xoá hẳn, host tự chuyển hoặc phòng tự đóng nếu trống; (c) dùng phòng bình thường (không đóng tab, kể cả chuyển sang tab khác lâu) vẫn hoạt động y như cũ, không bị heartbeat làm gián đoạn gì.
+
+## Giai đoạn 10 (phần 12) — Fix 2 bug từ góp ý tiếp theo + nâng cấp chấm ưu tiên to-do (2026-08-11)
+
+Nối tiếp phần 11 trên branch `UI-UX-update`. User tự dùng bản thật, báo 2 bug + 1 yêu cầu UI:
+
+**1. Logo top bar mất contrast khi wallpaper trùng màu logo** (ảnh tối tự upload nuốt chữ navy):
+- Trước: khối logo (icon gradient + "FocusFlow" + "· Focus mode") nổi trần chỉ nhờ `drop-shadow` đen nhẹ — không đủ với ảnh nền tối bất kỳ.
+- Chốt hướng qua `AskUserQuestion` (user chọn "Nền kính mờ nhẹ sau logo" thay vì tăng shadow đa hướng — cái sau không chắc chắn vì chữ tối trên nền tối vẫn có thể chìm): thêm token `--ff-logo-glass` vào [index.css](app/src/index.css) (light: `rgba(255,255,255,0.35)`, dark: `rgba(10,16,20,0.55)`), [Dashboard.tsx](app/src/routes/Dashboard.tsx) bọc logo trong nền glass + `backdrop-filter: blur(10px)` + border `--ff-border` + bóng nhẹ — chữ navy/sáng luôn tách khỏi MỌI wallpaper, vẫn là kính mờ hoà vào nền (không phải pill đục trắng chói từng bị chê ở GĐ9 phần 8).
+
+**2. Ảnh nền tự upload bị "nháy" khi load lại trang:**
+- Nguyên nhân: `wp` (id ảnh) đọc từ localStorage ngay, nhưng `customWallpapers` + signed URL chỉ có sau khi effect fetch Supabase xong → lần render đầu fallback về gradient builtin đầu, xong mới nhảy sang ảnh custom (cộng `transition: background-image 900ms` càng lộ rõ).
+- Fix: cache signed URL trong localStorage — [lib/wallpaper.ts](app/src/lib/wallpaper.ts) thêm `WALLPAPER_CACHE_KEY` (`ff-wallpaper-url-cache`) + `readWallpaperUrlCache`/`writeWallpaperUrlCache`/`refreshWallpaperUrlCache` (giữ entry còn "tươi" 5 phút an toàn, dọn entry ảnh đã xoá)/`cacheWallpaperUrl` (TTL 3600s khớp `createSignedUrls`).
+- [Dashboard.tsx](app/src/routes/Dashboard.tsx): `customWallpapers` khởi tạo lazy TỪ CACHE (entry còn hạn) → render đúng ảnh ngay lần mount đầu; effect fetch chỉ tạo signed URL mới cho ảnh hết hạn (giữ nguyên URL cũ nếu còn hạn — URL khác mỗi lần tạo mà đổi URL lại nháy nền lần nữa); upload từ popup ghi cache luôn. Hết nháy + đỡ request trùng.
+
+**3. Chấm ưu tiên to-do: 3 mức nhưng trông chỉ có "nâu với xám", chấm nhỏ khó click:**
+- Nguyên nhân: `PRIORITY_COLOR` cũ dùng `--ff-danger-text` (`#7a3f2c` light — nâu đất) và `--ff-warning-text` (`#7a4a2c` — nâu vàng): **2 màu gần như giống hệt nhau ở light theme**, chỉ low xám — nên user thấy "chỉ nâu + xám".
+- Fix: thêm 3 token mới `--ff-priority-high/medium/low` vào [index.css](app/src/index.css) cả 2 theme (light: đỏ `#e5484d` / cam `#e8830d` / xám `#8b99a8`; dark: `#ff7a72`/`#ffb340`/`#9aa8b4`) — phân biệt rõ 3 bậc ở cả 2 theme; chấm to 13px → **20px** kèm viền 3px trắng (`--c-6rf2rk`) cho nổi trên mọi nền, cursor đổi lên className.
+
+**Verify:** `tsc -b --noEmit`/`oxlint` (2 warning cũ không liên quan)/39 test/`npm run build` sạch. **Chưa verify được qua browser thật** (môi trường này không có browser MCP) — user nên tự test: reload trang khi đang dùng ảnh nền tự upload (không còn nháy), logo đọc rõ khi set ảnh tối, chấm ưu tiên 3 màu rõ + bấm thoải mái.
 
 ## Giai đoạn 10 (phần 11) — To-do nâng cấp (xoá + kéo-thả + 3 mức ưu tiên), popup Hình nền kéo-thả upload, dark mode nâng contrast (2026-08-11)
 
