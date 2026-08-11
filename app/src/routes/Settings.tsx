@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/auth'
 import { useThemeStore } from '../store/theme'
 import { parseYoutubeUrl, DEFAULT_YOUTUBE_URL } from '../lib/youtube'
-import { isVideoWallpaper } from '../lib/wallpaper'
+import { isVideoWallpaper, prepareWallpaperFile, WallpaperFileError, type PreparedWallpaper } from '../lib/wallpaper'
 import { loadStoredAutoFullscreenFocus, saveStoredAutoFullscreenFocus } from '../lib/focusFullscreen'
 import ChangeAvatarModal from '../components/ChangeAvatarModal'
 import EditInfoModal from '../components/EditInfoModal'
@@ -20,47 +20,7 @@ const GRADIENTS = [
   'linear-gradient(175deg, var(--c-1g58bqa) 0%, var(--c-1fbjokx) 55%, var(--c-1fio3nu) 100%)',
 ]
 
-const MAX_WALLPAPER_BYTES = 5 * 1024 * 1024
-// Video nền (mp4) nặng hơn ảnh tĩnh dù đã nén tốt (dù mp4 vẫn nhẹ hơn GIF nhiều lần ở cùng chất
-// lượng) — cho cap riêng cao hơn thay vì dùng chung MAX_WALLPAPER_BYTES với ảnh.
-const MAX_WALLPAPER_VIDEO_BYTES = 15 * 1024 * 1024
 const MAX_TRACK_BYTES = 25 * 1024 * 1024
-
-// Ảnh nền upload thường chụp thẳng từ điện thoại (4000x3000+), nặng hơn nhiều so với mức cần
-// thiết để làm background (màn hình lớn nhất thực tế cũng chỉ ~2560x1440). Tự co về tối đa
-// Full HD trước khi lưu lên Storage — giảm dung lượng đáng kể mà mắt thường không thấy khác
-// biệt khi dùng làm nền toàn màn hình, user không cần tự nén tay.
-const MAX_WALLPAPER_WIDTH = 1920
-const MAX_WALLPAPER_HEIGHT = 1080
-
-// Chỉ resize ảnh TĨNH thật (jpg/png/webp) — GIF/mp4 bỏ qua vì canvas chỉ vẽ được 1 khung hình,
-// resize qua canvas sẽ làm mất hoạt hình/chuyển động (GIF chỉ còn khung đầu, video thì canvas
-// không đọc được luôn).
-const RESIZABLE_STATIC_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
-async function resizeWallpaperIfOversized(file: File): Promise<File> {
-  if (!RESIZABLE_STATIC_TYPES.has(file.type)) return file
-  const bitmap = await createImageBitmap(file)
-  if (bitmap.width <= MAX_WALLPAPER_WIDTH && bitmap.height <= MAX_WALLPAPER_HEIGHT) {
-    bitmap.close()
-    return file
-  }
-  const scale = Math.min(MAX_WALLPAPER_WIDTH / bitmap.width, MAX_WALLPAPER_HEIGHT / bitmap.height)
-  const targetWidth = Math.round(bitmap.width * scale)
-  const targetHeight = Math.round(bitmap.height * scale)
-  const canvas = document.createElement('canvas')
-  canvas.width = targetWidth
-  canvas.height = targetHeight
-  const ctx = canvas.getContext('2d')
-  if (!ctx) {
-    bitmap.close()
-    return file
-  }
-  ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight)
-  bitmap.close()
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, file.type, 0.88))
-  if (!blob) return file
-  return new File([blob], file.name, { type: blob.type })
-}
 
 const ACCENT_PRESETS = [
   { hue: 195, key: 'mint' },
@@ -421,15 +381,20 @@ export default function Settings({ onClose }: { onClose: () => void }) {
     const rawFile = e.target.files?.[0]
     e.target.value = ''
     if (!rawFile || !user) return
-    // Resize trước rồi mới kiểm tra dung lượng — ảnh chụp thẳng từ điện thoại thường vượt xa
-    // MAX_WALLPAPER_BYTES ở kích thước gốc nhưng lọt qua dễ dàng sau khi co về Full HD.
-    const file = await resizeWallpaperIfOversized(rawFile).catch(() => rawFile)
-    const isVideo = isVideoWallpaper(file.name)
-    const maxBytes = isVideo ? MAX_WALLPAPER_VIDEO_BYTES : MAX_WALLPAPER_BYTES
-    if (file.size > maxBytes) {
-      alert(t(isVideo ? 'settings.wallpapers.tooLargeVideo' : 'settings.wallpapers.tooLarge'))
+    let prepared: PreparedWallpaper
+    try {
+      prepared = await prepareWallpaperFile(rawFile)
+    } catch (err) {
+      alert(
+        t(
+          err instanceof WallpaperFileError && err.code === 'tooLargeVideo'
+            ? 'settings.wallpapers.tooLargeVideo'
+            : 'settings.wallpapers.tooLarge',
+        ),
+      )
       return
     }
+    const { file } = prepared
     const path = `${user.id}/${crypto.randomUUID()}-${file.name}`
     const { error: upErr } = await supabase.storage.from('wallpapers').upload(path, file)
     if (upErr) {

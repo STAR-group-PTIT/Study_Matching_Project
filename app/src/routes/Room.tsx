@@ -1950,14 +1950,14 @@ export default function Room() {
                 <button
                   onClick={switchToLibrary}
                   className="flex-1 rounded-2xl border-none px-[6px] py-[9px] font-sans text-[12.5px] font-extrabold transition-all duration-[220ms] disabled:cursor-default"
-                  style={{ background: activeTab === 'library' ? 'white' : 'transparent', color: activeTab === 'library' ? 'var(--c-2kucx8)' : 'var(--c-1kei8bt)' }}
+                  style={{ background: activeTab === 'library' ? 'var(--ff-surface-solid)' : 'transparent', color: activeTab === 'library' ? 'var(--ff-text-primary)' : 'var(--c-1kei8bt)' }}
                 >
                   {t('room.music.sourceLibrary')}
                 </button>
                 <button
                   onClick={switchToYoutube}
                   className="flex-1 rounded-2xl border-none px-[6px] py-[9px] font-sans text-[12.5px] font-extrabold transition-all duration-[220ms] disabled:cursor-default"
-                  style={{ background: activeTab === 'youtube' ? 'white' : 'transparent', color: activeTab === 'youtube' ? 'var(--c-2kucx8)' : 'var(--c-1kei8bt)' }}
+                  style={{ background: activeTab === 'youtube' ? 'var(--ff-surface-solid)' : 'transparent', color: activeTab === 'youtube' ? 'var(--ff-text-primary)' : 'var(--c-1kei8bt)' }}
                 >
                   {t('room.music.sourceYoutube')}
                 </button>

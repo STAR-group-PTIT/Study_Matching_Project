@@ -125,7 +125,14 @@
     "wallpaperPopup": {
       "title": "Wallpaper",
       "close": "Close",
-      "hint": "Drag your own image here to use it as a custom wallpaper."
+      "dragHere": "Drop your image/video here",
+      "orChoose": "or click to pick a file",
+      "loginToUpload": "Sign in to upload your own wallpapers.",
+      "uploading": "Uploading…",
+      "uploaded": "Added to your wallpaper library",
+      "uploadError": "Upload failed, try again.",
+      "tooLarge": "Image over 5 MB — try a smaller file.",
+      "tooLargeVideo": "Video over 15 MB — try a smaller encoded version."
     },
     "musicPopup": {
       "title": "Background music",
@@ -160,7 +167,15 @@
       "close": "Close",
       "placeholder": "Add a new task…",
       "add": "Add",
-      "newTaskMeta": "1 session · New"
+      "newTaskMeta": "1 session · New",
+      "empty": "No tasks yet.",
+      "doneSection": "Done",
+      "delete": "Delete this task",
+      "dragHandle": "Hold to drag and reorder (within the same priority level)",
+      "priorityLabel": "Priority {{level}} — click to change level",
+      "priorityHigh": "High",
+      "priorityMedium": "Medium",
+      "priorityLow": "Low"
     },
     "mockTasks": {
       "t1": { "name": "Review Chapter 4 – Derivatives", "meta": "2 sessions · Math" },

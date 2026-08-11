@@ -33,12 +33,16 @@
   --ff-surface-3: #e8eef0;
   --ff-border: rgba(51, 71, 94, 0.14);
   --ff-border-strong: rgba(51, 71, 94, 0.3);
+  --ff-logo-glass: rgba(255, 255, 255, 0.35);
 
   --ff-danger-bg: oklch(0.86 0.055 45);
   --ff-danger-text: #7a3f2c;
   --ff-warning-bg: rgba(255, 246, 238, 0.9);
   --ff-warning-badge: oklch(0.87 0.075 55);
   --ff-warning-text: #7a4a2c;
+  --ff-priority-high: #e5484d;
+  --ff-priority-medium: #e8830d;
+  --ff-priority-low: #8b99a8;
 
   --ff-video-tile-bg: repeating-linear-gradient(135deg, #e3eef2 0 12px, #dae8ee 12px 24px);
 
@@ -71,8 +75,11 @@
   --ff-text-primary: #e6edef;
   --ff-text-body: #c3d2e0;
   --ff-text-muted: rgba(159, 176, 181, 0.65);
-  --ff-text-2: #9fb0b5;
-  --ff-text-3: #7c8f96;
+  /* text-2 / text-3 raised from the auto-invert values (#9fb0b5 / #7c8f96) — user reported the
+     secondary/hint text tiers were hard to read on the dark page, mirroring the same complaint
+     that pushed light-mode text-2 0.62→0.7 and text-3 0.45→0.58. */
+  --ff-text-2: #b0bfc4;
+  --ff-text-3: #98a8ae;
 
   /* Elevation ladder — each step ~4-6% lighter than the one below, so cards are visibly
      distinct from the page and from each other instead of collapsing into the same
@@ -84,6 +91,7 @@
   --ff-surface-3: #263338;
   --ff-border: #2c3a3f;
   --ff-border-strong: #3d4e54;
+  --ff-logo-glass: rgba(10, 16, 20, 0.55);
 
   /* Dark mode gets its own brighter, more saturated accent — mixing the light-mode accent
      with white for accent-soft (unchanged) still works fine as a pale CTA on a dark page,
@@ -103,6 +111,9 @@
   --ff-warning-bg: rgba(58, 42, 22, 0.65);
   --ff-warning-badge: oklch(0.32 0.08 55);
   --ff-warning-text: #f5c462;
+  --ff-priority-high: #ff7a72;
+  --ff-priority-medium: #ffb340;
+  --ff-priority-low: #9aa8b4;
 
   --ff-video-tile-bg: repeating-linear-gradient(135deg, #16232a 0 12px, #121b21 12px 24px);
 
