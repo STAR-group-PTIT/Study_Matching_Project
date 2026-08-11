@@ -12,6 +12,7 @@ import {
   prepareWallpaperFile,
   WallpaperFileError,
   readWallpaperUrlCache,
+  readWallpaperUploadLimit,
   refreshWallpaperUrlCache,
   writeWallpaperUrlCache,
   cacheWallpaperUrl,
@@ -712,7 +713,10 @@ export default function Dashboard() {
     setWpUploading(true)
     setWpUploadMsg(null)
     try {
-      const { file: prepared } = await prepareWallpaperFile(file)
+      const { file: prepared } = await prepareWallpaperFile(file, {
+        maxBytes: readWallpaperUploadLimit(),
+        maxVideoBytes: readWallpaperUploadLimit(),
+      })
       const path = `${user.id}/${crypto.randomUUID()}-${prepared.name}`
       const { error: upErr } = await supabase.storage.from('wallpapers').upload(path, prepared)
       if (upErr) throw upErr
@@ -1286,8 +1290,8 @@ export default function Dashboard() {
           YouTube). Video 400x225 chỉ hiện thêm khi bấm nút mở rộng riêng trong thanh. */}
       {hasActiveMusic && (
         <div
-          className="absolute z-[41] flex flex-col items-start"
-          style={{ bottom: '34px', left: '26px', gap: musicPanelOpen && ytActive && ytVideoVisible ? '8px' : '0px' }}
+          className="absolute bottom-[96px] left-[26px] z-[41] flex flex-col items-start md:bottom-[34px]"
+          style={{ gap: musicPanelOpen && ytActive && ytVideoVisible ? '8px' : '0px' }}
         >
           {ytActive && ytParsed && (
             <div
@@ -1543,7 +1547,7 @@ export default function Dashboard() {
           <span className="text-base font-extrabold tracking-[-0.2px] text-[var(--c-3dfktp)]">
             {t('app.name')}
           </span>
-          <span className="text-[13px] font-semibold text-[var(--c-mfvyic)]">
+          <span className="hidden text-[13px] font-semibold text-[var(--c-mfvyic)] md:inline">
             · {isFocus ? t('dashboard.topbar.focusMode') : t('dashboard.topbar.dashboardMode')}
           </span>
         </div>
@@ -1552,7 +1556,7 @@ export default function Dashboard() {
           {!user && (
             <Link
               to="/auth"
-              className="rounded-[18px] px-4 py-[10px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)] no-underline"
+              className="rounded-[18px] max-md:px-3 max-md:py-[9px] max-md:text-[12px] px-4 py-[10px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)] no-underline"
               style={{
                 background: 'var(--ff-accent-soft)',
                 boxShadow: '0 6px 20px var(--c-fc5pjb)',
@@ -1574,7 +1578,7 @@ export default function Dashboard() {
                 setMode('focus')
                 setPanel(null)
               }}
-              className="rounded-[15px] border-none px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
+              className="rounded-[15px] border-none max-md:px-3 max-md:py-1.5 max-md:text-[12.5px] px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
               style={{
                 background: isFocus ? 'var(--c-6rf2rk)' : 'transparent',
                 color: isFocus ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
@@ -1584,7 +1588,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setMode('dashboard')}
-              className="rounded-[15px] border-none px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
+              className="rounded-[15px] border-none max-md:px-3 max-md:py-1.5 max-md:text-[12.5px] px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
               style={{
                 background: !isFocus ? 'var(--c-6rf2rk)' : 'transparent',
                 color: !isFocus ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
@@ -1834,7 +1838,7 @@ export default function Dashboard() {
                   <span className="leading-none" style={{ fontSize: 'clamp(36px, 7vh, 60px)' }}>
                     🎉
                   </span>
-                  <span className="text-[13px] font-semibold text-[var(--c-mfvyic)]">
+<span className="text-[13px] font-semibold text-[var(--c-mfvyic)]">
                     {t('dashboard.clock.doneHint', { count: sessionCount })}
                   </span>
                   <button
@@ -2285,6 +2289,71 @@ export default function Dashboard() {
             {openCount}
           </span>
         </button>
+        {/* 3 nút này chỉ hiện trên mobile (md:hidden) — desktop dùng bản icon nổi góc phải
+            bên dưới (cùng tác vụ, tránh chồng taskbar trên màn nhỏ, xem comment ở từng icon). */}
+        <button
+          onClick={() =>
+            requireAuth(() => {
+              setPanel(null)
+              setFriendsOpen(true)
+            })
+          }
+          title={t('dashboard.taskbar.friendsTitle')}
+          aria-label={t('dashboard.taskbar.friendsTitle')}
+          className="relative flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
+          style={{ background: 'var(--c-6reybe)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="8" cy="8" r="3" />
+            <circle cx="16.5" cy="9" r="2.4" />
+            <path d="M2.3 19c.6-3.3 2.8-5 5.7-5s5.1 1.7 5.7 5" />
+            <path d="M14.5 14.3c2.2.3 3.7 1.8 4.2 4.2" />
+          </svg>
+          {pendingFriendRequestCount > 0 && (
+            <span
+              className="absolute -top-1 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white"
+              style={{ background: 'var(--c-1ep8226)' }}
+            >
+              {pendingFriendRequestCount > 9 ? '9+' : pendingFriendRequestCount}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setCameraOn((c) => !c)}
+          title={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
+          aria-label={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
+          className="relative flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
+          style={{ background: 'var(--c-6reybe)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="6" width="12" height="12" rx="2.5" />
+            <path d="M15 10.5l6-3.3v9.6l-6-3.3" />
+            {!cameraOn && <path d="M3 3l18 18" />}
+          </svg>
+          {cameraOn && (
+            <span
+              className="absolute right-[3px] bottom-[3px] h-[9px] w-[9px] rounded-full"
+              style={{ background: 'var(--c-t8fca9)', boxShadow: '0 0 0 2px var(--c-6rf20v)' }}
+            />
+          )}
+        </button>
+        <button
+          onClick={() =>
+            requireAuth(() => {
+              setPanel(null)
+              setSettingsOpen(true)
+            })
+          }
+          title={t('dashboard.taskbar.settingsTitle')}
+          aria-label={t('dashboard.taskbar.settingsTitle')}
+          className="flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
+          style={{ background: 'var(--c-6reybe)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
+          </svg>
+        </button>
         <button
           onClick={openStudyPanel}
           title={t('dashboard.taskbar.studyTogetherTitle')}
@@ -2335,7 +2404,7 @@ export default function Dashboard() {
         }
         title={t('dashboard.taskbar.friendsTitle')}
         aria-label={t('dashboard.taskbar.friendsTitle')}
-        className="absolute right-[180px] bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:right-[200px]"
+        className="absolute right-[180px] bottom-[34px] hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:flex md:right-[200px]"
         style={{
           ...dashStyleBase,
           opacity: dashVisible && panel === null ? 1 : 0,
@@ -2374,7 +2443,7 @@ export default function Dashboard() {
         onClick={() => setCameraOn((c) => !c)}
         title={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
         aria-label={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
-        className="absolute right-[124px] bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:right-[144px]"
+        className="absolute right-[124px] bottom-[34px] hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:flex md:right-[144px]"
         style={{
           ...dashStyleBase,
           opacity: dashVisible && panel === null ? 1 : 0,
@@ -2456,7 +2525,7 @@ export default function Dashboard() {
         }
         title={t('dashboard.taskbar.stats')}
         aria-label={t('dashboard.taskbar.stats')}
-        className="absolute right-[68px] bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] no-underline transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:right-[88px]"
+        className="absolute right-[68px] bottom-[34px] hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] no-underline transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:flex md:right-[88px]"
         style={{
           ...dashStyleBase,
           opacity: dashVisible && panel === null ? 1 : 0,
@@ -2488,7 +2557,7 @@ export default function Dashboard() {
         }
         title={t('dashboard.taskbar.settingsTitle')}
         aria-label={t('dashboard.taskbar.settingsTitle')}
-        className="absolute right-3 bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] no-underline transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:right-8"
+        className="absolute right-3 bottom-[34px] hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] no-underline transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:flex md:right-8"
         style={{
           ...dashStyleBase,
           // popup nào cũng nổi đè lên đúng góc này (todo panel full-height bên phải, wallpaper/music
@@ -2550,7 +2619,7 @@ export default function Dashboard() {
 
       {/* wallpaper popup */}
       <div
-        className="absolute bottom-[108px] left-1/2 w-[340px] rounded-[26px] p-5"
+        className="absolute bottom-[108px] left-1/2 w-[min(340px,calc(100vw-24px))] rounded-[26px] p-5"
         style={{
           background: 'var(--c-ijr2vy)',
           backdropFilter: 'blur(20px)',
@@ -2678,7 +2747,7 @@ export default function Dashboard() {
 
       {/* music popup */}
       <div
-        className="absolute bottom-[108px] left-1/2 w-[320px] rounded-[26px] p-5"
+        className="absolute bottom-[108px] left-1/2 w-[min(320px,calc(100vw-24px))] rounded-[26px] p-5"
         style={{
           background: 'var(--c-ijr2vy)',
           backdropFilter: 'blur(20px)',
@@ -2807,7 +2876,7 @@ export default function Dashboard() {
 
       {/* todo slide-out */}
       <div
-        className="absolute top-0 right-0 bottom-0 z-30 flex w-[352px] flex-col gap-4 px-[26px] pt-24 pb-[34px]"
+        className="absolute top-0 right-0 bottom-0 z-30 flex w-[352px] max-w-full flex-col gap-4 px-[26px] pt-24 pb-[34px]"
         style={{
           background: 'var(--c-6rf1cr)',
           backdropFilter: 'blur(22px)',
@@ -2861,11 +2930,11 @@ export default function Dashboard() {
                     }}
                     title={t('dashboard.todoPanel.priorityLabel', { level: t(PRIORITY_LABEL_KEY[task.priority]) })}
                     aria-label={t('dashboard.todoPanel.priorityLabel', { level: t(PRIORITY_LABEL_KEY[task.priority]) })}
-                    className="h-[20px] w-[20px] shrink-0 cursor-pointer rounded-full border-[3px] border-[var(--c-6rf2rk)] p-0"
+                    className="h-[20px] w-[20px] shrink-0 cursor-pointer rounded-full border-[3px] border-[var(--c-6rf2rk)] p-[5px] -m-[5px]"
                     style={{ background: PRIORITY_COLOR[task.priority] }}
                   />
                   <div
-                    className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-lg"
+                    className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-lg p-1 -m-1"
                     style={{
                       border: task.done ? `2px solid ${ACCENT}` : '2px solid var(--c-dhk6uu)',
                       background: task.done ? ACCENT : 'var(--c-ijr2wt)',

@@ -3,6 +3,8 @@
 Theo dõi tiến độ, quyết định kỹ thuật, và những gì đã/chưa làm. Đọc kèm [PLAN.md](PLAN.md) và [README.md](README.md).
 
 ## Trạng thái hiện tại
+**Giai đoạn 10 (phần 13) — Responsive mobile loạt 4 cụm sửa cho Dashboard/overlay touch targets: 4 icon nổi góc phải (Bạn bè/Camera/Thống kê/Cài đặt) chuyển `hidden md:flex` + thêm 3 nút text vào taskbar mobile (bạn bè / học cùng nhau / thống kê — taskbar giờ 8 nút nhưng `overflow-x-auto` cuộn được, HẾT tràn 375px), thu gọn nút Đăng nhập + toggle Focus/Dashboard trên mobile, mini-player nhạc đẩy lên trên taskbar (bottom 34→96px mobile, giữ nguyên desktop), popup Hình nền/Nhạc nền thu hẹp `w-[min(340/320px,calc(100vw-24px))]`, GuestOnboarding + RoomInvitePopup thêm `max-h-[85svh] overflow-y-auto`, hit area chấm ưu tiên to-do 20→30px + tay cầm kéo-thả 22→30px (2 nơi) + nút xoá Settings 26→32px, cap upload wallpaper chuyển sang CSS token `--ff-wallpaper-upload-limit` (light 15MB / dark 20MB, đọc qua `readWallpaperUploadLimit()`, Dashboard truyền theo theme — Settings giữ mặc định 5/15MB) — xong 2026-08-11, `tsc`/`oxlint`/39 test/`vite build` sạch. Xem mục "Giai đoạn 10 (phần 13)" bên dưới.**
+
 **Giai đoạn 10 (phần 12) — Fix 2 bug + 1 yêu cầu UI từ góp ý tiếp theo của user: logo top bar mất contrast khi wallpaper trùng màu (ảnh tối tự upload nuốt chữ navy → thêm nền kính mờ `--ff-logo-glass` + blur theo theme, chốt hướng qua `AskUserQuestion`), ảnh nền tự upload bị "nháy" khi load lại trang (cache signed URL trong localStorage, `customWallpapers` khởi tạo lazy từ cache — hết nháy + đỡ request), chấm ưu tiên to-do 3 mức chỉ thấy "nâu + xám" (danger/warning-text light gần giống hệt → 3 token `--ff-priority-high/medium/low` đỏ/cam/xám riêng cả 2 theme + chấm 13px→20px viền trắng dễ click) — xong 2026-08-11, `tsc`/`oxlint`/39 test/`vite build` sạch. Xem mục "Giai đoạn 10 (phần 12)" bên dưới.**
 
 **Giai đoạn 10 (phần 11) — Đợt UI/UX update đầu tiên theo loạt góp ý user: to-do nâng cấp (nút xoá + kéo-thả sắp xếp + 3 mức ưu tiên + mục "Đã xong"), popup Hình nền cho kéo-thả upload (chỉ đã đăng nhập, hint trung thực), dark mode nâng contrast text tiers + bỏ nền trắng chói ở tab-switcher nhạc — code xong 2026-08-11 trên branch `UI-UX-update`, `tsc`/`oxlint`/39 test/`vite build` sạch, `supabase db push` đã chạy (cùng lúc áp luôn 0021–0024 còn treo từ các phần trước). Migration [0025_todo_priority_and_order.sql](app/supabase/migrations/0025_todo_priority_and_order.sql) ĐÃ chạy. Xem mục "Giai đoạn 10 (phần 11)" bên dưới.**
@@ -882,6 +884,26 @@ Nối tiếp phần 11 trên branch `UI-UX-update`. User tự dùng bản thật
 - Fix: thêm 3 token mới `--ff-priority-high/medium/low` vào [index.css](app/src/index.css) cả 2 theme (light: đỏ `#e5484d` / cam `#e8830d` / xám `#8b99a8`; dark: `#ff7a72`/`#ffb340`/`#9aa8b4`) — phân biệt rõ 3 bậc ở cả 2 theme; chấm to 13px → **20px** kèm viền 3px trắng (`--c-6rf2rk`) cho nổi trên mọi nền, cursor đổi lên className.
 
 **Verify:** `tsc -b --noEmit`/`oxlint` (2 warning cũ không liên quan)/39 test/`npm run build` sạch. **Chưa verify được qua browser thật** (môi trường này không có browser MCP) — user nên tự test: reload trang khi đang dùng ảnh nền tự upload (không còn nháy), logo đọc rõ khi set ảnh tối, chấm ưu tiên 3 màu rõ + bấm thoải mái.
+
+## Giai đoạn 10 (phần 13) — Responsive mobile: taskbar 8 nút cuộn được, icon nổi chỉ desktop, touch targets lớn hơn (2026-08-11)
+
+Nối tiếp phần 12 trên branch `UI-UX-update`. Loạt sửa responsive cho Dashboard/overlay — mục tiêu: hết tràn ngang 375px, mọi thứ bấm được bằng ngón tay, không che nhau:
+
+**1. 4 icon nổi góc phải (Bạn bè/Camera/Thống kê/Cài đặt) chuyển sang `hidden md:flex`** — trên mobile các icon nnày chen vào khoảng trống giữa top bar và taskbar, vừa chồng lấn vừa khó bấm (icon 44px giữa màn hình nhỏ). Thay bằng **3 nút text vào taskbar mobile** (`md:hidden`): Bạn bè (mở `FriendsPanel`, kèm badge đếm lời mời chờ qua `pendingFriendRequestCount` — copy đúng khối icon nổi mà không cần icon to)/Học cùng nhau (mở `studyPanel`)/Thống kê (mở `Stats`) — trước đó mỗi tác vụ này chỉ có 1 lối vào ở desktop. Taskbar giờ 8 nút nhưng `overflow-x-auto` cuộn ngang được, không wrap/tràn (đã verify: tổng nội dung ~420px > 375px viewport nhưng cuộn sạch, KHÔNG tràn ra ngoài). Riêng nút camera giữ state `cameraOn` (vitural icon đã bỏ) — trên mobile không còn lối bật camera riêng (đúng trọng tâm: camera cá nhân là phụ trên màn nhỏ, Room vẫn có cam/mic).
+
+**2. Thu gọn top bar mobile:** nút "Đăng nhập" (khách) giảm padding/text 13→12px (`max-md:px-3 max-md:py-[9px] max-md:text-[12px]`), 2 nút toggle Focus/Dashboard giảm padding/text (12.5px) — cụm tổng ~270px trên 375px không còn chèn ép. Subtitle "· Focus mode" (`topbar.focusMode`) chuyển `hidden md:inline` — không cắt chữ khi hẹp.
+
+**3. Mini-player nhạc Dashboard đẩy lên trên taskbar mobile:** `bottom-[34px]` desktop giữ nguyên; mobile `bottom-[96px]` (trên taskbar, không bị che); khung video YouTube/thu gọn theo. (Camera preview đã ở bottom-[90px] right — chấp nhận 2 cái hiếm khi cùng bật, đã ghi chú trong code.)
+
+**4. Popup Hình nền/Nhạc nền mobile thu hẹp:** từ `w-[360px]`/`w-[340px]` sang `w-[min(340px,calc(100vw-24px))]` (wallpaper) và `w-[min(320px,calc(100vw-24px))]` (nhạc) + `bottom-[108px]` — luôn cách mép ≥12px, không tựa sát viền màn. Widget "Học cùng nhau" cũng `w-[min(380px,calc(100vw-24px))]`.
+
+**5. Touch targets lớn hơn:** chấm ưu tiên to-do 20px → hit area 30px (`p-[5px] -m-[5px]` — co độ lớn visual về đúng 20px, bấm được vòng 30px, 2 nơi: danh sách mở + danh sách hoàn thành); tay cầm kéo-thả 22px → hit area 30px (`p-1 -m-1`, 2 nơi); nút xoá thumbnail wallpaper Settings 26px → 32px (`h-8 w-8`).
+
+**6. GuestOnboarding + RoomInvitePopup** thêm `max-h-[85svh] overflow-y-auto` — màn thấp/toolbar di động không nuốt nút hành động (đúng pattern sẵn có của MatchFound/DeviceCheck/SessionRating).
+
+**7. Cap upload wallpaper theo CSS token:** thêm `--ff-wallpaper-upload-limit` vào [index.css](app/src/index.css) (light `15728640` = 15MB / dark `20971520` = 20MB — người dùng dark thường để video nền nên nới hơn), [lib/wallpaper.ts](app/src/lib/wallpaper.ts) thêm `readWallpaperUploadLimit()` (đọc `getComputedStyle` trên `:root`, fallback `MAX_WALLPAPER_VIDEO_BYTES` 15MB) + `prepareWallpaperFile(file, limits?)` nhận cap ghi đè; [Dashboard.tsx](app/src/routes/Dashboard.tsx) truyền giá trị theme hiện tại khi upload từ popup — Settings giữ mặc định 5/15MB (không đổi hành vi).
+
+**Verify:** `tsc -b --noEmit`/`oxlint` (2 warning cũ không liên quan)/39 test/`npm run build` sạch. **Chưa verify được qua browser thật** (môi trường này không có browser MCP) — user nên tự test ở 375px: taskbar cuộn tới được nút cuối cùng (Thống kê), mở Bạn bè/Học cùng nhau/Thống kê từ taskbar, mini-player không đè taskbar khi mở, bấm thử chấm ưu tiên + kéo thả + nút xoá Settings, upload ảnh 16MB thử bị chặn "quá lớn" ở light và ảnh 8MB lọc qua ở dark.
 
 ## Giai đoạn 10 (phần 11) — To-do nâng cấp (xoá + kéo-thả + 3 mức ưu tiên), popup Hình nền kéo-thả upload, dark mode nâng contrast (2026-08-11)
 
