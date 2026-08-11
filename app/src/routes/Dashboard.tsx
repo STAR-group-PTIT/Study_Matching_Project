@@ -2221,7 +2221,7 @@ export default function Dashboard() {
           </div>
 
           <button
-            onClick={openStudyPanel}
+            onClick={() => requireAuth(() => navigate('/matching'))}
             className="w-full rounded-[13px] border-none py-[9px] text-center font-sans text-[12.5px] font-extrabold transition-colors duration-150 hover:!opacity-85"
             style={{ background: 'var(--c-6rf2rk)', color: 'var(--c-2vwdyb)' }}
           >

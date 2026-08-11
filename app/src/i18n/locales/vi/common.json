@@ -652,7 +652,6 @@
       "chat": "Chat",
       "music": "Nhạc",
       "members": "Thành viên",
-      "manage": "Quản lý",
       "leave": "Rời phòng",
       "locked": "Loại phòng này khoá, không tự đổi được"
     },
@@ -702,7 +701,6 @@
       "approveTitle": "Cho vào",
       "reject": "Bỏ",
       "rejectTitle": "Từ chối",
-      "membersInRoom": "Trong phòng · {{count}} người",
       "kick": "Kick"
     },
     "members": {
