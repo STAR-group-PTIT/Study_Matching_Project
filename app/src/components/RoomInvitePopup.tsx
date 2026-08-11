@@ -24,7 +24,7 @@ export default function RoomInvitePopup({
     >
       <div className="absolute inset-0" onClick={onDecline} />
       <div
-        className="relative flex w-full max-w-[380px] flex-col items-center gap-[16px] rounded-[30px] bg-white px-7 pt-8 pb-6 text-center"
+        className="relative flex max-h-[85svh] w-full max-w-[380px] flex-col items-center gap-[16px] overflow-y-auto rounded-[30px] bg-white px-7 pt-8 pb-6 text-center"
         style={{ boxShadow: '0 30px 70px var(--c-13a6mpo)', animation: 'ffPop 380ms cubic-bezier(0.22,1,0.36,1)' }}
       >
         <span

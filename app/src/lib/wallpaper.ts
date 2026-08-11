@@ -10,6 +10,18 @@ export const MAX_WALLPAPER_BYTES = 5 * 1024 * 1024
 // lượng) — cho cap riêng cao hơn thay vì dùng chung MAX_WALLPAPER_BYTES với ảnh.
 export const MAX_WALLPAPER_VIDEO_BYTES = 15 * 1024 * 1024
 
+// Cap upload mặc định — giá trị ghi đè được qua CSS token `--ff-wallpaper-upload-limit` ở
+// `index.css` (mỗi theme một giá trị, vd dark mode cho phép video nặng hơn vì người dùng tối
+// thường để video nền), không cần sửa code mỗi lần đổi hạn mức.
+const WALLPAPER_UPLOAD_LIMIT_VAR = '--ff-wallpaper-upload-limit'
+
+export function readWallpaperUploadLimit(): number {
+  if (typeof document === 'undefined') return MAX_WALLPAPER_VIDEO_BYTES
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(WALLPAPER_UPLOAD_LIMIT_VAR).trim()
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : MAX_WALLPAPER_VIDEO_BYTES
+}
+
 // Ảnh nền upload thường chụp thẳng từ điện thoại (4000x3000+), nặng hơn nhiều so với mức cần
 // thiết để làm background (màn hình lớn nhất thực tế cũng chỉ ~2560x1440). Tự co về tối đa
 // Full HD trước khi lưu lên Storage — giảm dung lượng đáng kể mà mắt thường không thấy khác
@@ -88,13 +100,21 @@ export class WallpaperFileError extends Error {
 // Resize ảnh tĩnh quá khổ về tối đa Full HD (giữ tỉ lệ) trước, RỒI mới check dung lượng — ảnh
 // chụp thẳng từ điện thoại thường vượt xa cap ở kích thước gốc nhưng lọt qua dễ dàng sau khi co.
 // Ném `WallpaperFileError` với mã lỗi để caller hiển thị đúng thông báo i18n của chính nó.
-export async function prepareWallpaperFile(file: File): Promise<PreparedWallpaper> {
+// `limits` cho phép caller ghi đè cap (vd popup Dashboard dùng `readWallpaperUploadLimit()` theo
+// theme hiện tại); bỏ trống thì dùng mặc định toàn cục.
+export async function prepareWallpaperFile(
+  file: File,
+  limits?: { maxBytes?: number; maxVideoBytes?: number },
+): Promise<PreparedWallpaper> {
   const isVideo = isVideoWallpaper(file.name)
   const prepared = RESIZABLE_STATIC_TYPES.has(file.type)
     ? await resizeWallpaperIfOversized(file).catch(() => file)
     : file
-  const maxBytes = isVideo ? MAX_WALLPAPER_VIDEO_BYTES : MAX_WALLPAPER_BYTES
-  if (prepared.size > maxBytes) {
+  const maxBytes = limits ? (isVideo ? limits.maxVideoBytes : limits.maxBytes) : null
+  const cap = isVideo
+    ? maxBytes ?? MAX_WALLPAPER_VIDEO_BYTES
+    : maxBytes ?? MAX_WALLPAPER_BYTES
+  if (prepared.size > cap) {
     throw new WallpaperFileError(isVideo ? 'tooLargeVideo' : 'tooLarge')
   }
   return { file: prepared, isVideo }

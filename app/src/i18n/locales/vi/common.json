@@ -16,14 +16,26 @@
     "guestCta": "Dùng thử trước, đăng nhập sau"
   },
   "auth": {
-    "tabs": { "login": "Đăng nhập", "signup": "Đăng ký" },
-    "title": { "login": "Chào bạn trở lại", "signup": "Tạo tài khoản mới" },
+    "tabs": {
+      "login": "Đăng nhập",
+      "signup": "Đăng ký"
+    },
+    "title": {
+      "login": "Chào bạn trở lại",
+      "signup": "Tạo tài khoản mới"
+    },
     "subtitle": {
       "login": "Tiếp tục chuỗi phiên học của bạn ở đúng nơi bạn dừng lại.",
       "signup": "Mất khoảng 20 giây. Không cần thẻ, không quảng cáo."
     },
-    "name": { "label": "Tên của bạn", "placeholder": "Minh Anh" },
-    "email": { "label": "Email", "placeholder": "ban@email.com" },
+    "name": {
+      "label": "Tên của bạn",
+      "placeholder": "Minh Anh"
+    },
+    "email": {
+      "label": "Email",
+      "placeholder": "ban@email.com"
+    },
     "password": {
       "label": "Mật khẩu",
       "placeholder": "Ít nhất 6 ký tự",
@@ -37,7 +49,10 @@
       "signup": "Tạo tài khoản"
     },
     "or": "hoặc",
-    "google": { "login": "Đăng nhập với Google", "signup": "Đăng ký với Google" },
+    "google": {
+      "login": "Đăng nhập với Google",
+      "signup": "Đăng ký với Google"
+    },
     "guestLink": "Dùng thử không cần đăng nhập →",
     "side": {
       "badge": "Không bắt buộc",
@@ -45,9 +60,18 @@
       "desc2": "Chưa muốn thì cứ vào học trước — mọi phiên Pomodoro vẫn chạy bình thường ở chế độ khách."
     },
     "perks": {
-      "todo": { "title": "To-do được lưu lại", "desc": "Đóng tab vẫn còn nguyên danh sách" },
-      "wallpaper": { "title": "Wallpaper & nhạc riêng", "desc": "Tải lên bộ của bạn, dùng trên mọi máy" },
-      "matching": { "title": "Học cùng bạn khác", "desc": "Ghép cặp phiên Pomodoro theo giờ" }
+      "todo": {
+        "title": "To-do được lưu lại",
+        "desc": "Đóng tab vẫn còn nguyên danh sách"
+      },
+      "wallpaper": {
+        "title": "Wallpaper & nhạc riêng",
+        "desc": "Tải lên bộ của bạn, dùng trên mọi máy"
+      },
+      "matching": {
+        "title": "Học cùng bạn khác",
+        "desc": "Ghép cặp phiên Pomodoro theo giờ"
+      }
     },
     "terms": "Khi tiếp tục, bạn đồng ý với Điều khoản & Chính sách riêng tư của FocusFlow.",
     "notice": {
@@ -107,7 +131,11 @@
       "title": "Bắt đầu phiên học",
       "tabRandom": "Ghép ngẫu nhiên",
       "tabBrowse": "Duyệt phòng đang mở",
-      "randomHint": "Vào nhóm cùng những người đang tới"
+      "randomHint": "Vào nhóm cùng những người đang tới",
+      "seeAll": "Xem tất cả phòng",
+      "join": "Tham gia",
+      "openRooms": "{{count}} phòng đang mở",
+      "emptyRooms": "Chưa có phòng nào đang mở — hãy là người tạo phòng đầu tiên"
     },
     "taskbar": {
       "wallpaperTitle": "Đổi hình nền",
@@ -178,10 +206,22 @@
       "priorityLow": "Thấp"
     },
     "mockTasks": {
-      "t1": { "name": "Ôn chương 4 – Đạo hàm", "meta": "2 phiên · Toán" },
-      "t2": { "name": "Làm 10 câu trắc nghiệm Lý", "meta": "1 phiên · Vật lý" },
-      "t3": { "name": "Đọc bài Reading Unit 7", "meta": "1 phiên · Anh" },
-      "t4": { "name": "Ghi chú lại lỗi sai đề thi thử", "meta": "2 phiên · Ôn tập" }
+      "t1": {
+        "name": "Ôn chương 4 – Đạo hàm",
+        "meta": "2 phiên · Toán"
+      },
+      "t2": {
+        "name": "Làm 10 câu trắc nghiệm Lý",
+        "meta": "1 phiên · Vật lý"
+      },
+      "t3": {
+        "name": "Đọc bài Reading Unit 7",
+        "meta": "1 phiên · Anh"
+      },
+      "t4": {
+        "name": "Ghi chú lại lỗi sai đề thi thử",
+        "meta": "2 phiên · Ôn tập"
+      }
     },
     "mockTracks": {
       "rain": "Mưa nhẹ ngoài cửa sổ",
@@ -194,11 +234,26 @@
   "matching": {
     "headerTag": "Ghép cặp học chung",
     "roomTypes": {
-      "chill": { "name": "Chill", "rule": "Bật nhạc, tự do bật/tắt cam và mic." },
-      "hardcore": { "name": "Hardcore", "rule": "Bắt buộc bật cam, tắt nhạc và mic." },
-      "silent": { "name": "Im lặng", "rule": "Không nhạc, không cam, không mic — chỉ đồng hồ chung." },
-      "discuss": { "name": "Thảo luận", "rule": "Bật cam và mic để trao đổi, không nhạc." },
-      "watch": { "name": "Giám sát", "rule": "Bắt buộc bật cam để giám sát nhau, tắt nhạc và mic." }
+      "chill": {
+        "name": "Chill",
+        "rule": "Bật nhạc, tự do bật/tắt cam và mic."
+      },
+      "hardcore": {
+        "name": "Hardcore",
+        "rule": "Bắt buộc bật cam, tắt nhạc và mic."
+      },
+      "silent": {
+        "name": "Im lặng",
+        "rule": "Không nhạc, không cam, không mic — chỉ đồng hồ chung."
+      },
+      "discuss": {
+        "name": "Thảo luận",
+        "rule": "Bật cam và mic để trao đổi, không nhạc."
+      },
+      "watch": {
+        "name": "Giám sát",
+        "rule": "Bắt buộc bật cam để giám sát nhau, tắt nhạc và mic."
+      }
     },
     "filters": {
       "title": "Tìm bạn học cùng",
@@ -511,7 +566,10 @@
       "label": "Mã phòng",
       "copy": "Sao chép mã phòng"
     },
-    "demo": { "two": "2 người", "five": "5 người" },
+    "demo": {
+      "two": "2 người",
+      "five": "5 người"
+    },
     "sync": {
       "withCount": "Đồng bộ với {{count}} người",
       "withName": "Đồng bộ với {{name}}",
@@ -538,11 +596,26 @@
       "m3": "Ừ, hết phiên nghỉ 5 phút rồi kể chương 4 tới đâu."
     },
     "mockTracks": {
-      "t1": { "name": "Lofi mưa đêm", "mood": "lofi · êm" },
-      "t2": { "name": "Quán cà phê 8h", "mood": "jazz nhẹ" },
-      "t3": { "name": "Tiếng mưa rơi", "mood": "tiếng động nền" },
-      "t4": { "name": "Piano tập trung", "mood": "piano · trầm" },
-      "t5": { "name": "Sóng biển xa", "mood": "thiên nhiên" }
+      "t1": {
+        "name": "Lofi mưa đêm",
+        "mood": "lofi · êm"
+      },
+      "t2": {
+        "name": "Quán cà phê 8h",
+        "mood": "jazz nhẹ"
+      },
+      "t3": {
+        "name": "Tiếng mưa rơi",
+        "mood": "tiếng động nền"
+      },
+      "t4": {
+        "name": "Piano tập trung",
+        "mood": "piano · trầm"
+      },
+      "t5": {
+        "name": "Sóng biển xa",
+        "mood": "thiên nhiên"
+      }
     },
     "loadingRoom": "Đang tải phòng…",
     "notJoined": {

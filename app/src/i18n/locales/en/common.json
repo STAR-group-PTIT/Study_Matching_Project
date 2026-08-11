@@ -16,14 +16,26 @@
     "guestCta": "Try it first, sign in later"
   },
   "auth": {
-    "tabs": { "login": "Log in", "signup": "Sign up" },
-    "title": { "login": "Welcome back", "signup": "Create your account" },
+    "tabs": {
+      "login": "Log in",
+      "signup": "Sign up"
+    },
+    "title": {
+      "login": "Welcome back",
+      "signup": "Create your account"
+    },
     "subtitle": {
       "login": "Pick up your study streak right where you left off.",
       "signup": "Takes about 20 seconds. No card, no ads."
     },
-    "name": { "label": "Your name", "placeholder": "Alex Nguyen" },
-    "email": { "label": "Email", "placeholder": "you@email.com" },
+    "name": {
+      "label": "Your name",
+      "placeholder": "Alex Nguyen"
+    },
+    "email": {
+      "label": "Email",
+      "placeholder": "you@email.com"
+    },
     "password": {
       "label": "Password",
       "placeholder": "At least 6 characters",
@@ -37,7 +49,10 @@
       "signup": "Create account"
     },
     "or": "or",
-    "google": { "login": "Log in with Google", "signup": "Sign up with Google" },
+    "google": {
+      "login": "Log in with Google",
+      "signup": "Sign up with Google"
+    },
     "guestLink": "Try it without signing in →",
     "side": {
       "badge": "Optional",
@@ -45,9 +60,18 @@
       "desc2": "Not ready yet? Jump straight into a session — Pomodoro works fine as a guest."
     },
     "perks": {
-      "todo": { "title": "To-dos are saved", "desc": "Close the tab and your list stays put" },
-      "wallpaper": { "title": "Your own wallpaper & music", "desc": "Upload your set, use it on any device" },
-      "matching": { "title": "Study with others", "desc": "Get matched for Pomodoro sessions by time" }
+      "todo": {
+        "title": "To-dos are saved",
+        "desc": "Close the tab and your list stays put"
+      },
+      "wallpaper": {
+        "title": "Your own wallpaper & music",
+        "desc": "Upload your set, use it on any device"
+      },
+      "matching": {
+        "title": "Study with others",
+        "desc": "Get matched for Pomodoro sessions by time"
+      }
     },
     "terms": "By continuing, you agree to FocusFlow's Terms & Privacy Policy.",
     "notice": {
@@ -107,7 +131,11 @@
       "title": "Start a study session",
       "tabRandom": "Random match",
       "tabBrowse": "Browse open rooms",
-      "randomHint": "Join a small group as people arrive"
+      "randomHint": "Join a small group as people arrive",
+      "seeAll": "View all rooms",
+      "join": "Join",
+      "openRooms": "{{count}} rooms open",
+      "emptyRooms": "No open rooms yet — be the first to create one"
     },
     "taskbar": {
       "wallpaperTitle": "Change wallpaper",
@@ -178,10 +206,22 @@
       "priorityLow": "Low"
     },
     "mockTasks": {
-      "t1": { "name": "Review Chapter 4 – Derivatives", "meta": "2 sessions · Math" },
-      "t2": { "name": "Do 10 physics practice questions", "meta": "1 session · Physics" },
-      "t3": { "name": "Read Unit 7", "meta": "1 session · English" },
-      "t4": { "name": "Note down mistakes from the mock test", "meta": "2 sessions · Review" }
+      "t1": {
+        "name": "Review Chapter 4 – Derivatives",
+        "meta": "2 sessions · Math"
+      },
+      "t2": {
+        "name": "Do 10 physics practice questions",
+        "meta": "1 session · Physics"
+      },
+      "t3": {
+        "name": "Read Unit 7",
+        "meta": "1 session · English"
+      },
+      "t4": {
+        "name": "Note down mistakes from the mock test",
+        "meta": "2 sessions · Review"
+      }
     },
     "mockTracks": {
       "rain": "Light rain outside the window",
@@ -194,11 +234,26 @@
   "matching": {
     "headerTag": "Study matching",
     "roomTypes": {
-      "chill": { "name": "Chill", "rule": "Music on, camera and mic optional." },
-      "hardcore": { "name": "Hardcore", "rule": "Camera required, no music or mic." },
-      "silent": { "name": "Silent", "rule": "No music, no camera, no mic — just a shared timer." },
-      "discuss": { "name": "Discuss", "rule": "Camera and mic on to talk, no music." },
-      "watch": { "name": "Watch", "rule": "Camera required to keep each other accountable, no music or mic." }
+      "chill": {
+        "name": "Chill",
+        "rule": "Music on, camera and mic optional."
+      },
+      "hardcore": {
+        "name": "Hardcore",
+        "rule": "Camera required, no music or mic."
+      },
+      "silent": {
+        "name": "Silent",
+        "rule": "No music, no camera, no mic — just a shared timer."
+      },
+      "discuss": {
+        "name": "Discuss",
+        "rule": "Camera and mic on to talk, no music."
+      },
+      "watch": {
+        "name": "Watch",
+        "rule": "Camera required to keep each other accountable, no music or mic."
+      }
     },
     "filters": {
       "title": "Find a study buddy",
@@ -511,7 +566,10 @@
       "label": "Room code",
       "copy": "Copy room code"
     },
-    "demo": { "two": "2 people", "five": "5 people" },
+    "demo": {
+      "two": "2 people",
+      "five": "5 people"
+    },
     "sync": {
       "withCount": "Synced with {{count}} people",
       "withName": "Synced with {{name}}",
@@ -538,11 +596,26 @@
       "m3": "Yep, once the break's over tell me how far you got on chapter 4."
     },
     "mockTracks": {
-      "t1": { "name": "Rain at night", "mood": "lofi · mellow" },
-      "t2": { "name": "8am coffee shop", "mood": "soft jazz" },
-      "t3": { "name": "Falling rain", "mood": "ambient noise" },
-      "t4": { "name": "Focus piano", "mood": "piano · low-key" },
-      "t5": { "name": "Distant waves", "mood": "nature" }
+      "t1": {
+        "name": "Rain at night",
+        "mood": "lofi · mellow"
+      },
+      "t2": {
+        "name": "8am coffee shop",
+        "mood": "soft jazz"
+      },
+      "t3": {
+        "name": "Falling rain",
+        "mood": "ambient noise"
+      },
+      "t4": {
+        "name": "Focus piano",
+        "mood": "piano · low-key"
+      },
+      "t5": {
+        "name": "Distant waves",
+        "mood": "nature"
+      }
     },
     "loadingRoom": "Loading room…",
     "notJoined": {

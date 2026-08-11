@@ -34,6 +34,8 @@
   --ff-border: rgba(51, 71, 94, 0.14);
   --ff-border-strong: rgba(51, 71, 94, 0.3);
   --ff-logo-glass: rgba(255, 255, 255, 0.35);
+  /* Cap upload wallpaper theo theme (byte) — đọc qua readWallpaperUploadLimit() ở lib/wallpaper.ts */
+  --ff-wallpaper-upload-limit: 15728640;
 
   --ff-danger-bg: oklch(0.86 0.055 45);
   --ff-danger-text: #7a3f2c;
@@ -92,6 +94,9 @@
   --ff-border: #2c3a3f;
   --ff-border-strong: #3d4e54;
   --ff-logo-glass: rgba(10, 16, 20, 0.55);
+  /* Cap upload wallpaper theo theme (byte) — dark cho phép video nặng hơn vì người dùng tối
+     thường để video nền; đọc qua readWallpaperUploadLimit() ở lib/wallpaper.ts */
+  --ff-wallpaper-upload-limit: 20971520;
 
   /* Dark mode gets its own brighter, more saturated accent — mixing the light-mode accent
      with white for accent-soft (unchanged) still works fine as a pale CTA on a dark page,

@@ -655,7 +655,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                     <button
                       onClick={() => removeWallpaper(w)}
                       title={t('settings.wallpapers.delete')}
-                      className="absolute top-2 right-2 flex h-[26px] w-[26px] items-center justify-center rounded-[10px] border-none text-[var(--c-5nx3vn)] opacity-50 transition-all duration-200 hover:!bg-[var(--c-1eu539k)] hover:opacity-100"
+                      className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-[10px] border-none text-[var(--c-5nx3vn)] opacity-50 transition-all duration-200 hover:!bg-[var(--c-1eu539k)] hover:opacity-100"
                       style={{ background: 'var(--c-ijr2vy)' }}
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">

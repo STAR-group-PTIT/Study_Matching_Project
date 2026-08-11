@@ -26,7 +26,7 @@ export default function GuestOnboarding({ onClose }: { onClose: () => void }) {
       style={{ background: 'rgba(20,32,42,0.42)', backdropFilter: 'blur(2px)' }}
     >
       <div
-        className="relative flex w-full max-w-[400px] flex-col gap-5 rounded-[30px] px-7 pt-7 pb-6"
+        className="relative flex max-h-[85svh] w-full max-w-[400px] flex-col gap-5 overflow-y-auto rounded-[30px] px-7 pt-7 pb-6"
         style={{
           background: 'var(--ff-surface-1)',
           boxShadow: '0 30px 70px rgba(38,66,86,0.3)',

@@ -12,6 +12,7 @@ import {
   prepareWallpaperFile,
   WallpaperFileError,
   readWallpaperUrlCache,
+  readWallpaperUploadLimit,
   refreshWallpaperUrlCache,
   writeWallpaperUrlCache,
   cacheWallpaperUrl,
@@ -117,6 +118,20 @@ type EditField = 'loop' | 'work' | 'break' | null
 
 type Priority = 'high' | 'medium' | 'low'
 
+// Row của view `room_public_list` (khớp select trong effect fetch phòng ở dưới) — dùng cho card
+// "Học cùng nhau" + popup study, cùng shape với Matching.tsx.
+type PublicRoomRow = {
+  id: string
+  code: string
+  name: string
+  room_type: string
+  duration_minutes: number
+  language: string
+  capacity: number
+  host_name: string
+  member_count: number
+}
+
 type Task = {
   id: string
   name: string
@@ -217,12 +232,50 @@ export default function Dashboard() {
   // Không còn cho tuỳ chỉnh thời lượng/ngôn ngữ ở đây nữa (RANDOM_MATCH_CONFIG cố định) — ai
   // cần tuỳ chỉnh thật thì dùng "Duyệt phòng đang mở" bên dưới, vốn đã có đủ bộ lọc.
   const quick = useQuickMatch()
+  // Room list công khai cho card "Học cùng nhau" (preview desktop) + popup study (list đầy đủ) —
+  // cùng nguồn `room_public_list` với Matching.tsx, fetch 1 lần lúc mount + mỗi lần mở popup để
+  // số liệu "N phòng đang mở" và danh sách không quá cũ.
+  const [publicRooms, setPublicRooms] = useState<PublicRoomRow[] | null>(null)
+  const [roomJoinMsg, setRoomJoinMsg] = useState<string | null>(null)
+  async function fetchPublicRooms() {
+    try {
+      const { data } = await supabase
+        .from('room_public_list')
+        .select('id, code, name, room_type, duration_minutes, language, capacity, host_name, member_count')
+        .order('member_count', { ascending: false })
+      setPublicRooms((data as unknown as PublicRoomRow[]) ?? [])
+    } catch {
+      setPublicRooms([])
+    }
+  }
+  useEffect(() => {
+    void fetchPublicRooms()
+  }, [user?.id])
   function openStudyPanel() {
-    requireAuth(() => setPanel('study'))
+    requireAuth(() => {
+      void fetchPublicRooms()
+      setPanel('study')
+    })
   }
   function startGroupMatch() {
     setPanel(null)
     void quick.start()
+  }
+  async function joinPublicRoom(code: string) {
+    setRoomJoinMsg(null)
+    const { data, error } = await supabase.rpc('join_room_by_code', { p_code: code })
+    if (error) return
+    const row = data?.[0] as { status: string; other_room_code: string | null } | undefined
+    if (!row || row.status === 'not_found' || row.status === 'full') {
+      if (row?.status === 'full') setRoomJoinMsg(t('matching.errors.roomFull'))
+      return
+    }
+    if (row.status === 'already_in_another_room') {
+      setRoomJoinMsg(t('matching.errors.alreadyInRoom'))
+      return
+    }
+    setPanel(null)
+    navigate('/room/' + code)
   }
   const initialTasks = useMemo<Task[]>(
     () =>
@@ -712,7 +765,10 @@ export default function Dashboard() {
     setWpUploading(true)
     setWpUploadMsg(null)
     try {
-      const { file: prepared } = await prepareWallpaperFile(file)
+      const { file: prepared } = await prepareWallpaperFile(file, {
+        maxBytes: readWallpaperUploadLimit(),
+        maxVideoBytes: readWallpaperUploadLimit(),
+      })
       const path = `${user.id}/${crypto.randomUUID()}-${prepared.name}`
       const { error: upErr } = await supabase.storage.from('wallpapers').upload(path, prepared)
       if (upErr) throw upErr
@@ -1286,8 +1342,8 @@ export default function Dashboard() {
           YouTube). Video 400x225 chỉ hiện thêm khi bấm nút mở rộng riêng trong thanh. */}
       {hasActiveMusic && (
         <div
-          className="absolute z-[41] flex flex-col items-start"
-          style={{ bottom: '34px', left: '26px', gap: musicPanelOpen && ytActive && ytVideoVisible ? '8px' : '0px' }}
+          className="absolute bottom-[96px] left-[26px] z-[41] flex flex-col items-start md:bottom-[34px]"
+          style={{ gap: musicPanelOpen && ytActive && ytVideoVisible ? '8px' : '0px' }}
         >
           {ytActive && ytParsed && (
             <div
@@ -1543,7 +1599,7 @@ export default function Dashboard() {
           <span className="text-base font-extrabold tracking-[-0.2px] text-[var(--c-3dfktp)]">
             {t('app.name')}
           </span>
-          <span className="text-[13px] font-semibold text-[var(--c-mfvyic)]">
+          <span className="hidden text-[13px] font-semibold text-[var(--c-mfvyic)] md:inline">
             · {isFocus ? t('dashboard.topbar.focusMode') : t('dashboard.topbar.dashboardMode')}
           </span>
         </div>
@@ -1552,7 +1608,7 @@ export default function Dashboard() {
           {!user && (
             <Link
               to="/auth"
-              className="rounded-[18px] px-4 py-[10px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)] no-underline"
+              className="rounded-[18px] max-md:px-3 max-md:py-[9px] max-md:text-[12px] px-4 py-[10px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)] no-underline"
               style={{
                 background: 'var(--ff-accent-soft)',
                 boxShadow: '0 6px 20px var(--c-fc5pjb)',
@@ -1574,7 +1630,7 @@ export default function Dashboard() {
                 setMode('focus')
                 setPanel(null)
               }}
-              className="rounded-[15px] border-none px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
+              className="rounded-[15px] border-none max-md:px-3 max-md:py-1.5 max-md:text-[12.5px] px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
               style={{
                 background: isFocus ? 'var(--c-6rf2rk)' : 'transparent',
                 color: isFocus ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
@@ -1584,7 +1640,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setMode('dashboard')}
-              className="rounded-[15px] border-none px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
+              className="rounded-[15px] border-none max-md:px-3 max-md:py-1.5 max-md:text-[12.5px] px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
               style={{
                 background: !isFocus ? 'var(--c-6rf2rk)' : 'transparent',
                 color: !isFocus ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
@@ -1834,7 +1890,7 @@ export default function Dashboard() {
                   <span className="leading-none" style={{ fontSize: 'clamp(36px, 7vh, 60px)' }}>
                     🎉
                   </span>
-                  <span className="text-[13px] font-semibold text-[var(--c-mfvyic)]">
+<span className="text-[13px] font-semibold text-[var(--c-mfvyic)]">
                     {t('dashboard.clock.doneHint', { count: sessionCount })}
                   </span>
                   <button
@@ -2080,43 +2136,98 @@ export default function Dashboard() {
           transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
         }}
       >
-        <button
-          onClick={openStudyPanel}
-          className="flex w-full items-center gap-3 rounded-[24px] px-[18px] py-[15px] text-left text-inherit transition-[transform,background] duration-[220ms] hover:!bg-white hover:!-translate-y-0.5"
+        <div
+          className="flex w-full flex-col gap-[12px] rounded-[24px] px-[18px] py-[16px] transition-[transform,background] duration-[220ms] hover:!-translate-y-0.5"
           style={{
             background: panel === 'study' ? 'var(--c-1gyy7ef)' : 'var(--c-6rf17l)',
             backdropFilter: 'blur(16px)',
             boxShadow: '0 12px 30px var(--c-1k1wm30)',
           }}
         >
-          <span
-            className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[14px] text-[var(--c-3bts4x)]"
-            style={{ background: 'var(--c-hclrbt)' }}
-          >
-            <svg
-              width="19"
-              height="19"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-              strokeLinecap="round"
+          <div className="flex items-center gap-3">
+            <span
+              className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[14px] text-[var(--c-3bts4x)]"
+              style={{ background: 'var(--c-hclrbt)' }}
             >
-              <circle cx="9" cy="8.5" r="3.2" />
-              <path d="M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19" />
-              <path d="M16.4 5.6a3.2 3.2 0 010 5.8" />
-              <path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1" />
-            </svg>
-          </span>
-          <span className="flex flex-col gap-[2px]">
-            <span className="text-sm font-extrabold text-[var(--c-3bsl4p)]">
-              {t('dashboard.rightColumn.studyTogether')}
+              <svg
+                width="19"
+                height="19"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+              >
+                <circle cx="9" cy="8.5" r="3.2" />
+                <path d="M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19" />
+                <path d="M16.4 5.6a3.2 3.2 0 010 5.8" />
+                <path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1" />
+              </svg>
             </span>
-            <span className="text-xs font-semibold text-[var(--c-1kei8bt)]">
-              {t('dashboard.rightColumn.findStudyBuddy')}
+            <span className="flex flex-col gap-[2px]">
+              <span className="text-sm font-extrabold text-[var(--c-3bsl4p)]">
+                {t('dashboard.rightColumn.studyTogether')}
+              </span>
+              <span className="text-xs font-semibold text-[var(--c-1kei8bt)]">
+                {t('dashboard.rightColumn.findStudyBuddy')}
+              </span>
             </span>
-          </span>
-        </button>
+          </div>
+
+          <button
+            onClick={() => requireAuth(startGroupMatch)}
+            className="w-full rounded-[16px] border-none py-[13px] text-center font-sans text-[14px] font-extrabold text-white transition-transform duration-200 hover:-translate-y-0.5"
+            style={{
+              background: 'linear-gradient(135deg, var(--c-cvfsr8), var(--c-ecaxup))',
+              boxShadow: '0 10px 24px var(--c-10f8f7j)',
+            }}
+          >
+            {t('dashboard.studyPopup.tabRandom')}
+          </button>
+
+          <div className="flex flex-col gap-[7px]">
+            <div className="text-[11.5px] font-bold tracking-[0.6px] text-[var(--c-mfvyic)] uppercase">
+              {t('dashboard.studyPopup.openRooms', { count: publicRooms?.length ?? 0 })}
+            </div>
+            {roomJoinMsg && (
+              <div className="text-[11.5px] font-semibold text-[var(--ff-danger-text)]">{roomJoinMsg}</div>
+            )}
+            {publicRooms && publicRooms.length === 0 && (
+              <div className="text-[12.5px] font-semibold text-[var(--c-1kei8bt)]">
+                {t('dashboard.studyPopup.emptyRooms')}
+              </div>
+            )}
+            {(publicRooms ?? []).slice(0, 3).map((r) => (
+              <div
+                key={r.id}
+                className="flex items-center gap-2 rounded-[13px] px-[10px] py-[8px]"
+                style={{ background: 'var(--c-6rf17l)' }}
+              >
+                <span className="min-w-0 flex-1 truncate text-[12.5px] font-bold text-[var(--c-3bsl4p)]">
+                  {r.name}
+                </span>
+                <span className="shrink-0 text-[11px] font-semibold text-[var(--c-1kei8bt)]">
+                  {r.member_count}/{r.capacity}
+                </span>
+                <button
+                  onClick={() => requireAuth(() => void joinPublicRoom(r.code))}
+                  className="shrink-0 rounded-[10px] border-none px-[10px] py-[5px] font-sans text-[11.5px] font-extrabold text-[var(--c-2k9xd7)] transition-colors duration-150 hover:!opacity-85"
+                  style={{ background: 'var(--ff-accent-soft)' }}
+                >
+                  {t('dashboard.studyPopup.join')}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={openStudyPanel}
+            className="w-full rounded-[13px] border-none py-[9px] text-center font-sans text-[12.5px] font-extrabold transition-colors duration-150 hover:!opacity-85"
+            style={{ background: 'var(--c-6rf2rk)', color: 'var(--c-2vwdyb)' }}
+          >
+            {t('dashboard.studyPopup.seeAll')} →
+          </button>
+        </div>
       </div>
 
       {/* study together popup — cùng khuôn backdrop+card tròn-32px với FriendsPanel/Settings/Stats
@@ -2185,6 +2296,43 @@ export default function Dashboard() {
                   <span className="text-center text-[12px] font-semibold text-[var(--c-mfvyic)]">
                     {t('dashboard.studyPopup.randomHint')}
                   </span>
+                </div>
+
+                <div className="flex flex-col gap-[8px]">
+                  <div className="text-[11.5px] font-bold tracking-[0.6px] text-[var(--c-mfvyic)] uppercase">
+                    {t('dashboard.studyPopup.openRooms', { count: publicRooms?.length ?? 0 })}
+                  </div>
+                  {roomJoinMsg && (
+                    <div className="text-[12px] font-semibold text-[var(--ff-danger-text)]">{roomJoinMsg}</div>
+                  )}
+                  {publicRooms && publicRooms.length === 0 && (
+                    <div className="rounded-[16px] px-4 py-[14px] text-center text-[12.5px] font-semibold text-[var(--c-1kei8bt)]" style={{ background: 'var(--c-rucw5u)' }}>
+                      {t('dashboard.studyPopup.emptyRooms')}
+                    </div>
+                  )}
+                  <div className="flex max-h-[260px] flex-col gap-[7px] overflow-y-auto pr-1">
+                    {(publicRooms ?? []).map((r) => (
+                      <div
+                        key={r.id}
+                        className="flex items-center gap-[10px] rounded-[15px] px-[13px] py-[10px]"
+                        style={{ background: 'var(--c-rucw5u)' }}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-[13.5px] font-bold text-[var(--c-3bsl4p)]">{r.name}</div>
+                          <div className="mt-[2px] truncate text-[11.5px] font-semibold text-[var(--c-1kei8bt)]">
+                            {r.host_name} · {r.member_count}/{r.capacity} người
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => void joinPublicRoom(r.code)}
+                          className="shrink-0 rounded-[11px] border-none px-[12px] py-[7px] font-sans text-[12px] font-extrabold text-[var(--c-2k9xd7)] transition-colors duration-150 hover:!opacity-85"
+                          style={{ background: 'var(--ff-accent-soft)' }}
+                        >
+                          {t('dashboard.studyPopup.join')}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <Link
@@ -2285,6 +2433,71 @@ export default function Dashboard() {
             {openCount}
           </span>
         </button>
+        {/* 3 nút này chỉ hiện trên mobile (md:hidden) — desktop dùng bản icon nổi góc phải
+            bên dưới (cùng tác vụ, tránh chồng taskbar trên màn nhỏ, xem comment ở từng icon). */}
+        <button
+          onClick={() =>
+            requireAuth(() => {
+              setPanel(null)
+              setFriendsOpen(true)
+            })
+          }
+          title={t('dashboard.taskbar.friendsTitle')}
+          aria-label={t('dashboard.taskbar.friendsTitle')}
+          className="relative flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
+          style={{ background: 'var(--c-6reybe)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="8" cy="8" r="3" />
+            <circle cx="16.5" cy="9" r="2.4" />
+            <path d="M2.3 19c.6-3.3 2.8-5 5.7-5s5.1 1.7 5.7 5" />
+            <path d="M14.5 14.3c2.2.3 3.7 1.8 4.2 4.2" />
+          </svg>
+          {pendingFriendRequestCount > 0 && (
+            <span
+              className="absolute -top-1 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white"
+              style={{ background: 'var(--c-1ep8226)' }}
+            >
+              {pendingFriendRequestCount > 9 ? '9+' : pendingFriendRequestCount}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setCameraOn((c) => !c)}
+          title={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
+          aria-label={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
+          className="relative flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
+          style={{ background: 'var(--c-6reybe)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="6" width="12" height="12" rx="2.5" />
+            <path d="M15 10.5l6-3.3v9.6l-6-3.3" />
+            {!cameraOn && <path d="M3 3l18 18" />}
+          </svg>
+          {cameraOn && (
+            <span
+              className="absolute right-[3px] bottom-[3px] h-[9px] w-[9px] rounded-full"
+              style={{ background: 'var(--c-t8fca9)', boxShadow: '0 0 0 2px var(--c-6rf20v)' }}
+            />
+          )}
+        </button>
+        <button
+          onClick={() =>
+            requireAuth(() => {
+              setPanel(null)
+              setSettingsOpen(true)
+            })
+          }
+          title={t('dashboard.taskbar.settingsTitle')}
+          aria-label={t('dashboard.taskbar.settingsTitle')}
+          className="flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
+          style={{ background: 'var(--c-6reybe)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
+          </svg>
+        </button>
         <button
           onClick={openStudyPanel}
           title={t('dashboard.taskbar.studyTogetherTitle')}
@@ -2335,7 +2548,7 @@ export default function Dashboard() {
         }
         title={t('dashboard.taskbar.friendsTitle')}
         aria-label={t('dashboard.taskbar.friendsTitle')}
-        className="absolute right-[180px] bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:right-[200px]"
+        className="absolute right-[180px] bottom-[34px] hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:flex md:right-[200px]"
         style={{
           ...dashStyleBase,
           opacity: dashVisible && panel === null ? 1 : 0,
@@ -2374,7 +2587,7 @@ export default function Dashboard() {
         onClick={() => setCameraOn((c) => !c)}
         title={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
         aria-label={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
-        className="absolute right-[124px] bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:right-[144px]"
+        className="absolute right-[124px] bottom-[34px] hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:flex md:right-[144px]"
         style={{
           ...dashStyleBase,
           opacity: dashVisible && panel === null ? 1 : 0,
@@ -2456,7 +2669,7 @@ export default function Dashboard() {
         }
         title={t('dashboard.taskbar.stats')}
         aria-label={t('dashboard.taskbar.stats')}
-        className="absolute right-[68px] bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] no-underline transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:right-[88px]"
+        className="absolute right-[68px] bottom-[34px] hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] no-underline transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:flex md:right-[88px]"
         style={{
           ...dashStyleBase,
           opacity: dashVisible && panel === null ? 1 : 0,
@@ -2488,7 +2701,7 @@ export default function Dashboard() {
         }
         title={t('dashboard.taskbar.settingsTitle')}
         aria-label={t('dashboard.taskbar.settingsTitle')}
-        className="absolute right-3 bottom-[34px] flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] no-underline transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:right-8"
+        className="absolute right-3 bottom-[34px] hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] no-underline transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:flex md:right-8"
         style={{
           ...dashStyleBase,
           // popup nào cũng nổi đè lên đúng góc này (todo panel full-height bên phải, wallpaper/music
@@ -2550,7 +2763,7 @@ export default function Dashboard() {
 
       {/* wallpaper popup */}
       <div
-        className="absolute bottom-[108px] left-1/2 w-[340px] rounded-[26px] p-5"
+        className="absolute bottom-[108px] left-1/2 w-[min(340px,calc(100vw-24px))] rounded-[26px] p-5"
         style={{
           background: 'var(--c-ijr2vy)',
           backdropFilter: 'blur(20px)',
@@ -2678,7 +2891,7 @@ export default function Dashboard() {
 
       {/* music popup */}
       <div
-        className="absolute bottom-[108px] left-1/2 w-[320px] rounded-[26px] p-5"
+        className="absolute bottom-[108px] left-1/2 w-[min(320px,calc(100vw-24px))] rounded-[26px] p-5"
         style={{
           background: 'var(--c-ijr2vy)',
           backdropFilter: 'blur(20px)',
@@ -2807,7 +3020,7 @@ export default function Dashboard() {
 
       {/* todo slide-out */}
       <div
-        className="absolute top-0 right-0 bottom-0 z-30 flex w-[352px] flex-col gap-4 px-[26px] pt-24 pb-[34px]"
+        className="absolute top-0 right-0 bottom-0 z-30 flex w-[352px] max-w-full flex-col gap-4 px-[26px] pt-24 pb-[34px]"
         style={{
           background: 'var(--c-6rf1cr)',
           backdropFilter: 'blur(22px)',
@@ -2861,11 +3074,11 @@ export default function Dashboard() {
                     }}
                     title={t('dashboard.todoPanel.priorityLabel', { level: t(PRIORITY_LABEL_KEY[task.priority]) })}
                     aria-label={t('dashboard.todoPanel.priorityLabel', { level: t(PRIORITY_LABEL_KEY[task.priority]) })}
-                    className="h-[20px] w-[20px] shrink-0 cursor-pointer rounded-full border-[3px] border-[var(--c-6rf2rk)] p-0"
+                    className="h-[20px] w-[20px] shrink-0 cursor-pointer rounded-full border-[3px] border-[var(--c-6rf2rk)] p-[5px] -m-[5px]"
                     style={{ background: PRIORITY_COLOR[task.priority] }}
                   />
                   <div
-                    className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-lg"
+                    className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-lg p-1 -m-1"
                     style={{
                       border: task.done ? `2px solid ${ACCENT}` : '2px solid var(--c-dhk6uu)',
                       background: task.done ? ACCENT : 'var(--c-ijr2wt)',
