@@ -125,7 +125,14 @@
     "wallpaperPopup": {
       "title": "Hình nền",
       "close": "Đóng",
-      "hint": "Kéo ảnh của bạn vào đây để dùng làm hình nền riêng."
+      "dragHere": "Kéo ảnh/video vào đây",
+      "orChoose": "hoặc bấm để chọn tệp",
+      "loginToUpload": "Đăng nhập để tải hình nền riêng của bạn lên.",
+      "uploading": "Đang tải lên…",
+      "uploaded": "Đã thêm vào thư viện riêng của bạn",
+      "uploadError": "Tải lên thất bại, thử lại.",
+      "tooLarge": "Ảnh quá 5 MB — thử file nhỏ hơn.",
+      "tooLargeVideo": "Video quá 15 MB — thử bản nén nhỏ hơn."
     },
     "musicPopup": {
       "title": "Nhạc nền",
@@ -160,7 +167,15 @@
       "close": "Đóng",
       "placeholder": "Thêm việc mới…",
       "add": "Thêm",
-      "newTaskMeta": "1 phiên · Mới"
+      "newTaskMeta": "1 phiên · Mới",
+      "empty": "Chưa có việc nào.",
+      "doneSection": "Đã xong",
+      "delete": "Xoá việc này",
+      "dragHandle": "Giữ để kéo sắp xếp (trong cùng mức ưu tiên)",
+      "priorityLabel": "Ưu tiên {{level}} — bấm để đổi mức",
+      "priorityHigh": "Cao",
+      "priorityMedium": "Trung bình",
+      "priorityLow": "Thấp"
     },
     "mockTasks": {
       "t1": { "name": "Ôn chương 4 – Đạo hàm", "meta": "2 phiên · Toán" },

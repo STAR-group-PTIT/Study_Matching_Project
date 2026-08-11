@@ -3,6 +3,8 @@
 Theo dõi tiến độ, quyết định kỹ thuật, và những gì đã/chưa làm. Đọc kèm [PLAN.md](PLAN.md) và [README.md](README.md).
 
 ## Trạng thái hiện tại
+**Giai đoạn 10 (phần 11) — Đợt UI/UX update đầu tiên theo loạt góp ý user: to-do nâng cấp (nút xoá + kéo-thả sắp xếp + 3 mức ưu tiên + mục "Đã xong"), popup Hình nền cho kéo-thả upload (chỉ đã đăng nhập, hint trung thực), dark mode nâng contrast text tiers + bỏ nền trắng chói ở tab-switcher nhạc — code xong 2026-08-11 trên branch `UI-UX-update`, `tsc`/`oxlint`/39 test/`vite build` sạch. Migration mới CHƯA chạy: [0025_todo_priority_and_order.sql](app/supabase/migrations/0025_todo_priority_and_order.sql). Xem mục "Giai đoạn 10 (phần 11)" bên dưới.**
+
 **Giai đoạn 10 (phần 10) — Fix 2 bug user tự phát hiện khi dùng bản thật: phòng "ma" (bỏ tab không bấm "Rời phòng" thì hiện mãi trong danh sách công khai) + 1 user vào được 2 phòng cùng lúc. Thêm nhịp tim `room_members.last_seen_at` (Room.tsx tự cập nhật mỗi 45s, chỉ dừng khi tab thực đóng) + hàng "tươi" trong 3 phút mới tính active, quá 10 phút bị dọn hẳn (tự chuyển host/đóng phòng); chặn cứng (không tự rời phòng cũ giùm user) ở cả 4 điểm tạo `room_members` (`join_room_by_code`, `find_or_create_lobby`, `accept_room_invite`, `create_room` RPC mới thay 2 insert rời rạc cũ trong Matching.tsx) — xong 2026-08-10, `tsc`/`oxlint`/39 test/`vite build` sạch. Migration mới CHƯA chạy: [0024_room_membership_guard_and_heartbeat.sql](app/supabase/migrations/0024_room_membership_guard_and_heartbeat.sql). Xem mục "Giai đoạn 10 (phần 10)" bên dưới.**
 
 **Giai đoạn 10 (phần 9) — Bỏ micro-label "HÔM NAY" khỏi khối trái Dashboard (đè lên đúng ý ban đầu của phần 8), cân lại padding/spacing panel giờ/ngày — xong 2026-08-10, xem mục "Giai đoạn 10 (phần 9)" bên dưới.**
@@ -859,3 +861,31 @@ User tự dùng app thật, báo 2 bug: (1) có phòng đã thoát từ lâu (đ
 - i18n: `matching.errors.alreadyInRoom`, `friends.roomInviteAlreadyInRoom` (vi + en).
 
 **Verify:** `tsc -b`/`oxlint` (2 warning cũ, không liên quan)/39 test/`npm run build` sạch. **Chưa verify được bằng dữ liệu real mode** (cần 2 tài khoản thật + chờ thật 3-10 phút, sandbox không làm được). **Việc user cần làm:** chạy migration `0024_...` trong Supabase SQL Editor, rồi tự test: (a) đang ở phòng A, thử tạo/join mã/ghép ngẫu nhiên/nhận lời mời phòng B → bị chặn kèm link quay lại A; (b) vào phòng, đóng tab thẳng (không bấm Rời phòng), đợi ~3-4 phút → phòng biến mất khỏi danh sách công khai; đợi đủ 10-11 phút → hàng `room_members` bị xoá hẳn, host tự chuyển hoặc phòng tự đóng nếu trống; (c) dùng phòng bình thường (không đóng tab, kể cả chuyển sang tab khác lâu) vẫn hoạt động y như cũ, không bị heartbeat làm gián đoạn gì.
+
+## Giai đoạn 10 (phần 11) — To-do nâng cấp (xoá + kéo-thả + 3 mức ưu tiên), popup Hình nền kéo-thả upload, dark mode nâng contrast (2026-08-11)
+
+Đợt UI/UX update đầu tiên theo loạt góp ý user (user đưa cả danh sách dài nhưng chỉ chốt làm 3 mảng này trước). Làm trên branch `UI-UX-update` từ `main`. Chốt 3 quyết định qua `AskUserQuestion` trước khi code: to-do có 3 mức ưu tiên (không làm mức 4); kéo-thả CHỈ đổi thứ tự trong cùng mức ưu tiên (drop khác mức = no-op, không báo lỗi); không nối to-do với Pomodoro.
+
+**Migration mới** [0025_todo_priority_and_order.sql](app/supabase/migrations/0025_todo_priority_and_order.sql) (**user cần tự chạy hoặc cho push**):
+- `todos.priority` (text not null default 'medium', check `('high','medium','low')`), `todos.order_index` (integer not null default 0), index `todos_user_order_idx (user_id, priority, order_index)`.
+- Data cũ không cần backfill — client dùng `created_at` làm tie-breaker (query giữ `.order('created_at')`, renormalize order_index toàn bộ ngay sau khi load).
+
+**To-do ([Dashboard.tsx](app/src/routes/Dashboard.tsx) + i18n vi/en):**
+- Type mới: `Priority`, `Task` thêm `priority`/`orderIndex`; `PRIORITY_RANK`/`PRIORITY_CYCLE` (bấm chấm xoay vòng high→medium→low→high)/`PRIORITY_COLOR` (high: `--ff-danger-text`, medium: `--ff-warning-text`, low: `--ff-text-3`)/`PRIORITY_LABEL_KEY` (trỏ key i18n `dashboard.todoPanel.priorityHigh/Medium/Low`).
+- Helpers: `sortTasks()` (rank → orderIndex → id) dùng chung cả widget trái lẫn panel; `reorderTasks()` renormalize `order_index` 1..n CHỈ cho việc đang mở, trả `{ ordered, changed }` — `commitOrder()` chỉ persist những row thực sự đổi (tránh ghi DB thừa cả danh sách mỗi lần đổi 1 việc).
+- Nút xoá: `deleteTask()` (x) xoá DB khi đăng nhập + renormalize.
+- Kéo-thả HTML5 native (không thêm thư viện): row chỉ `draggable` sau khi bấm giữ tay cầm grip (tránh kéo nhầm khi click checkbox/chấm/nút xoá) — `draggableId` state + `handleDragStart/handleDragOver/handleDrop/handleDragEnd`; drop hợp lệ chỉ khi cùng mức ưu tiên, thả xong ghi `{ priority, order_index }` qua `commitOrder`. Row đang kéo mờ 45% + vạch chèn `borderTop` 2px accent ở điểm thả.
+- Tick xong: KHÔNG đụng order_index (chỉ `done: true`), việc tự chìm xuống mục "Đã xong" thuần render (2 section tách riêng) — bỏ tick quay lại cuối nhóm ưu tiên qua renormalize. `addTask` gắn cuối nhóm medium (`order_index = max + 1`).
+- Mock guest: `MOCK_TASK_PRIORITY` (t1 high, t2/t3 medium, t4 low). Load DB: select thêm `priority, order_index` rồi renormalize. i18n mới: `todoPanel.empty/doneSection/delete/dragHandle/priorityLabel/priorityHigh/priorityMedium/priorityLow`.
+
+**Popup Hình nền kéo-thả upload ([Dashboard.tsx](app/src/routes/Dashboard.tsx) + [lib/wallpaper.ts](app/src/lib/wallpaper.ts) + [Settings.tsx](app/src/routes/Settings.tsx)):**
+- Tách logic chuẩn bị file dùng chung Dashboard+Settings: `lib/wallpaper.ts` thêm `MAX_WALLPAPER_BYTES` (5MB)/`MAX_WALLPAPER_VIDEO_BYTES` (15MB)/`prepareWallpaperFile(file)` (resize ảnh tĩnh quá khổ về Full HD trước → check dung lượng sau, ném `WallpaperFileError` với `code: 'tooLarge'|'tooLargeVideo'` để caller hiển thị i18n của mình) — Settings.tsx bỏ các hằng số + `resizeWallpaperIfOversized` cục bộ, gọi hàm chung.
+- Popup "Hình nền": ĐÃ ĐĂNG NHẬP → drop zone (kéo-thả ảnh/video → `prepareWallpaperFile` → upload Storage `wallpapers` → insert bảng → `createSignedUrl` → thêm ngay vào `customWallpapers`, không cần refetch; lỗi hiện inline trong khung, không `alert`). KHÁCH → hiện "Đăng nhập để tải hình nền riêng của bạn lên." thay vì hint "kéo ảnh vào đây" cũ (nói dối — kéo vào cũng không có tác dụng gì). i18n mới: `wallpaperPopup.dragHere/orChoose/loginToUpload/uploading/uploaded/uploadError/tooLarge/tooLargeVideo` (bỏ key `hint` cũ, cả vi/en).
+
+**Dark mode ([index.css](app/src/index.css) + [Dashboard.tsx](app/src/routes/Dashboard.tsx) + [Room.tsx](app/src/routes/Room.tsx)):**
+- Nâng contrast 2 text tier trong `:root[data-theme='dark']` (bản đầu auto-invert ra `#9fb0b5`/`#7c8f96` bị chê khó đọc, mirror đúng bài đã làm cho light mode text-2 0.62→0.7/text-3 0.45→0.58): `--ff-text-2: #b0bfc4`, `--ff-text-3: #98a8ae`.
+- Bỏ nền TRẮNG chói ở tab-switcher Thư viện/YouTube (Dashboard popup Nhạc nền + Room tab Nhạc): `background: 'white'` + chữ `--c-2kucx8` (navy tối, vô hình trên nền trắng trong dark) → `var(--ff-surface-solid)` + `var(--ff-text-primary)` — light giữ nguyên y hệt cũ (surface-solid = #fff), dark ra nền `#151e22` + chữ sáng, hết loá.
+
+**Verify:** `tsc -b --noEmit`/`oxlint` (2 warning cũ không liên quan)/39 test/`npm run build` sạch, JSON i18n vi/en hợp lệ + đủ key mới, dev server chạy không lỗi. **Chưa verify được qua browser thật** (môi trường opencode này không có browser MCP — các phiên trước dùng browser preview của Claude Code) — user nên tự test: panel to-do (xoá/kéo-thả cùng mức/đổi ưu tiên xoay vòng/đã xong chìm xuống), kéo-thả hình nền khi đã login, dark mode nhìn lại text phụ + tab-switcher nhạc ở cả Dashboard lẫn Room.
+
+**Việc cần user làm:** chạy migration `0025_...` (đang hỏi cho `supabase db push` — CLI mới cài lại trong sandbox này nhưng chưa có access token, nếu user đồng ý cần cấp token `sbp_...` hoặc tự `supabase login`), rồi tự test 3 mảng trên qua browser thật.

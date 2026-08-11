@@ -7,7 +7,7 @@ import { playChime } from '../lib/sound'
 import { parseYoutubeUrl, loadYoutubeApi, DEFAULT_YOUTUBE_URL, MUSIC_YOUTUBE_KEY, loadStoredYoutubeUrlOverride, type YTPlayer } from '../lib/youtube'
 import { BUILTIN_TRACKS, type LibraryTrack } from '../lib/musicLibrary'
 import { RANDOM_MATCH_CONFIG, useQuickMatch } from '../lib/quickMatch'
-import { isVideoWallpaper } from '../lib/wallpaper'
+import { isVideoWallpaper, prepareWallpaperFile, WallpaperFileError } from '../lib/wallpaper'
 import { loadStoredAutoFullscreenFocus } from '../lib/focusFullscreen'
 import MatchFound from '../components/MatchFound'
 import LobbyWaiting from '../components/LobbyWaiting'
@@ -107,11 +107,52 @@ type Panel = 'wp' | 'music' | 'todo' | 'study' | null
 type TimerType = 'pomodoro' | 'endless'
 type EditField = 'loop' | 'work' | 'break' | null
 
+type Priority = 'high' | 'medium' | 'low'
+
 type Task = {
   id: string
   name: string
   meta: string
   done: boolean
+  priority: Priority
+  orderIndex: number
+}
+
+const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 }
+// Xoay vòng khi bấm chấm ưu tiên: Cao → Trung bình → Thấp → Cao.
+const PRIORITY_CYCLE: Record<Priority, Priority> = { high: 'medium', medium: 'low', low: 'high' }
+// Màu chấm ưu tiên dùng token có sẵn để tự thích ứng sáng/tối (danger/warning/text-3).
+const PRIORITY_COLOR: Record<Priority, string> = {
+  high: 'var(--ff-danger-text)',
+  medium: 'var(--ff-warning-text)',
+  low: 'var(--ff-text-3)',
+}
+const PRIORITY_LABEL_KEY: Record<Priority, string> = {
+  high: 'dashboard.todoPanel.priorityHigh',
+  medium: 'dashboard.todoPanel.priorityMedium',
+  low: 'dashboard.todoPanel.priorityLow',
+}
+
+function sortTasks(list: Task[]): Task[] {
+  return [...list].sort(
+    (a, b) =>
+      PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] ||
+      a.orderIndex - b.orderIndex ||
+      a.id.localeCompare(b.id),
+  )
+}
+
+// Gán lại order_index 1..n cho việc ĐANG MỞ theo thứ tự ưu tiên hiện tại — việc đã xong
+// không cần giữ thứ tự (mục "Đã xong" render thuần, không kéo-thả), vừa tránh ghi DB thừa.
+function reorderTasks(next: Task[]): { ordered: Task[]; changed: Task[] } {
+  const prevIndex = new Map(next.map((task) => [task.id, task.orderIndex]))
+  const counts: Record<Priority, number> = { high: 0, medium: 0, low: 0 }
+  const orderedOpen = sortTasks(next.filter((task) => !task.done)).map((task) => {
+    counts[task.priority] += 1
+    return counts[task.priority] === task.orderIndex ? task : { ...task, orderIndex: counts[task.priority] }
+  })
+  const changed = orderedOpen.filter((task) => prevIndex.get(task.id) !== task.orderIndex)
+  return { ordered: [...orderedOpen, ...sortTasks(next.filter((task) => task.done))], changed }
 }
 
 const MOCK_TASK_KEYS = ['t1', 't2', 't3', 't4'] as const
@@ -120,6 +161,12 @@ const MOCK_TASK_DONE: Record<(typeof MOCK_TASK_KEYS)[number], boolean> = {
   t2: false,
   t3: true,
   t4: false,
+}
+const MOCK_TASK_PRIORITY: Record<(typeof MOCK_TASK_KEYS)[number], Priority> = {
+  t1: 'high',
+  t2: 'medium',
+  t3: 'medium',
+  t4: 'low',
 }
 
 function fmtHMS(totalSec: number) {
@@ -175,6 +222,8 @@ export default function Dashboard() {
         name: t(`dashboard.mockTasks.${key}.name`),
         meta: t(`dashboard.mockTasks.${key}.meta`),
         done: MOCK_TASK_DONE[key],
+        priority: MOCK_TASK_PRIORITY[key],
+        orderIndex: i + 1,
       })),
     [t],
   )
@@ -613,6 +662,44 @@ export default function Dashboard() {
     // trong popup "Đổi hình nền" cho tới khi F5 lại trang.
   }, [user, settingsOpen])
 
+  // Upload hình nền ngay từ popup "Hình nền" (kéo-thả / bấm chọn tệp) — dùng chung pipeline
+  // chuẩn bị file (resize ảnh quá khổ + check dung lượng) với Settings, upload vào đúng bucket
+  // + thư mục riêng của user, rồi thêm thẳng vào danh sách chọn, không cần chờ refetch.
+  const [wpUploading, setWpUploading] = useState(false)
+  const [wpUploadMsg, setWpUploadMsg] = useState<'done' | 'error' | 'tooLarge' | 'tooLargeVideo' | null>(null)
+  const [wpDragOver, setWpDragOver] = useState(false)
+  const wpFileInputRef = useRef<HTMLInputElement>(null)
+
+  async function uploadWallpaperFile(file: File) {
+    if (!user || wpUploading) return
+    setWpUploading(true)
+    setWpUploadMsg(null)
+    try {
+      const { file: prepared } = await prepareWallpaperFile(file)
+      const path = `${user.id}/${crypto.randomUUID()}-${prepared.name}`
+      const { error: upErr } = await supabase.storage.from('wallpapers').upload(path, prepared)
+      if (upErr) throw upErr
+      const { data: row, error: insErr } = await supabase
+        .from('wallpapers')
+        .insert({ user_id: user.id, name: prepared.name, storage_path: path })
+        .select('id')
+        .single()
+      if (insErr || !row) throw insErr ?? new Error('no wallpaper row')
+      const { data: signed } = await supabase.storage.from('wallpapers').createSignedUrl(path, 3600)
+      if (!signed?.signedUrl) throw new Error('no signed url')
+      setCustomWallpapers((ws) => [
+        ...ws,
+        { id: row.id, kind: isVideoWallpaper(path) ? ('video' as const) : ('image' as const), value: signed.signedUrl },
+      ])
+      setWpUploadMsg('done')
+    } catch (err) {
+      console.error('upload wallpaper from popup failed', err)
+      setWpUploadMsg(err instanceof WallpaperFileError ? err.code : 'error')
+    } finally {
+      setWpUploading(false)
+    }
+  }
+
   // Dùng chung cho hoàn thành tự nhiên (hết giờ) lẫn bấm Skip — chỉ khác nhau ở số phút ghi
   // log (đủ vs. thực tế đã trôi qua) và có tự chạy tiếp phase kế hay không.
   function advancePhaseBody(
@@ -690,12 +777,20 @@ export default function Dashboard() {
     let cancelled = false
     supabase
       .from('todos')
-      .select('id, name, meta, done')
+      .select('id, name, meta, done, priority, order_index')
       .order('created_at')
       .limit(TODOS_FETCH_LIMIT)
       .then(({ data, error }) => {
         if (cancelled || error || !data) return
-        setTasks(data.map((row) => ({ id: row.id, name: row.name, meta: row.meta ?? '', done: row.done })))
+        const next = data.map((row) => ({
+          id: row.id,
+          name: row.name,
+          meta: row.meta ?? '',
+          done: row.done,
+          priority: ((row.priority as Priority | null) ?? 'medium') as Priority,
+          orderIndex: row.order_index ?? 0,
+        }))
+        setTasks(reorderTasks(next).ordered)
       })
     return () => {
       cancelled = true
@@ -768,6 +863,8 @@ export default function Dashboard() {
   const active = tasks.find((task) => !task.done)
   const doneCount = tasks.length - openCount
   const hasTasks = tasks.length > 0
+  const openTasks = sortTasks(tasks.filter((task) => !task.done))
+  const doneTasks = sortTasks(tasks.filter((task) => task.done))
 
   function toggleRun() {
     // Bấm Tạm dừng (đang running -> dừng) thoát auto-fullscreen/trả UI về Dashboard, giống
@@ -952,28 +1049,70 @@ export default function Dashboard() {
     setPanel((cur) => (cur === p ? null : p))
   }
 
+  // Ghi lại thứ tự mới (sau xoá/thêm/đổi ưu tiên/kéo-thả) — renormalize order_index của việc
+  // đang mở rồi chỉ persist những row thực sự đổi, tránh ghi DB thừa cho cả danh sách.
+  function commitOrder(next: Task[]) {
+    const { ordered, changed } = reorderTasks(next)
+    setTasks(ordered)
+    if (!user || changed.length === 0) return
+    void Promise.all(
+      changed.map((task) =>
+        supabase
+          .from('todos')
+          .update({ priority: task.priority, order_index: task.orderIndex })
+          .eq('id', task.id)
+          .then(({ error }) => {
+            if (error) console.error('persist todo order failed', error)
+          }),
+      ),
+    )
+  }
+
   async function addTask() {
     const name = draft.trim()
     if (!name) return
     setDraft('')
     const newTaskMeta = t('dashboard.todoPanel.newTaskMeta')
     if (!user) {
-      setTasks((ts) => [...ts, { id: 'g' + Date.now(), name, meta: newTaskMeta, done: false }])
+      commitOrder([...tasks, { id: 'g' + Date.now(), name, meta: newTaskMeta, done: false, priority: 'medium', orderIndex: 0 }])
       return
     }
+    // Việc mới mặc định Trung bình, gắn cuối nhóm đó (order_index = max + 1) — renormalize
+    // toàn bộ sau insert cũng được nhưng ghi sẵn 1 giá trị đúng thì không phải sửa lại row nào.
+    const maxMedium = Math.max(
+      0,
+      ...tasks.filter((x) => !x.done && x.priority === 'medium').map((x) => x.orderIndex),
+    )
     const { data, error } = await supabase
       .from('todos')
-      .insert({ user_id: user.id, name, meta: newTaskMeta })
-      .select('id, name, meta, done')
+      .insert({ user_id: user.id, name, meta: newTaskMeta, priority: 'medium', order_index: maxMedium + 1 })
+      .select('id, name, meta, done, priority, order_index')
       .single()
     if (!error && data) {
-      setTasks((ts) => [...ts, { id: data.id, name: data.name, meta: data.meta ?? '', done: data.done }])
+      setTasks((ts) => [
+        ...ts,
+        {
+          id: data.id,
+          name: data.name,
+          meta: data.meta ?? '',
+          done: data.done,
+          priority: ((data.priority as Priority | null) ?? 'medium') as Priority,
+          orderIndex: data.order_index ?? 0,
+        },
+      ])
     }
   }
 
   function toggleTask(task: Task) {
     const nextDone = !task.done
-    setTasks((ts) => ts.map((x) => (x.id === task.id ? { ...x, done: nextDone } : x)))
+    if (nextDone) {
+      // Tick xong: chỉ đánh dấu, không đụng thứ tự — việc tự chìm xuống mục "Đã xong" thuần
+      // render (2 section tách riêng), khỏi ghi lại order_index cho cả danh sách.
+      setTasks((ts) => ts.map((x) => (x.id === task.id ? { ...x, done: true } : x)))
+    } else {
+      // Bỏ tick: việc quay lại cuối nhóm ưu tiên của nó qua renormalize.
+      commitOrder(tasks.map((x) => (x.id === task.id ? { ...x, done: false } : x)))
+    }
     if (user) {
       supabase
         .from('todos')
@@ -983,6 +1122,80 @@ export default function Dashboard() {
           if (error) console.error('toggle todo failed', error)
         })
     }
+  }
+
+  function deleteTask(task: Task) {
+    commitOrder(tasks.filter((x) => x.id !== task.id))
+    if (user) {
+      supabase
+        .from('todos')
+        .delete()
+        .eq('id', task.id)
+        .then(({ error }) => {
+          if (error) console.error('delete todo failed', error)
+        })
+    }
+  }
+
+  function cyclePriority(task: Task) {
+    const nextPriority = PRIORITY_CYCLE[task.priority]
+    commitOrder(tasks.map((x) => (x.id === task.id ? { ...x, priority: nextPriority } : x)))
+    // commitOrder chỉ ghi lại row nào order_index đổi — đổi ưu tiên có thể giữ nguyên số thứ tự
+    // (vd nhóm đó đang rỗng) nên phải ghi priority riêng cho chắc.
+    if (user) {
+      supabase
+        .from('todos')
+        .update({ priority: nextPriority })
+        .eq('id', task.id)
+        .then(({ error }) => {
+          if (error) console.error('update todo priority failed', error)
+        })
+    }
+  }
+
+  // Kéo-thả HTML5 native (không thêm thư viện). Row chỉ bật `draggable` sau khi bấm giữ tay
+  // cầm (grip) — tránh kéo nhầm khi click vào checkbox/chấm ưu tiên/nút xoá trên cùng row.
+  const [draggableId, setDraggableId] = useState<string | null>(null)
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [dropOverId, setDropOverId] = useState<string | null>(null)
+
+  function handleDragStart(e: React.DragEvent, task: Task) {
+    e.dataTransfer.setData('text/plain', task.id)
+    e.dataTransfer.effectAllowed = 'move'
+    setDragId(task.id)
+  }
+  function handleDragOver(e: React.DragEvent, task: Task) {
+    if (!dragId || dragId === task.id || task.done) return
+    const dragging = tasks.find((x) => x.id === dragId)
+    // Chỉ cho thả vào TRONG CÙNG mức ưu tiên (user chốt: nhãn quyết định thứ tự, kéo chỉ xếp
+    // trong nhóm) — drag qua việc khác mức là no-op, không báo lỗi, không đổi chỗ.
+    if (!dragging || dragging.priority !== task.priority) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDropOverId(task.id)
+  }
+  function handleDrop(e: React.DragEvent, task: Task) {
+    e.preventDefault()
+    if (dragId && dragId !== task.id) {
+      const drag = tasks.find((x) => x.id === dragId)
+      const target = tasks.find((x) => x.id === task.id)
+      if (drag && target && !drag.done && !target.done && drag.priority === target.priority) {
+        const openSame = tasks.filter((x) => !x.done && x.priority === drag.priority)
+        const from = openSame.findIndex((x) => x.id === dragId)
+        const to = openSame.findIndex((x) => x.id === task.id)
+        const reordered = [...openSame]
+        const [moved] = reordered.splice(from, 1)
+        reordered.splice(from < to ? to - 1 : to, 0, moved)
+        const newIndex = new Map(reordered.map((x, i) => [x.id, i + 1]))
+        commitOrder(tasks.map((x) => (newIndex.has(x.id) ? { ...x, orderIndex: newIndex.get(x.id)! } : x)))
+      }
+    }
+    setDragId(null)
+    setDropOverId(null)
+  }
+  function handleDragEnd() {
+    setDragId(null)
+    setDropOverId(null)
   }
 
   const dashStyleBase = {
@@ -2352,9 +2565,73 @@ export default function Dashboard() {
             </button>
           ))}
         </div>
-        <div className="mt-[14px] text-xs font-semibold text-[var(--c-mfvyic)]">
-          {t('dashboard.wallpaperPopup.hint')}
-        </div>
+        {user ? (
+          <div
+            onDragOver={(e) => {
+              e.preventDefault()
+              setWpDragOver(true)
+            }}
+            onDragLeave={() => setWpDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setWpDragOver(false)
+              const file = e.dataTransfer.files?.[0]
+              if (file) void uploadWallpaperFile(file)
+            }}
+            onClick={() => wpFileInputRef.current?.click()}
+            className="mt-[14px] flex cursor-pointer flex-col items-center justify-center gap-[2px] rounded-[18px] border-2 border-dashed py-3 text-center transition-colors"
+            style={{
+              borderColor: wpDragOver ? ACCENT : 'var(--c-dhk6uu)',
+              background: wpDragOver ? 'var(--c-6rf2rk)' : 'transparent',
+            }}
+          >
+            <span className="text-xs font-bold text-[var(--c-3bsl4p)]">
+              {wpUploading ? t('dashboard.wallpaperPopup.uploading') : t('dashboard.wallpaperPopup.dragHere')}
+            </span>
+            <span className="text-[11px] font-semibold text-[var(--c-mfvyic)]">
+              {t('dashboard.wallpaperPopup.orChoose')}
+            </span>
+            {wpUploadMsg && (
+              <span
+                className="text-[11px] font-bold"
+                style={{
+                  color:
+                    wpUploadMsg === 'done'
+                      ? 'var(--ff-accent-fg)'
+                      : 'var(--ff-danger-text)',
+                }}
+              >
+                {t(
+                  wpUploadMsg === 'done'
+                    ? 'dashboard.wallpaperPopup.uploaded'
+                    : wpUploadMsg === 'tooLarge'
+                      ? 'dashboard.wallpaperPopup.tooLarge'
+                      : wpUploadMsg === 'tooLargeVideo'
+                        ? 'dashboard.wallpaperPopup.tooLargeVideo'
+                        : 'dashboard.wallpaperPopup.uploadError',
+                )}
+              </span>
+            )}
+            <input
+              ref={wpFileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif,video/mp4"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                if (file) void uploadWallpaperFile(file)
+              }}
+            />
+          </div>
+        ) : (
+          // Khách chưa đăng nhập: không có thư mục riêng để lưu ảnh, chỉ dùng hình built-in +
+          // hình người khác đánh dấu dùng chung — hiển thị đúng sự thật thay vì hint "kéo vào
+          // đây" (trước đây nói dối: kéo vào cũng không có tác dụng gì).
+          <div className="mt-[14px] text-xs font-semibold text-[var(--c-mfvyic)]">
+            {t('dashboard.wallpaperPopup.loginToUpload')}
+          </div>
+        )}
       </div>
 
       {/* music popup */}
@@ -2386,14 +2663,14 @@ export default function Dashboard() {
           <button
             onClick={() => setActiveTab('library')}
             className="flex-1 rounded-xl border-none px-[6px] py-[8px] font-sans text-[12px] font-extrabold transition-all duration-[220ms]"
-            style={{ background: activeTab === 'library' ? 'white' : 'transparent', color: activeTab === 'library' ? 'var(--c-2kucx8)' : 'var(--c-1kei8bt)' }}
+            style={{ background: activeTab === 'library' ? 'var(--ff-surface-solid)' : 'transparent', color: activeTab === 'library' ? 'var(--ff-text-primary)' : 'var(--c-1kei8bt)' }}
           >
             {t('dashboard.musicPopup.sourceLibrary')}
           </button>
           <button
             onClick={() => setActiveTab('youtube')}
             className="flex-1 rounded-xl border-none px-[6px] py-[8px] font-sans text-[12px] font-extrabold transition-all duration-[220ms]"
-            style={{ background: activeTab === 'youtube' ? 'white' : 'transparent', color: activeTab === 'youtube' ? 'var(--c-2kucx8)' : 'var(--c-1kei8bt)' }}
+            style={{ background: activeTab === 'youtube' ? 'var(--ff-surface-solid)' : 'transparent', color: activeTab === 'youtube' ? 'var(--ff-text-primary)' : 'var(--c-1kei8bt)' }}
           >
             {t('dashboard.musicPopup.sourceYoutube')}
           </button>
@@ -2511,47 +2788,156 @@ export default function Dashboard() {
           </button>
         </div>
         <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              onClick={() => toggleTask(task)}
-              className="flex cursor-pointer items-center gap-[13px] rounded-[20px] px-[15px] py-[14px] transition-colors duration-200 hover:!bg-[var(--c-6rf2rk)]"
-              style={{ background: 'var(--c-6rf0kc)', boxShadow: '0 4px 14px var(--c-1k1wlew)' }}
-            >
-              <div
-                className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-lg"
-                style={{
-                  border: task.done ? `2px solid ${ACCENT}` : '2px solid var(--c-dhk6uu)',
-                  background: task.done ? ACCENT : 'var(--c-ijr2wt)',
-                }}
-              >
-                <svg
-                  width="13"
-                  height="13"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="var(--c-s0owyd)"
-                  strokeWidth="3.2"
-                  strokeLinecap="round"
-                  style={{ opacity: task.done ? 1 : 0 }}
-                >
-                  <path d="M5 12.5l4.5 4.5L19 7" />
-                </svg>
-              </div>
-              <div className="flex flex-col gap-[2px]">
-                <span
-                  className="text-sm font-bold"
+          {!hasTasks ? (
+            <div className="flex flex-1 items-center justify-center rounded-[20px] text-[13px] font-semibold text-[var(--c-mfvyic)]">
+              {t('dashboard.todoPanel.empty')}
+            </div>
+          ) : (
+            <>
+              {openTasks.map((task) => (
+                <div
+                  key={task.id}
+                  onClick={() => toggleTask(task)}
+                  draggable={draggableId === task.id}
+                  onDragStart={(e) => handleDragStart(e, task)}
+                  onDragOver={(e) => handleDragOver(e, task)}
+                  onDrop={(e) => handleDrop(e, task)}
+                  onDragEnd={handleDragEnd}
+                  className="relative flex cursor-pointer items-center gap-[10px] rounded-[20px] px-[15px] py-[14px] transition-colors duration-200 hover:!bg-[var(--c-6rf2rk)]"
                   style={{
-                    color: task.done ? 'var(--c-1kei7ij)' : 'var(--c-3bsl4p)',
-                    textDecoration: task.done ? 'line-through' : 'none',
+                    background: 'var(--c-6rf0kc)',
+                    boxShadow: '0 4px 14px var(--c-1k1wlew)',
+                    opacity: dragId === task.id ? 0.45 : 1,
+                    // Vạch chèn khi kéo qua — chỉ đánh dấu điểm thả hợp lệ (cùng mức ưu tiên).
+                    borderTop: dropOverId === task.id && dragId ? `2px solid ${ACCENT}` : '2px solid transparent',
                   }}
                 >
-                  {task.name}
-                </span>
-                <span className="text-xs font-semibold text-[var(--c-1kei7ij)]">{task.meta}</span>
-              </div>
-            </div>
-          ))}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      cyclePriority(task)
+                    }}
+                    title={t('dashboard.todoPanel.priorityLabel', { level: t(PRIORITY_LABEL_KEY[task.priority]) })}
+                    aria-label={t('dashboard.todoPanel.priorityLabel', { level: t(PRIORITY_LABEL_KEY[task.priority]) })}
+                    className="h-[13px] w-[13px] shrink-0 rounded-full border-none p-0"
+                    style={{ background: PRIORITY_COLOR[task.priority], cursor: 'pointer' }}
+                  />
+                  <div
+                    className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-lg"
+                    style={{
+                      border: task.done ? `2px solid ${ACCENT}` : '2px solid var(--c-dhk6uu)',
+                      background: task.done ? ACCENT : 'var(--c-ijr2wt)',
+                    }}
+                  >
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="var(--c-s0owyd)"
+                      strokeWidth="3.2"
+                      strokeLinecap="round"
+                      style={{ opacity: task.done ? 1 : 0 }}
+                    >
+                      <path d="M5 12.5l4.5 4.5L19 7" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0 flex-1 flex-col gap-[2px]">
+                    <span
+                      className="block truncate text-sm font-bold"
+                      style={{
+                        color: task.done ? 'var(--c-1kei7ij)' : 'var(--c-3bsl4p)',
+                        textDecoration: task.done ? 'line-through' : 'none',
+                      }}
+                    >
+                      {task.name}
+                    </span>
+                    <span className="block truncate text-xs font-semibold text-[var(--c-1kei7ij)]">{task.meta}</span>
+                  </div>
+                  <button
+                    onMouseDown={() => setDraggableId(task.id)}
+                    onMouseUp={() => setDraggableId(null)}
+                    onMouseLeave={() => setDraggableId(null)}
+                    onClick={(e) => e.stopPropagation()}
+                    title={t('dashboard.todoPanel.dragHandle')}
+                    aria-label={t('dashboard.todoPanel.dragHandle')}
+                    className="cursor-grab border-none bg-transparent p-[3px] text-[var(--c-1kei7ij)]"
+                  >
+                    <svg width="12" height="15" viewBox="0 0 12 15" fill="currentColor">
+                      <circle cx="3" cy="2.6" r="1.5" />
+                      <circle cx="9" cy="2.6" r="1.5" />
+                      <circle cx="3" cy="7.5" r="1.5" />
+                      <circle cx="9" cy="7.5" r="1.5" />
+                      <circle cx="3" cy="12.4" r="1.5" />
+                      <circle cx="9" cy="12.4" r="1.5" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      deleteTask(task)
+                    }}
+                    title={t('dashboard.todoPanel.delete')}
+                    aria-label={t('dashboard.todoPanel.delete')}
+                    className="border-none bg-transparent p-[3px] text-[var(--c-1kei7ij)] transition-colors hover:!text-[var(--ff-danger-text)]"
+                  >
+                    <svg width="13" height="14" viewBox="0 0 14 15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1.5 3.5h11M5 1.8h4M2.7 3.5l.7 9a1 1 0 0 0 1 .9h5.2a1 1 0 0 0 1-.9l.7-9M5.6 6.2v4.6M8.4 6.2v4.6" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              {doneTasks.length > 0 && (
+                <>
+                  <div className="mt-1 px-1 text-[11px] font-extrabold tracking-wider text-[var(--c-mfvyic)] uppercase">
+                    {t('dashboard.todoPanel.doneSection')} · {doneTasks.length}
+                  </div>
+                  {doneTasks.map((task) => (
+                    <div
+                      key={task.id}
+                      onClick={() => toggleTask(task)}
+                      className="flex cursor-pointer items-center gap-[13px] rounded-[20px] px-[15px] py-[12px] transition-colors duration-200 hover:!bg-[var(--c-6rf2rk)]"
+                      style={{ background: 'var(--c-6rf0kc)', opacity: 0.72 }}
+                    >
+                      <div
+                        className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-lg"
+                        style={{ border: `2px solid ${ACCENT}`, background: ACCENT }}
+                      >
+                        <svg
+                          width="13"
+                          height="13"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="var(--c-s0owyd)"
+                          strokeWidth="3.2"
+                          strokeLinecap="round"
+                        >
+                          <path d="M5 12.5l4.5 4.5L19 7" />
+                        </svg>
+                      </div>
+                      <div className="min-w-0 flex-1 flex-col gap-[2px]">
+                        <span className="block truncate text-sm font-bold text-[var(--c-1kei7ij)] line-through">{task.name}</span>
+                        <span className="block truncate text-xs font-semibold text-[var(--c-1kei7ij)]">{task.meta}</span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteTask(task)
+                        }}
+                        title={t('dashboard.todoPanel.delete')}
+                        aria-label={t('dashboard.todoPanel.delete')}
+                        className="border-none bg-transparent p-[3px] text-[var(--c-1kei7ij)] transition-colors hover:!text-[var(--ff-danger-text)]"
+                      >
+                        <svg width="13" height="14" viewBox="0 0 14 15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1.5 3.5h11M5 1.8h4M2.7 3.5l.7 9a1 1 0 0 0 1 .9h5.2a1 1 0 0 0 1-.9l.7-9M5.6 6.2v4.6M8.4 6.2v4.6" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
+            </>
+          )}
         </div>
         <div
           className="flex items-center gap-[10px] rounded-[20px] py-[6px] pr-[6px] pl-4"

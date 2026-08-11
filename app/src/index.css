@@ -71,8 +71,11 @@
   --ff-text-primary: #e6edef;
   --ff-text-body: #c3d2e0;
   --ff-text-muted: rgba(159, 176, 181, 0.65);
-  --ff-text-2: #9fb0b5;
-  --ff-text-3: #7c8f96;
+  /* text-2 / text-3 raised from the auto-invert values (#9fb0b5 / #7c8f96) — user reported the
+     secondary/hint text tiers were hard to read on the dark page, mirroring the same complaint
+     that pushed light-mode text-2 0.62→0.7 and text-3 0.45→0.58. */
+  --ff-text-2: #b0bfc4;
+  --ff-text-3: #98a8ae;
 
   /* Elevation ladder — each step ~4-6% lighter than the one below, so cards are visibly
      distinct from the page and from each other instead of collapsing into the same
