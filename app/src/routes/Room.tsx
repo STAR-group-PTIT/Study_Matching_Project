@@ -141,7 +141,7 @@ function breakSecs() {
 }
 
 type Phase = 'focus' | 'break'
-type Tab = 'chat' | 'music' | 'members' | 'host'
+type Tab = 'chat' | 'music' | 'members'
 type Admit = 'auto' | 'manual'
 type Demo = 'two' | 'five'
 
@@ -1143,7 +1143,7 @@ export default function Room() {
   const timeText = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0')
 
   const queued = admit === 'manual' && pending.length > 0
-  const effectiveTab: Tab = tab === 'host' && !isHost ? 'chat' : tab
+  const effectiveTab: Tab = tab
   const currentTrack = tracks[trackIndex] || tracks[0] || { id: '', name: t('room.music.empty'), mood: '', length: '' }
   const n = Math.max(1, members.length)
   const cols = Math.ceil(Math.sqrt(n))
@@ -1247,6 +1247,7 @@ export default function Room() {
     return {
       id: u.id,
       name: u.name,
+      avatarUrl: u.avatarUrl,
       initials: initials(u.name),
       status: me ? (mic ? t('room.status.micOn') : t('room.status.micOff')) : displayStatusLabel,
       statusColor: me ? (mic ? 'var(--c-3bts4x)' : 'var(--c-1kei7l4)') : online ? 'var(--c-1kei7l4)' : 'var(--c-mfvygm)',
@@ -1567,12 +1568,20 @@ export default function Room() {
                   className="absolute top-3 left-3 flex items-center gap-2 rounded-[18px] py-[6px] pr-[13px] pl-[7px]"
                   style={{ background: 'var(--c-6rf1ya)', backdropFilter: 'blur(14px)', boxShadow: '0 5px 15px var(--c-1w98bua)' }}
                 >
-                  <span
-                    className="flex h-[26px] w-[26px] items-center justify-center rounded-[10px] text-[11.5px] font-extrabold"
-                    style={{ background: tile.avatarBg, color: tile.avatarColor }}
-                  >
-                    {tile.initials}
-                  </span>
+                  {tile.avatarUrl ? (
+                    <img
+                      src={tile.avatarUrl}
+                      alt={tile.name}
+                      className="h-[26px] w-[26px] shrink-0 rounded-[10px] object-cover"
+                    />
+                  ) : (
+                    <span
+                      className="flex h-[26px] w-[26px] items-center justify-center rounded-[10px] text-[11.5px] font-extrabold"
+                      style={{ background: tile.avatarBg, color: tile.avatarColor }}
+                    >
+                      {tile.initials}
+                    </span>
+                  )}
                   <span className="text-[13px] font-extrabold text-[var(--c-3bsl4p)]">{tile.name}</span>
                   <span className="text-[11.5px] font-bold" style={{ color: tile.statusColor }}>
                     {tile.status}
@@ -1671,7 +1680,7 @@ export default function Room() {
 
       {/* bottom controls */}
       <div
-        className="absolute bottom-4 left-1/2 z-30 flex max-w-[calc(100vw-24px)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-[26px] p-[8px] md:bottom-7 md:max-w-none md:gap-2 md:p-[10px]"
+        className="absolute bottom-4 left-1/2 z-30 flex w-max max-w-[calc(100vw-24px)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded-[26px] p-[8px] md:gap-2 md:p-[10px] lg:bottom-7"
         style={{ background: 'var(--c-ijr2v3)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px var(--c-1k1wm3v)' }}
       >
         <button
@@ -1684,7 +1693,7 @@ export default function Room() {
                 ? t('room.controls.camera')
                 : t('room.controls.cameraOff')
           }
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:enabled:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70 md:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:enabled:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70 lg:px-5"
           style={{ background: cam ? 'var(--c-ijr2si)' : 'var(--c-1izck5g)', color: cam ? 'var(--c-33k90l)' : 'var(--c-1kei8zx)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -1692,7 +1701,7 @@ export default function Room() {
             <path d="M15.5 11.5l6-3v7l-6-3z" />
             <path d={cam ? 'M12 12' : 'M3 20L21 4'} />
           </svg>
-          <span className="hidden md:inline">{cam ? t('room.controls.camera') : t('room.controls.cameraOff')}</span>
+          <span className="hidden lg:inline">{cam ? t('room.controls.camera') : t('room.controls.cameraOff')}</span>
         </button>
         <button
           onClick={toggleMic}
@@ -1704,7 +1713,7 @@ export default function Room() {
                 ? t('room.controls.mic')
                 : t('room.controls.micOff')
           }
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:enabled:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70 md:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:enabled:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70 lg:px-5"
           style={{ background: mic ? 'var(--c-ijr2si)' : 'var(--c-1izck5g)', color: mic ? 'var(--c-33k90l)' : 'var(--c-1kei8zx)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -1712,12 +1721,12 @@ export default function Room() {
             <path d="M5.5 12a6.5 6.5 0 0013 0M12 18.5V21" />
             <path d={mic ? 'M12 12' : 'M3 20L21 4'} />
           </svg>
-          <span className="hidden md:inline">{mic ? t('room.controls.mic') : t('room.controls.micOff')}</span>
+          <span className="hidden lg:inline">{mic ? t('room.controls.mic') : t('room.controls.micOff')}</span>
         </button>
         <button
           onClick={() => openTab('chat')}
           title={t('room.controls.chat')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] md:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] lg:px-5"
           style={{ background: chatOpen && effectiveTab === 'chat' ? 'var(--c-6rf2rk)' : 'var(--c-ijr2si)' }}
         >
           <span className="relative flex h-[18px] w-[18px] shrink-0 items-center justify-center">
@@ -1728,12 +1737,12 @@ export default function Room() {
               <span className="absolute -top-[3px] -right-[3px] h-[9px] w-[9px] rounded-full ring-2 ring-white" style={{ background: 'var(--c-1ep8226)' }} />
             )}
           </span>
-          <span className="hidden md:inline">{t('room.controls.chat')}</span>
+          <span className="hidden lg:inline">{t('room.controls.chat')}</span>
         </button>
         <button
           onClick={() => openTab('music')}
           title={t('room.controls.music')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] md:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] lg:px-5"
           style={{ background: chatOpen && effectiveTab === 'music' ? 'var(--c-6rf2rk)' : 'var(--c-ijr2si)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -1741,12 +1750,12 @@ export default function Room() {
             <circle cx="6.5" cy="18" r="2.6" />
             <circle cx="19" cy="16" r="2.6" />
           </svg>
-          <span className="hidden md:inline">{t('room.controls.music')}</span>
+          <span className="hidden lg:inline">{t('room.controls.music')}</span>
         </button>
         <button
           onClick={() => openTab('members')}
           title={t('room.controls.members')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] md:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] lg:px-5"
           style={{ background: chatOpen && effectiveTab === 'members' ? 'var(--c-6rf2rk)' : 'var(--c-ijr2si)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -1755,43 +1764,28 @@ export default function Room() {
             <path d="M2.3 19c.6-3.3 2.8-5 5.7-5s5.1 1.7 5.7 5" />
             <path d="M14.5 14.3c2.2.3 3.7 1.8 4.2 4.2" />
           </svg>
-          <span className="hidden md:inline">{t('room.controls.members')}</span>
+          <span className="hidden lg:inline">{t('room.controls.members')}</span>
+          {isHost && queued && (
+            <span
+              className="rounded-full px-2 py-[2px] text-xs font-extrabold text-[var(--c-5nxn5p)]"
+              style={{ background: 'var(--c-1891o57)' }}
+            >
+              {pending.length}
+            </span>
+          )}
         </button>
-        {isHost && (
-          <button
-            onClick={() => openTab('host')}
-            title={t('room.controls.manage')}
-            className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] md:px-5"
-            style={{ background: chatOpen && effectiveTab === 'host' ? 'var(--c-6rf2rk)' : 'var(--c-ijr2si)' }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19" />
-              <circle cx="9" cy="8.5" r="3.2" />
-              <path d="M17 4.5l1.15 2.4 2.6.36-1.9 1.82.46 2.58L17 10.44l-2.31 1.22.46-2.58-1.9-1.82 2.6-.36z" />
-            </svg>
-            <span className="hidden md:inline">{t('room.controls.manage')}</span>
-            {queued && (
-              <span
-                className="rounded-full px-2 py-[2px] text-xs font-extrabold text-[var(--c-5nxn5p)]"
-                style={{ background: 'var(--c-1891o57)' }}
-              >
-                {pending.length}
-              </span>
-            )}
-          </button>
-        )}
         <div className="mx-1 h-[26px] w-px shrink-0" style={{ background: 'var(--c-dhk6qj)' }} />
         <button
           onClick={handleLeaveClick}
           title={t('room.controls.leave')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-extrabold text-[var(--c-5nx3vn)] transition-all duration-[220ms] hover:brightness-95 md:px-[22px]"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-extrabold text-[var(--c-5nx3vn)] transition-all duration-[220ms] hover:brightness-95 lg:px-[22px]"
           style={{ background: 'var(--c-1zp96j)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
             <path d="M15 5.5V4a2 2 0 00-2-2H6a2 2 0 00-2 2v16a2 2 0 002 2h7a2 2 0 002-2v-1.5" />
             <path d="M11 12h10m-3.5-3.5L21 12l-3.5 3.5" />
           </svg>
-          <span className="hidden md:inline">{t('room.controls.leave')}</span>
+          <span className="hidden lg:inline">{t('room.controls.leave')}</span>
         </button>
       </div>
 
@@ -1810,42 +1804,15 @@ export default function Room() {
         }}
       >
         <div className="mx-auto -mt-1 mb-1 h-1 w-9 shrink-0 rounded-full bg-[var(--c-dhk6t4)] md:hidden" />
-        <div className="flex items-center gap-2">
-          <div className="flex flex-1 gap-[5px] rounded-[20px] p-[5px]" style={{ background: 'var(--c-rucw5u)' }}>
-            {(
-              [
-                { key: 'chat' as Tab, name: t('room.controls.chat'), show: true, badge: '' },
-                { key: 'music' as Tab, name: t('room.controls.music'), show: true, badge: '' },
-                { key: 'members' as Tab, name: t('room.controls.members'), show: true, badge: '' },
-                {
-                  key: 'host' as Tab,
-                  name: t('room.controls.manage'),
-                  show: isHost,
-                  badge: queued ? String(pending.length) : '',
-                },
-              ] as const
-            ).map(
-              (x) =>
-                x.show && (
-                  <button
-                    key={x.key}
-                    onClick={() => setTab(x.key)}
-                    className="flex flex-1 items-center justify-center gap-[7px] rounded-2xl border-none px-[6px] py-[9px] font-sans text-[13px] font-extrabold transition-all duration-[220ms]"
-                    style={segStyle(effectiveTab === x.key)}
-                  >
-                    {x.name}
-                    {x.badge && (
-                      <span
-                        className="rounded-full px-[7px] py-[2px] text-[11px] font-extrabold text-[var(--c-5nxn5p)]"
-                        style={{ background: 'var(--c-1891o57)' }}
-                      >
-                        {x.badge}
-                      </span>
-                    )}
-                  </button>
-                ),
-            )}
-          </div>
+        {/* Header: chỉ hiện tên tab đang mở + nút thu gọn — chuyển tab đã có sẵn ở thanh
+            control bar dưới cùng (nút Chat/Nhạc/Thành viên), tránh lặp 2 bộ điều khiển
+            cùng chức năng trong panel. Tab "Thành viên" gộp cả phần quản lý (chỉ host thấy). */}
+        <div className="flex items-center gap-2 px-1">
+          <span className="flex-1 font-sans text-[15px] font-extrabold text-[var(--c-33k90l)]">
+            {effectiveTab === 'chat' && t('room.controls.chat')}
+            {effectiveTab === 'music' && t('room.controls.music')}
+            {effectiveTab === 'members' && t('room.controls.members')}
+          </span>
           <button
             onClick={() => setChatOpen(false)}
             className="border-none bg-transparent px-1 py-[6px] font-sans text-[13px] font-bold text-[var(--c-mfvyic)]"
@@ -2145,110 +2112,34 @@ export default function Room() {
         {/* tab: members — mọi người xem được (khác "Manage" chỉ host thấy). Có nút gửi/chấp
             nhận lời mời kết bạn ngay tại đây nếu chưa là bạn với nhau (0016_friends.sql). */}
         {effectiveTab === 'members' && (
-          <div className="flex min-h-0 flex-1 flex-col gap-[9px] overflow-y-auto">
-            <span className="text-xs font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
-              {t('room.members.title', { count: members.length })}
-            </span>
-            {members.map((u) => {
-              const isSelf = !!u.me || (!!user && u.id === user.id)
-              const row = !isSelf && user && isRealMode ? friendRowWith(u.id, user.id) : undefined
-              return (
-                <div
-                  key={u.id}
-                  className="flex items-center gap-[10px] rounded-[20px] px-3 py-[10px]"
-                  style={{ background: 'var(--c-arr0wa)' }}
-                >
-                  <MemberAvatarBadge
-                    name={u.name}
-                    avatarUrl={u.avatarUrl}
-                    background={u.host ? 'var(--c-9q3jr9)' : 'var(--c-1g0dnp)'}
-                    color={u.host ? 'var(--c-2kucx8)' : 'var(--c-3b9e2f)'}
-                  />
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="flex items-center gap-[6px]">
-                      <span className="truncate text-[13.5px] font-extrabold text-[var(--c-3bsl4p)]">{u.name}</span>
-                      {u.host && (
-                        <span
-                          className="shrink-0 rounded-full px-2 py-[2px] text-[10.5px] font-extrabold text-[var(--c-2kucx8)]"
-                          style={{ background: 'var(--c-hclsvs)' }}
-                        >
-                          {t('room.members.hostBadge')}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[11.5px] font-semibold text-[var(--c-mfvyic)]">
-                      {statusLabel(u.statusKey)}
-                    </span>
-                  </div>
-                  {!isSelf && isRealMode && user && (
-                    <>
-                      {!row ? (
-                        <button
-                          onClick={() => void handleSendFriendRequest(u.id)}
-                          disabled={friendActionId === u.id}
-                          className="shrink-0 rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-2vtjkg)] hover:enabled:brightness-[0.97] disabled:opacity-50"
-                          style={{ background: ACCENT_SOFT }}
-                        >
-                          {t('room.members.addFriend')}
-                        </button>
-                      ) : row.status === 'accepted' ? (
-                        <span
-                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[var(--c-3bts4x)]"
-                          style={{ background: 'var(--c-9q3jqe)' }}
-                          title={t('room.members.alreadyFriends')}
-                          aria-label={t('room.members.alreadyFriends')}
-                        >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="8" r="4" />
-                            <path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
-                          </svg>
-                        </span>
-                      ) : row.requester_id === user.id ? (
-                        <span className="shrink-0 text-[12px] font-semibold text-[var(--c-mfvyic)]">
-                          {t('room.members.requestSent')}
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => void handleAcceptFriendRow(row.id)}
-                          disabled={friendActionId === row.id}
-                          className="shrink-0 rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-2vtjkg)] hover:enabled:brightness-[0.97] disabled:opacity-50"
-                          style={{ background: ACCENT_SOFT }}
-                        >
-                          {t('room.members.acceptFriend')}
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {effectiveTab === 'host' && isHost && (
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-            <div className="flex flex-col gap-[9px]">
-              <span className="text-xs font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
-                {t('room.host.admitMode')}
-              </span>
-              <div className="flex gap-[7px] rounded-[20px] p-[5px]" style={{ background: 'var(--c-rucw5u)' }}>
-                {(['auto', 'manual'] as Admit[]).map((key) => (
-                  <button
-                    key={key}
-                    onClick={() => setAdmitReal(key)}
-                    className="flex-1 rounded-2xl border-none px-[6px] py-[10px] font-sans text-[13px] font-extrabold transition-all duration-[220ms]"
-                    style={segStyle(admit === key)}
-                  >
-                    {key === 'auto' ? t('room.host.autoAdmit') : t('room.host.manualAdmit')}
-                  </button>
-                ))}
+            {/* Đặc quyền host: chế độ duyệt vào phòng + hàng chờ — gộp chung vào tab
+                "Thành viên" (trước là tab "Quản lý" riêng, lặp hẳn 1 danh sách thành viên
+                thứ 2 y hệt tab này chỉ khác nút Kick). Người thường không thấy phần này. */}
+            {isHost && (
+              <div className="flex flex-col gap-[9px]">
+                <span className="text-xs font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
+                  {t('room.host.admitMode')}
+                </span>
+                <div className="flex gap-[7px] rounded-[20px] p-[5px]" style={{ background: 'var(--c-rucw5u)' }}>
+                  {(['auto', 'manual'] as Admit[]).map((key) => (
+                    <button
+                      key={key}
+                      onClick={() => setAdmitReal(key)}
+                      className="flex-1 rounded-2xl border-none px-[6px] py-[10px] font-sans text-[13px] font-extrabold transition-all duration-[220ms]"
+                      style={segStyle(admit === key)}
+                    >
+                      {key === 'auto' ? t('room.host.autoAdmit') : t('room.host.manualAdmit')}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[12.5px] leading-[1.5] font-semibold text-[var(--c-1kei8ee)]">
+                  {admit === 'auto' ? t('room.host.autoAdmitDesc') : t('room.host.manualAdmitDesc')}
+                </span>
               </div>
-              <span className="text-[12.5px] leading-[1.5] font-semibold text-[var(--c-1kei8ee)]">
-                {admit === 'auto' ? t('room.host.autoAdmitDesc') : t('room.host.manualAdmitDesc')}
-              </span>
-            </div>
+            )}
 
-            {admit === 'manual' && (
+            {isHost && admit === 'manual' && (
               <div className="flex flex-col gap-[9px]">
                 <div className="flex items-baseline justify-between gap-[10px]">
                   <span className="text-xs font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
@@ -2313,33 +2204,90 @@ export default function Room() {
 
             <div className="flex flex-col gap-[9px]">
               <span className="text-xs font-extrabold tracking-[0.8px] text-[var(--c-mfvyic)] uppercase">
-                {t('room.host.membersInRoom', { count: members.length })}
+                {t('room.members.title', { count: members.length })}
               </span>
-              {members.map((u) => (
-                <div key={u.id} className="flex items-center gap-[10px] rounded-[20px] px-3 py-[10px]" style={{ background: 'var(--c-arr0wa)' }}>
-                  <MemberAvatarBadge
-                    name={u.name}
-                    avatarUrl={u.avatarUrl}
-                    background={u.host ? 'var(--c-9q3jr9)' : 'var(--c-1g0dnp)'}
-                    color={u.host ? 'var(--c-2kucx8)' : 'var(--c-3b9e2f)'}
-                  />
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="text-[13.5px] font-extrabold text-[var(--c-3bsl4p)]">{u.name}</span>
-                    <span className="text-[11.5px] font-semibold text-[var(--c-mfvyic)]">
-                      {statusLabel(u.statusKey)}
-                    </span>
+              {members.map((u) => {
+                const isSelf = !!u.me || (!!user && u.id === user.id)
+                const row = !isSelf && user && isRealMode ? friendRowWith(u.id, user.id) : undefined
+                return (
+                  <div
+                    key={u.id}
+                    className="flex items-center gap-[10px] rounded-[20px] px-3 py-[10px]"
+                    style={{ background: 'var(--c-arr0wa)' }}
+                  >
+                    <MemberAvatarBadge
+                      name={u.name}
+                      avatarUrl={u.avatarUrl}
+                      background={u.host ? 'var(--c-9q3jr9)' : 'var(--c-1g0dnp)'}
+                      color={u.host ? 'var(--c-2kucx8)' : 'var(--c-3b9e2f)'}
+                    />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <div className="flex items-center gap-[6px]">
+                        <span className="truncate text-[13.5px] font-extrabold text-[var(--c-3bsl4p)]">{u.name}</span>
+                        {u.host && (
+                          <span
+                            className="shrink-0 rounded-full px-2 py-[2px] text-[10.5px] font-extrabold text-[var(--c-2kucx8)]"
+                            style={{ background: 'var(--c-hclsvs)' }}
+                          >
+                            {t('room.members.hostBadge')}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11.5px] font-semibold text-[var(--c-mfvyic)]">
+                        {statusLabel(u.statusKey)}
+                      </span>
+                    </div>
+                    {!isSelf && isRealMode && user && (
+                      <>
+                        {!row ? (
+                          <button
+                            onClick={() => void handleSendFriendRequest(u.id)}
+                            disabled={friendActionId === u.id}
+                            className="shrink-0 rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-2vtjkg)] hover:enabled:brightness-[0.97] disabled:opacity-50"
+                            style={{ background: ACCENT_SOFT }}
+                          >
+                            {t('room.members.addFriend')}
+                          </button>
+                        ) : row.status === 'accepted' ? (
+                          <span
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[var(--c-3bts4x)]"
+                            style={{ background: 'var(--c-9q3jqe)' }}
+                            title={t('room.members.alreadyFriends')}
+                            aria-label={t('room.members.alreadyFriends')}
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="8" r="4" />
+                              <path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+                            </svg>
+                          </span>
+                        ) : row.requester_id === user.id ? (
+                          <span className="shrink-0 text-[12px] font-semibold text-[var(--c-mfvyic)]">
+                            {t('room.members.requestSent')}
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => void handleAcceptFriendRow(row.id)}
+                            disabled={friendActionId === row.id}
+                            className="shrink-0 rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-2vtjkg)] hover:enabled:brightness-[0.97] disabled:opacity-50"
+                            style={{ background: ACCENT_SOFT }}
+                          >
+                            {t('room.members.acceptFriend')}
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {isHost && !u.host && (
+                      <button
+                        onClick={() => kick(u)}
+                        className="shrink-0 rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-5nx3vn)] hover:!bg-[var(--c-1zp96j)]"
+                        style={{ background: 'var(--c-kmvgtt)' }}
+                      >
+                        {t('room.host.kick')}
+                      </button>
+                    )}
                   </div>
-                  {isHost && !u.host && (
-                    <button
-                      onClick={() => kick(u)}
-                      className="rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-5nx3vn)] hover:!bg-[var(--c-1zp96j)]"
-                      style={{ background: 'var(--c-kmvgtt)' }}
-                    >
-                      {t('room.host.kick')}
-                    </button>
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}

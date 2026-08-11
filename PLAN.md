@@ -176,5 +176,20 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - xong 2026-08-10, `tsc`/`oxlint`/39 test/`vite build` sạch, xem CONTEXT.md "Giai đoạn 10 (phần 10)"
 - **User cần chạy migration** [0024_room_membership_guard_and_heartbeat.sql](app/supabase/migrations/0024_room_membership_guard_and_heartbeat.sql) rồi tự test 2 tài khoản (chưa verify được real mode trong sandbox)
 
+## Giai đoạn 10 (phần 15) — Fix nút "Xem tất cả phòng" mở nhầm popup + avatar camera tile trong Room không hiện ảnh thật + giảm thời gian chờ ghép nhóm 75s→30s (ngoài kế hoạch gốc, 2026-08-11)
+- [x] Fix nút "Xem tất cả phòng →" ở card "Học cùng nhau" (cột phải Dashboard, từ phần 14 trên `main`) đang gọi lại `openStudyPanel` (mở chính popup đó) thay vì điều hướng — giờ `requireAuth(() => navigate('/matching'))`, đúng route thật
+- [x] Fix nametag đè trên mỗi tile camera trong Room chỉ hiện chữ cái đầu (initials), không dùng `avatarUrl` thật dù dữ liệu đã có sẵn từ `room_members_view` (migration 0022 fix chỗ khác nhưng bỏ sót đúng tile này) — giờ hiện ảnh thật khi có, fallback chữ cái đầu khi không, đúng pattern `MemberAvatarBadge` đã dùng ở tab Thành viên/Quản lý
+- [x] Giảm thời gian chờ ân hạn ghép nhóm ngẫu nhiên (lobby) từ 75 giây xuống 30 giây
+- xong 2026-08-11, `tsc --noEmit` sạch, verify qua browser thật (Dashboard guest flow cho nút điều hướng, Room demo mode 5 người cho tile camera — không crash, giữ đúng behavior cũ khi không có avatar)
+- Migration mới [0026_lobby_grace_period_30s.sql](app/supabase/migrations/0026_lobby_grace_period_30s.sql) — **ĐÃ CHẠY** (user tự chạy 2026-08-11)
+- Làm trên branch `fix-view-all-rooms-redirect` tạo từ `main` (branch feature đang làm dở `giai-doan-10-phan-2-group-match` bị lùi sau `main` 23 commit — không có các phần 11-14 UI-UX-update, nên bug này không xuất hiện ở đó)
+
+## Giai đoạn 10 (phần 16) — Dọn panel Room: bỏ tab lặp, fix control bar tràn ngang, gộp Thành viên/Quản lý (ngoài kế hoạch gốc, 2026-08-11)
+- [x] Bỏ dải tab Chat/Nhạc/Thành viên/Quản lý lặp lại trong panel bên phải (đã có sẵn ở control bar dưới) — panel giờ chỉ còn tiêu đề tab đang mở + nút Thu gọn
+- [x] Fix control bar dưới cùng tràn thành thanh cuộn ngang ở màn ~768–1024px — thêm `w-max` (nguyên nhân gốc: box canh giữa bằng `left-50%` + `translate` không có `width` tường minh nên bị giới hạn shrink-to-fit dù đã tắt `max-width`) + đẩy ngưỡng hiện chữ nhãn nút từ 768px lên 1024px
+- [x] Gộp tab "Thành viên" + "Quản lý" (host-only) thành 1 tab "Thành viên" duy nhất theo góp ý user — khối chế độ duyệt/hàng chờ chỉ host thấy, 1 danh sách thành viên dùng chung (trước lặp 2 lần), nút Kick gộp cạnh nút Kết bạn cho host
+- xong 2026-08-11, `tsc --noEmit`/`oxlint` sạch, verify qua browser thật, xem CONTEXT.md "Giai đoạn 10 (phần 16)"
+- Không có migration mới, thuần UI/logic client trong Room.tsx — cùng branch `fix-view-all-rooms-redirect`
+
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).
