@@ -118,6 +118,20 @@ type EditField = 'loop' | 'work' | 'break' | null
 
 type Priority = 'high' | 'medium' | 'low'
 
+// Row của view `room_public_list` (khớp select trong effect fetch phòng ở dưới) — dùng cho card
+// "Học cùng nhau" + popup study, cùng shape với Matching.tsx.
+type PublicRoomRow = {
+  id: string
+  code: string
+  name: string
+  room_type: string
+  duration_minutes: number
+  language: string
+  capacity: number
+  host_name: string
+  member_count: number
+}
+
 type Task = {
   id: string
   name: string
@@ -218,12 +232,50 @@ export default function Dashboard() {
   // Không còn cho tuỳ chỉnh thời lượng/ngôn ngữ ở đây nữa (RANDOM_MATCH_CONFIG cố định) — ai
   // cần tuỳ chỉnh thật thì dùng "Duyệt phòng đang mở" bên dưới, vốn đã có đủ bộ lọc.
   const quick = useQuickMatch()
+  // Room list công khai cho card "Học cùng nhau" (preview desktop) + popup study (list đầy đủ) —
+  // cùng nguồn `room_public_list` với Matching.tsx, fetch 1 lần lúc mount + mỗi lần mở popup để
+  // số liệu "N phòng đang mở" và danh sách không quá cũ.
+  const [publicRooms, setPublicRooms] = useState<PublicRoomRow[] | null>(null)
+  const [roomJoinMsg, setRoomJoinMsg] = useState<string | null>(null)
+  async function fetchPublicRooms() {
+    try {
+      const { data } = await supabase
+        .from('room_public_list')
+        .select('id, code, name, room_type, duration_minutes, language, capacity, host_name, member_count')
+        .order('member_count', { ascending: false })
+      setPublicRooms((data as unknown as PublicRoomRow[]) ?? [])
+    } catch {
+      setPublicRooms([])
+    }
+  }
+  useEffect(() => {
+    void fetchPublicRooms()
+  }, [user?.id])
   function openStudyPanel() {
-    requireAuth(() => setPanel('study'))
+    requireAuth(() => {
+      void fetchPublicRooms()
+      setPanel('study')
+    })
   }
   function startGroupMatch() {
     setPanel(null)
     void quick.start()
+  }
+  async function joinPublicRoom(code: string) {
+    setRoomJoinMsg(null)
+    const { data, error } = await supabase.rpc('join_room_by_code', { p_code: code })
+    if (error) return
+    const row = data?.[0] as { status: string; other_room_code: string | null } | undefined
+    if (!row || row.status === 'not_found' || row.status === 'full') {
+      if (row?.status === 'full') setRoomJoinMsg(t('matching.errors.roomFull'))
+      return
+    }
+    if (row.status === 'already_in_another_room') {
+      setRoomJoinMsg(t('matching.errors.alreadyInRoom'))
+      return
+    }
+    setPanel(null)
+    navigate('/room/' + code)
   }
   const initialTasks = useMemo<Task[]>(
     () =>
@@ -2084,43 +2136,98 @@ export default function Dashboard() {
           transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
         }}
       >
-        <button
-          onClick={openStudyPanel}
-          className="flex w-full items-center gap-3 rounded-[24px] px-[18px] py-[15px] text-left text-inherit transition-[transform,background] duration-[220ms] hover:!bg-white hover:!-translate-y-0.5"
+        <div
+          className="flex w-full flex-col gap-[12px] rounded-[24px] px-[18px] py-[16px] transition-[transform,background] duration-[220ms] hover:!-translate-y-0.5"
           style={{
             background: panel === 'study' ? 'var(--c-1gyy7ef)' : 'var(--c-6rf17l)',
             backdropFilter: 'blur(16px)',
             boxShadow: '0 12px 30px var(--c-1k1wm30)',
           }}
         >
-          <span
-            className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[14px] text-[var(--c-3bts4x)]"
-            style={{ background: 'var(--c-hclrbt)' }}
-          >
-            <svg
-              width="19"
-              height="19"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-              strokeLinecap="round"
+          <div className="flex items-center gap-3">
+            <span
+              className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[14px] text-[var(--c-3bts4x)]"
+              style={{ background: 'var(--c-hclrbt)' }}
             >
-              <circle cx="9" cy="8.5" r="3.2" />
-              <path d="M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19" />
-              <path d="M16.4 5.6a3.2 3.2 0 010 5.8" />
-              <path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1" />
-            </svg>
-          </span>
-          <span className="flex flex-col gap-[2px]">
-            <span className="text-sm font-extrabold text-[var(--c-3bsl4p)]">
-              {t('dashboard.rightColumn.studyTogether')}
+              <svg
+                width="19"
+                height="19"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+              >
+                <circle cx="9" cy="8.5" r="3.2" />
+                <path d="M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19" />
+                <path d="M16.4 5.6a3.2 3.2 0 010 5.8" />
+                <path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1" />
+              </svg>
             </span>
-            <span className="text-xs font-semibold text-[var(--c-1kei8bt)]">
-              {t('dashboard.rightColumn.findStudyBuddy')}
+            <span className="flex flex-col gap-[2px]">
+              <span className="text-sm font-extrabold text-[var(--c-3bsl4p)]">
+                {t('dashboard.rightColumn.studyTogether')}
+              </span>
+              <span className="text-xs font-semibold text-[var(--c-1kei8bt)]">
+                {t('dashboard.rightColumn.findStudyBuddy')}
+              </span>
             </span>
-          </span>
-        </button>
+          </div>
+
+          <button
+            onClick={() => requireAuth(startGroupMatch)}
+            className="w-full rounded-[16px] border-none py-[13px] text-center font-sans text-[14px] font-extrabold text-white transition-transform duration-200 hover:-translate-y-0.5"
+            style={{
+              background: 'linear-gradient(135deg, var(--c-cvfsr8), var(--c-ecaxup))',
+              boxShadow: '0 10px 24px var(--c-10f8f7j)',
+            }}
+          >
+            {t('dashboard.studyPopup.tabRandom')}
+          </button>
+
+          <div className="flex flex-col gap-[7px]">
+            <div className="text-[11.5px] font-bold tracking-[0.6px] text-[var(--c-mfvyic)] uppercase">
+              {t('dashboard.studyPopup.openRooms', { count: publicRooms?.length ?? 0 })}
+            </div>
+            {roomJoinMsg && (
+              <div className="text-[11.5px] font-semibold text-[var(--ff-danger-text)]">{roomJoinMsg}</div>
+            )}
+            {publicRooms && publicRooms.length === 0 && (
+              <div className="text-[12.5px] font-semibold text-[var(--c-1kei8bt)]">
+                {t('dashboard.studyPopup.emptyRooms')}
+              </div>
+            )}
+            {(publicRooms ?? []).slice(0, 3).map((r) => (
+              <div
+                key={r.id}
+                className="flex items-center gap-2 rounded-[13px] px-[10px] py-[8px]"
+                style={{ background: 'var(--c-6rf17l)' }}
+              >
+                <span className="min-w-0 flex-1 truncate text-[12.5px] font-bold text-[var(--c-3bsl4p)]">
+                  {r.name}
+                </span>
+                <span className="shrink-0 text-[11px] font-semibold text-[var(--c-1kei8bt)]">
+                  {r.member_count}/{r.capacity}
+                </span>
+                <button
+                  onClick={() => requireAuth(() => void joinPublicRoom(r.code))}
+                  className="shrink-0 rounded-[10px] border-none px-[10px] py-[5px] font-sans text-[11.5px] font-extrabold text-[var(--c-2k9xd7)] transition-colors duration-150 hover:!opacity-85"
+                  style={{ background: 'var(--ff-accent-soft)' }}
+                >
+                  {t('dashboard.studyPopup.join')}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={openStudyPanel}
+            className="w-full rounded-[13px] border-none py-[9px] text-center font-sans text-[12.5px] font-extrabold transition-colors duration-150 hover:!opacity-85"
+            style={{ background: 'var(--c-6rf2rk)', color: 'var(--c-2vwdyb)' }}
+          >
+            {t('dashboard.studyPopup.seeAll')} →
+          </button>
+        </div>
       </div>
 
       {/* study together popup — cùng khuôn backdrop+card tròn-32px với FriendsPanel/Settings/Stats
@@ -2189,6 +2296,43 @@ export default function Dashboard() {
                   <span className="text-center text-[12px] font-semibold text-[var(--c-mfvyic)]">
                     {t('dashboard.studyPopup.randomHint')}
                   </span>
+                </div>
+
+                <div className="flex flex-col gap-[8px]">
+                  <div className="text-[11.5px] font-bold tracking-[0.6px] text-[var(--c-mfvyic)] uppercase">
+                    {t('dashboard.studyPopup.openRooms', { count: publicRooms?.length ?? 0 })}
+                  </div>
+                  {roomJoinMsg && (
+                    <div className="text-[12px] font-semibold text-[var(--ff-danger-text)]">{roomJoinMsg}</div>
+                  )}
+                  {publicRooms && publicRooms.length === 0 && (
+                    <div className="rounded-[16px] px-4 py-[14px] text-center text-[12.5px] font-semibold text-[var(--c-1kei8bt)]" style={{ background: 'var(--c-rucw5u)' }}>
+                      {t('dashboard.studyPopup.emptyRooms')}
+                    </div>
+                  )}
+                  <div className="flex max-h-[260px] flex-col gap-[7px] overflow-y-auto pr-1">
+                    {(publicRooms ?? []).map((r) => (
+                      <div
+                        key={r.id}
+                        className="flex items-center gap-[10px] rounded-[15px] px-[13px] py-[10px]"
+                        style={{ background: 'var(--c-rucw5u)' }}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-[13.5px] font-bold text-[var(--c-3bsl4p)]">{r.name}</div>
+                          <div className="mt-[2px] truncate text-[11.5px] font-semibold text-[var(--c-1kei8bt)]">
+                            {r.host_name} · {r.member_count}/{r.capacity} người
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => void joinPublicRoom(r.code)}
+                          className="shrink-0 rounded-[11px] border-none px-[12px] py-[7px] font-sans text-[12px] font-extrabold text-[var(--c-2k9xd7)] transition-colors duration-150 hover:!opacity-85"
+                          style={{ background: 'var(--ff-accent-soft)' }}
+                        >
+                          {t('dashboard.studyPopup.join')}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <Link

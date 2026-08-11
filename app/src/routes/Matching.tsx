@@ -744,7 +744,7 @@ export default function Matching() {
         >
           <div className="absolute inset-0" onClick={() => setModal(false)} />
           <div
-            className="relative flex w-full max-w-[400px] flex-col gap-[18px] rounded-[30px] bg-white px-7 pt-7 pb-6"
+            className="relative flex max-h-[85svh] w-full max-w-[400px] flex-col gap-[18px] overflow-y-auto rounded-[30px] bg-white px-7 pt-7 pb-6"
             style={{ boxShadow: '0 30px 70px var(--c-a8sm65)', animation: 'ffPop 320ms cubic-bezier(0.22,1,0.36,1)' }}
           >
             {!created ? (
@@ -897,7 +897,7 @@ export default function Matching() {
         >
           <div className="absolute inset-0" onClick={() => setRoomTypePopupOpen(false)} />
           <div
-            className="relative flex w-full max-w-[440px] flex-col gap-4 rounded-[30px] bg-white px-7 pt-7 pb-6"
+            className="relative flex max-h-[85svh] w-full max-w-[440px] flex-col gap-4 overflow-y-auto rounded-[30px] bg-white px-7 pt-7 pb-6"
             style={{ boxShadow: '0 30px 70px var(--c-a8sm65)', animation: 'ffPop 320ms cubic-bezier(0.22,1,0.36,1)' }}
           >
             <div className="flex items-center justify-between gap-3">
