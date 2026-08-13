@@ -35,7 +35,8 @@ export default function TabsLayout() {
         headerTintColor: colors.text,
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Phòng học' }} />
+      <Tabs.Screen name="index" options={{ title: 'Trang chủ' }} />
+      <Tabs.Screen name="rooms" options={{ title: 'Phòng học' }} />
     </Tabs>
   );
 }

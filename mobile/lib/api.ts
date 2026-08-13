@@ -74,3 +74,42 @@ export async function joinRoomByCode(code: string): Promise<JoinRoomResult> {
   if (row.status === 'full') return { status: 'full' };
   return { status: row.member_status === 'pending' ? 'pending' : 'joined', roomId: row.room_id };
 }
+
+// ---------- Pomodoro (P2 home) ----------
+
+// profiles — defaults Pomodoro cá nhân (mirror web Dashboard.tsx effect load profile)
+export type ProfilePomodoro = {
+  focus_minutes: number;
+  break_minutes: number;
+  session_count: number;
+  auto_start_next: boolean;
+};
+
+export async function fetchProfilePomodoro(userId: string): Promise<ProfilePomodoro> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('focus_minutes, break_minutes, session_count, auto_start_next')
+    .eq('id', userId)
+    .single();
+  if (error) throw error;
+  return data as ProfilePomodoro;
+}
+
+// ghi focus_sessions — mirror đúng rule web (phase, minutes thực tế, completed chỉ khi
+// hoàn thành tự nhiên hết giờ, started_at là mốc bắt đầu phase đó)
+export async function logFocusSession(input: {
+  userId: string;
+  phase: 'focus' | 'break';
+  minutes: number;
+  startedAt: string;
+  completed: boolean;
+}): Promise<void> {
+  const { error } = await supabase.from('focus_sessions').insert({
+    user_id: input.userId,
+    phase: input.phase,
+    minutes: input.minutes,
+    started_at: input.startedAt,
+    completed: input.completed,
+  });
+  if (error) console.error('log focus_session failed', error);
+}
