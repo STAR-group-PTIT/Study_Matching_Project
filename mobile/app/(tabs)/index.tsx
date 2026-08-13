@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -12,11 +12,22 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchPublicRooms, type PublicRoom } from '@/lib/api';
 import { signOut } from '@/lib/auth';
-import { colors, fonts, fontSize, radius, roomTypes, shadows, spacing } from '@/theme';
+import {
+  useTheme,
+  type ThemeColors,
+  type ThemeShadows,
+  fonts,
+  fontSize,
+  radius,
+  roomTypes,
+  spacing,
+} from '@/theme';
 
 const CACHE_KEY = 'ff-mobile-rooms-cache';
 
 export default function RoomsScreen() {
+  const { colors, shadows } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, shadows), [colors, shadows]);
   const [rooms, setRooms] = useState<PublicRoom[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [offline, setOffline] = useState(false);
@@ -90,6 +101,8 @@ export default function RoomsScreen() {
 }
 
 function RoomCard({ room }: { room: PublicRoom }) {
+  const { colors, shadows } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, shadows), [colors, shadows]);
   const meta = roomTypes[room.room_type] ?? { name: room.room_type, badgeBg: colors.surface3, badgeText: colors.muted };
   const full = room.member_count >= room.capacity;
 
@@ -127,113 +140,115 @@ function RoomCard({ room }: { room: PublicRoom }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.pageBg },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.pageBg,
-  },
-  listContent: { padding: spacing.md, gap: spacing.md },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  count: {
-    fontFamily: fonts.bold,
-    fontSize: fontSize.sm,
-    color: colors.muted,
-    letterSpacing: 0.2,
-  },
-  logout: {
-    fontFamily: fonts.bold,
-    fontSize: fontSize.sm,
-    color: colors.danger,
-  },
-  empty: {
-    fontFamily: fonts.semibold,
-    fontSize: fontSize.sm,
-    color: colors.muted,
-    marginTop: spacing.md,
-    textAlign: 'center',
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    paddingHorizontal: 18,
-    paddingVertical: 15,
-    gap: 7,
-    ...shadows.card,
-  },
-  pressed: { opacity: 0.92 },
-  cardRow1: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-  },
-  roomName: {
-    flex: 1,
-    fontFamily: fonts.extrabold,
-    fontSize: 15.5,
-    color: colors.text,
-  },
-  badge: {
-    borderRadius: radius.pill,
-    paddingHorizontal: 11,
-    paddingVertical: 3,
-  },
-  badgeText: {
-    fontFamily: fonts.extrabold,
-    fontSize: 11.5,
-    letterSpacing: 0.3,
-  },
-  hostLine: {
-    fontFamily: fonts.semibold,
-    fontSize: fontSize.sm,
-    color: colors.muted,
-  },
-  cardRow3: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 2,
-  },
-  people: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  peopleHead: {
-    width: 11,
-    height: 11,
-    borderRadius: 6,
-    borderWidth: 1.6,
-    marginRight: 9,
-    marginBottom: 7,
-  },
-  peopleBody: {
-    width: 17,
-    height: 9,
-    borderRadius: 9,
-    borderWidth: 1.6,
-    position: 'absolute',
-    left: 4,
-    top: 8,
-  },
-  countText: {
-    fontFamily: fonts.extrabold,
-    fontSize: 13.5,
-    marginLeft: 18,
-  },
-  joinButton: {
-    borderRadius: radius.input,
-    paddingHorizontal: 22,
-    paddingVertical: 10,
-  },
-  joinText: {
-    fontFamily: fonts.extrabold,
-    fontSize: 14,
-  },
-});
+function makeStyles(c: ThemeColors, s: ThemeShadows) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.pageBg },
+    center: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: c.pageBg,
+    },
+    listContent: { padding: spacing.md, gap: spacing.md },
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+    },
+    count: {
+      fontFamily: fonts.bold,
+      fontSize: fontSize.sm,
+      color: c.muted,
+      letterSpacing: 0.2,
+    },
+    logout: {
+      fontFamily: fonts.bold,
+      fontSize: fontSize.sm,
+      color: c.danger,
+    },
+    empty: {
+      fontFamily: fonts.semibold,
+      fontSize: fontSize.sm,
+      color: c.muted,
+      marginTop: spacing.md,
+      textAlign: 'center',
+    },
+    card: {
+      backgroundColor: c.surface,
+      borderRadius: radius.card,
+      paddingHorizontal: 18,
+      paddingVertical: 15,
+      gap: 7,
+      ...s.card,
+    },
+    pressed: { opacity: 0.92 },
+    cardRow1: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 9,
+    },
+    roomName: {
+      flex: 1,
+      fontFamily: fonts.extrabold,
+      fontSize: 15.5,
+      color: c.text,
+    },
+    badge: {
+      borderRadius: radius.pill,
+      paddingHorizontal: 11,
+      paddingVertical: 3,
+    },
+    badgeText: {
+      fontFamily: fonts.extrabold,
+      fontSize: 11.5,
+      letterSpacing: 0.3,
+    },
+    hostLine: {
+      fontFamily: fonts.semibold,
+      fontSize: fontSize.sm,
+      color: c.muted,
+    },
+    cardRow3: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 2,
+    },
+    people: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    peopleHead: {
+      width: 11,
+      height: 11,
+      borderRadius: 6,
+      borderWidth: 1.6,
+      marginRight: 9,
+      marginBottom: 7,
+    },
+    peopleBody: {
+      width: 17,
+      height: 9,
+      borderRadius: 9,
+      borderWidth: 1.6,
+      position: 'absolute',
+      left: 4,
+      top: 8,
+    },
+    countText: {
+      fontFamily: fonts.extrabold,
+      fontSize: 13.5,
+      marginLeft: 18,
+    },
+    joinButton: {
+      borderRadius: radius.input,
+      paddingHorizontal: 22,
+      paddingVertical: 10,
+    },
+    joinText: {
+      fontFamily: fonts.extrabold,
+      fontSize: 14,
+    },
+  });
+}

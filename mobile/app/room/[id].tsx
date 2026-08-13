@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -18,11 +18,22 @@ import {
   type PublicRoom,
   type RoomMember,
 } from '@/lib/api';
-import { colors, fonts, fontSize, radius, roomTypes, shadows, spacing } from '@/theme';
+import {
+  useTheme,
+  type ThemeColors,
+  type ThemeShadows,
+  fonts,
+  fontSize,
+  radius,
+  roomTypes,
+  spacing,
+} from '@/theme';
 
 export default function RoomDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const code = id ?? '';
+  const { colors, shadows } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, shadows), [colors, shadows]);
   const [room, setRoom] = useState<PublicRoom | null>(null);
   const [members, setMembers] = useState<RoomMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -279,125 +290,127 @@ export default function RoomDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.pageBg,
-  },
-  content: { padding: spacing.md, gap: spacing.md, paddingTop: 96 },
-  card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
-    borderRadius: radius.card,
-    padding: 18,
-    gap: 7,
-    ...shadows.card,
-  },
-  cardRow1: { flexDirection: 'row', alignItems: 'center', gap: 9, flexWrap: 'wrap' },
-  roomName: {
-    fontFamily: fonts.extrabold,
-    fontSize: 18,
-    color: colors.text,
-    flexShrink: 1,
-  },
-  badge: { borderRadius: radius.pill, paddingHorizontal: 11, paddingVertical: 3 },
-  badgeText: { fontFamily: fonts.extrabold, fontSize: 11.5, letterSpacing: 0.3 },
-  hostLine: { fontFamily: fonts.semibold, fontSize: fontSize.sm, color: colors.muted },
-  ruleLine: { fontFamily: fonts.semibold, fontSize: fontSize.sm, color: colors.body, lineHeight: 20 },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  metaText: { fontFamily: fonts.bold, fontSize: fontSize.sm, color: colors.text },
-  codePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    alignSelf: 'flex-start',
-    backgroundColor: colors.accentTint,
-    borderRadius: radius.input,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    marginTop: 4,
-  },
-  codeLabel: { fontFamily: fonts.extrabold, fontSize: 11, letterSpacing: 1.2, color: colors.accentDark },
-  codeText: { fontFamily: fonts.extrabold, fontSize: 14, color: colors.text, letterSpacing: 1.5 },
-  message: { fontFamily: fonts.bold, fontSize: fontSize.sm, textAlign: 'center' },
-  messageOk: { color: colors.success },
-  messageErr: { color: colors.danger },
-  joinButton: {
-    backgroundColor: colors.accentSoft,
-    borderRadius: radius.button,
-    paddingVertical: 15,
-    alignItems: 'center',
-    ...shadows.button,
-  },
-  joinText: { fontFamily: fonts.extrabold, fontSize: fontSize.md, color: colors.onAccent },
-  pressed: { opacity: 0.85 },
-  sectionTitle: {
-    fontFamily: fonts.extrabold,
-    fontSize: fontSize.md,
-    color: colors.text,
-    letterSpacing: -0.2,
-    marginTop: spacing.sm,
-  },
-  deviceCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
-    borderRadius: radius.card,
-    padding: 18,
-    ...shadows.card,
-  },
-  deviceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  deviceInfo: { flex: 1, gap: 2 },
-  deviceName: { fontFamily: fonts.bold, fontSize: fontSize.base, color: colors.text },
-  deviceHint: { fontFamily: fonts.semibold, fontSize: fontSize.xs, color: colors.muted, lineHeight: 18 },
-  deviceToggle: {
-    borderRadius: radius.input,
-    paddingHorizontal: 22,
-    paddingVertical: 10,
-  },
-  deviceToggleText: { fontFamily: fonts.extrabold, fontSize: 14 },
-  cameraPreview: {
-    height: 200,
-    borderRadius: radius.card,
-    marginTop: 14,
-    overflow: 'hidden',
-    backgroundColor: colors.surface3,
-  },
-  settingsLink: { marginTop: 8 },
-  settingsLinkText: {
-    fontFamily: fonts.bold,
-    fontSize: fontSize.xs,
-    color: colors.accentDark,
-    textDecorationLine: 'underline',
-  },
-  divider: { height: 1, backgroundColor: colors.border, marginVertical: 14 },
-  memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
-    borderRadius: radius.input,
-    padding: 12,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { fontFamily: fonts.extrabold, fontSize: fontSize.base, color: colors.onAccent },
-  memberName: { flex: 1, fontFamily: fonts.bold, fontSize: fontSize.base, color: colors.text },
-  memberStatus: { fontFamily: fonts.semibold, fontSize: fontSize.xs, color: colors.muted },
-  emptyMembers: {
-    fontFamily: fonts.semibold,
-    fontSize: fontSize.sm,
-    color: colors.muted,
-    textAlign: 'center',
-  },
-  errorText: { fontFamily: fonts.bold, fontSize: fontSize.md, color: colors.danger },
-});
+function makeStyles(c: ThemeColors, s: ThemeShadows) {
+  return StyleSheet.create({
+    flex: { flex: 1 },
+    center: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: c.pageBg,
+    },
+    content: { padding: spacing.md, gap: spacing.md, paddingTop: 96 },
+    card: {
+      backgroundColor: c.glassCard,
+      borderRadius: radius.card,
+      padding: 18,
+      gap: 7,
+      ...s.card,
+    },
+    cardRow1: { flexDirection: 'row', alignItems: 'center', gap: 9, flexWrap: 'wrap' },
+    roomName: {
+      fontFamily: fonts.extrabold,
+      fontSize: 18,
+      color: c.text,
+      flexShrink: 1,
+    },
+    badge: { borderRadius: radius.pill, paddingHorizontal: 11, paddingVertical: 3 },
+    badgeText: { fontFamily: fonts.extrabold, fontSize: 11.5, letterSpacing: 0.3 },
+    hostLine: { fontFamily: fonts.semibold, fontSize: fontSize.sm, color: c.muted },
+    ruleLine: { fontFamily: fonts.semibold, fontSize: fontSize.sm, color: c.body, lineHeight: 20 },
+    metaRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 4,
+    },
+    metaText: { fontFamily: fonts.bold, fontSize: fontSize.sm, color: c.text },
+    codePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      alignSelf: 'flex-start',
+      backgroundColor: c.accentTint,
+      borderRadius: radius.input,
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      marginTop: 4,
+    },
+    codeLabel: { fontFamily: fonts.extrabold, fontSize: 11, letterSpacing: 1.2, color: c.accentDark },
+    codeText: { fontFamily: fonts.extrabold, fontSize: 14, color: c.text, letterSpacing: 1.5 },
+    message: { fontFamily: fonts.bold, fontSize: fontSize.sm, textAlign: 'center' },
+    messageOk: { color: c.success },
+    messageErr: { color: c.danger },
+    joinButton: {
+      backgroundColor: c.accentSoft,
+      borderRadius: radius.button,
+      paddingVertical: 15,
+      alignItems: 'center',
+      ...s.button,
+    },
+    joinText: { fontFamily: fonts.extrabold, fontSize: fontSize.md, color: c.onAccent },
+    pressed: { opacity: 0.85 },
+    sectionTitle: {
+      fontFamily: fonts.extrabold,
+      fontSize: fontSize.md,
+      color: c.text,
+      letterSpacing: -0.2,
+      marginTop: spacing.sm,
+    },
+    deviceCard: {
+      backgroundColor: c.glassCard,
+      borderRadius: radius.card,
+      padding: 18,
+      ...s.card,
+    },
+    deviceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+    deviceInfo: { flex: 1, gap: 2 },
+    deviceName: { fontFamily: fonts.bold, fontSize: fontSize.base, color: c.text },
+    deviceHint: { fontFamily: fonts.semibold, fontSize: fontSize.xs, color: c.muted, lineHeight: 18 },
+    deviceToggle: {
+      borderRadius: radius.input,
+      paddingHorizontal: 22,
+      paddingVertical: 10,
+    },
+    deviceToggleText: { fontFamily: fonts.extrabold, fontSize: 14 },
+    cameraPreview: {
+      height: 200,
+      borderRadius: radius.card,
+      marginTop: 14,
+      overflow: 'hidden',
+      backgroundColor: c.surface3,
+    },
+    settingsLink: { marginTop: 8 },
+    settingsLinkText: {
+      fontFamily: fonts.bold,
+      fontSize: fontSize.xs,
+      color: c.accentDark,
+      textDecorationLine: 'underline',
+    },
+    divider: { height: 1, backgroundColor: c.border, marginVertical: 14 },
+    memberRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: c.glassCard,
+      borderRadius: radius.input,
+      padding: 12,
+    },
+    avatar: {
+      width: 36,
+      height: 36,
+      borderRadius: radius.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: { fontFamily: fonts.extrabold, fontSize: fontSize.base, color: c.onAccent },
+    memberName: { flex: 1, fontFamily: fonts.bold, fontSize: fontSize.base, color: c.text },
+    memberStatus: { fontFamily: fonts.semibold, fontSize: fontSize.xs, color: c.muted },
+    emptyMembers: {
+      fontFamily: fonts.semibold,
+      fontSize: fontSize.sm,
+      color: c.muted,
+      textAlign: 'center',
+    },
+    errorText: { fontFamily: fonts.bold, fontSize: fontSize.md, color: c.danger },
+  });
+}

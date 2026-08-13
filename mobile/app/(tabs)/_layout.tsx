@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Redirect, Tabs } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { colors, fonts } from '@/theme';
+import { useTheme, fonts } from '@/theme';
 
 export default function TabsLayout() {
+  const { colors } = useTheme();
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']>(null);
 

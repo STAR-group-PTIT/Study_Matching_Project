@@ -1,5 +1,14 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, fontSize, radius, shadows, spacing } from '@/theme';
+import {
+  useTheme,
+  type ThemeColors,
+  type ThemeShadows,
+  fonts,
+  fontSize,
+  radius,
+  spacing,
+} from '@/theme';
 
 type Props = {
   title: string;
@@ -8,6 +17,9 @@ type Props = {
 };
 
 export default function Card({ title, subtitle, children }: Props) {
+  const { colors, shadows } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, shadows), [colors, shadows]);
+
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{title}</Text>
@@ -17,22 +29,24 @@ export default function Card({ title, subtitle, children }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    padding: spacing.md,
-    ...shadows.card,
-  },
-  title: {
-    fontFamily: fonts.bold,
-    fontSize: fontSize.md,
-    color: colors.text,
-  },
-  subtitle: {
-    fontFamily: fonts.semibold,
-    fontSize: fontSize.sm,
-    color: colors.muted,
-    marginTop: spacing.xs,
-  },
-});
+function makeStyles(c: ThemeColors, s: ThemeShadows) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: c.surface,
+      borderRadius: radius.card,
+      padding: spacing.md,
+      ...s.card,
+    },
+    title: {
+      fontFamily: fonts.bold,
+      fontSize: fontSize.md,
+      color: c.text,
+    },
+    subtitle: {
+      fontFamily: fonts.semibold,
+      fontSize: fontSize.sm,
+      color: c.muted,
+      marginTop: spacing.xs,
+    },
+  });
+}

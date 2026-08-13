@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -15,11 +15,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import { signIn, signUp } from '@/lib/auth';
-import { colors, fonts, radius, shadows } from '@/theme';
+import { useI18n } from '@/lib/i18n';
+import { useTheme, type ThemeColors, type ThemeShadows, fonts, radius } from '@/theme';
 
 type Mode = 'login' | 'signup';
 
 export default function LoginScreen() {
+  const { colors, isDark, shadows } = useTheme();
+  const { t } = useI18n();
+  const styles = useMemo(() => makeStyles(colors, shadows), [colors, shadows]);
   const [mode, setMode] = useState<Mode>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -38,7 +42,7 @@ export default function LoginScreen() {
 
   async function handleSubmit() {
     if (!email.trim() || !password) {
-      setError('Vui lòng nhập email và mật khẩu.');
+      setError(t('auth.requiredFields'));
       return;
     }
     setBusy(true);
@@ -62,7 +66,7 @@ export default function LoginScreen() {
 
   function handleGoogle() {
     setError(null);
-    setNotice('Đăng nhập Google chưa được cấu hình trên mobile — hãy dùng email và mật khẩu.');
+    setNotice(t('auth.googleNotConfigured'));
   }
 
   return (
@@ -82,7 +86,7 @@ export default function LoginScreen() {
               <Text style={styles.logoText}>Study matching</Text>
             </View>
 
-          <BlurView intensity={34} tint="light" style={styles.card}>
+          <BlurView intensity={34} tint={isDark ? 'dark' : 'light'} style={styles.card}>
             <View style={styles.tabWrap}>
               {(['login', 'signup'] as const).map((m) => {
                 const on = mode === m;
@@ -93,27 +97,27 @@ export default function LoginScreen() {
                     style={[styles.tab, on && styles.tabActive]}
                   >
                     <Text style={[styles.tabText, on && styles.tabTextActive]}>
-                      {m === 'login' ? 'Đăng nhập' : 'Đăng ký'}
+                      {m === 'login' ? t('auth.login') : t('auth.signup')}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
 
-            <Text style={styles.title}>{mode === 'login' ? 'Chào bạn trở lại' : 'Tạo tài khoản mới'}</Text>
+            <Text style={styles.title}>
+              {mode === 'login' ? t('auth.welcomeBack') : t('auth.createAccount')}
+            </Text>
             <Text style={styles.subtitle}>
-              {mode === 'login'
-                ? 'Đăng nhập để tìm phòng học và kết nối bạn học cùng.'
-                : 'Vài giây để tạo tài khoản, sau đó vào phòng học ngay.'}
+              {mode === 'login' ? t('auth.loginSubtitle') : t('auth.signupSubtitle')}
             </Text>
 
             <View style={styles.fieldGroup}>
               {mode === 'signup' && (
                 <View style={styles.field}>
-                  <Text style={styles.label}>Tên của bạn</Text>
+                  <Text style={styles.label}>{t('auth.name')}</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="VD: Minh Anh"
+                    placeholder={t('auth.namePlaceholder')}
                     placeholderTextColor={colors.faint}
                     value={name}
                     onChangeText={setName}
@@ -122,10 +126,10 @@ export default function LoginScreen() {
                 </View>
               )}
               <View style={styles.field}>
-                <Text style={styles.label}>Email</Text>
+                <Text style={styles.label}>{t('auth.email')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="ban@email.com"
+                  placeholder={t('auth.emailPlaceholder')}
                   placeholderTextColor={colors.faint}
                   value={email}
                   onChangeText={setEmail}
@@ -135,11 +139,11 @@ export default function LoginScreen() {
                 />
               </View>
               <View style={styles.field}>
-                <Text style={styles.label}>Mật khẩu</Text>
+                <Text style={styles.label}>{t('auth.password')}</Text>
                 <View style={styles.pwWrap}>
                   <TextInput
                     style={[styles.input, styles.pwInput]}
-                    placeholder="Tối thiểu 6 ký tự"
+                    placeholder={t('auth.passwordPlaceholder')}
                     placeholderTextColor={colors.faint}
                     value={password}
                     onChangeText={setPassword}
@@ -151,7 +155,7 @@ export default function LoginScreen() {
                     style={styles.pwToggle}
                     hitSlop={8}
                   >
-                    <Text style={styles.pwToggleText}>{showPw ? 'Ẩn' : 'Hiện'}</Text>
+                    <Text style={styles.pwToggleText}>{showPw ? t('auth.hide') : t('auth.show')}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -169,14 +173,14 @@ export default function LoginScreen() {
                 <ActivityIndicator color={colors.onAccent} />
               ) : (
                 <Text style={styles.submitText}>
-                  {mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'}
+                  {mode === 'login' ? t('auth.loginButton') : t('auth.signupButton')}
                 </Text>
               )}
             </Pressable>
 
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>hoặc</Text>
+              <Text style={styles.dividerText}>{t('auth.or')}</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -188,13 +192,11 @@ export default function LoginScreen() {
                 <Text style={styles.googleBadgeText}>G</Text>
               </View>
               <Text style={styles.googleText}>
-                {mode === 'login' ? 'Đăng nhập với Google' : 'Đăng ký với Google'}
+                {mode === 'login' ? t('auth.googleLogin') : t('auth.googleSignup')}
               </Text>
             </Pressable>
 
-            <Text style={styles.terms}>
-              Bằng cách tiếp tục, bạn đồng ý với Điều khoản sử dụng và Chính sách quyền riêng tư của chúng tôi.
-            </Text>
+            <Text style={styles.terms}>{t('auth.terms')}</Text>
           </BlurView>
           </View>
         </ScrollView>
@@ -203,189 +205,191 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  flex: { flex: 1 },
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: 22,
-    paddingTop: 40 + (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0),
-    paddingBottom: 40,
-  },
-  scrollInner: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 20,
-  },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 11 },
-  logoBox: {
-    width: 22,
-    height: 22,
-    borderRadius: 9,
-  },
-  logoText: {
-    fontFamily: fonts.extrabold,
-    fontSize: 18,
-    letterSpacing: -0.2,
-    color: colors.text,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 456,
-    borderRadius: radius.panel,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.62)',
-    overflow: 'hidden',
-    ...shadows.raised,
-  },
-  tabWrap: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(238, 246, 248, 0.9)',
-    borderRadius: 20,
-    padding: 5,
-    gap: 4,
-  },
-  tab: {
-    flex: 1,
-    borderRadius: 15,
-    paddingVertical: 11,
-    alignItems: 'center',
-  },
-  tabActive: {
-    backgroundColor: colors.surface,
-    ...shadows.card,
-  },
-  tabText: {
-    fontFamily: fonts.bold,
-    fontSize: 14,
-    color: colors.muted,
-  },
-  tabTextActive: {
-    color: colors.text,
-  },
-  title: {
-    fontFamily: fonts.extrabold,
-    fontSize: 22,
-    letterSpacing: -0.4,
-    color: colors.text,
-    marginTop: 20,
-  },
-  subtitle: {
-    fontFamily: fonts.semibold,
-    fontSize: 13.5,
-    lineHeight: 20,
-    color: colors.muted,
-    marginTop: 6,
-  },
-  fieldGroup: { gap: 14, marginTop: 20 },
-  field: { gap: 7 },
-  label: {
-    fontFamily: fonts.bold,
-    fontSize: 12.5,
-    letterSpacing: 0.3,
-    color: colors.body,
-  },
-  input: {
-    borderRadius: radius.input,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.neutralFill,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontFamily: fonts.semibold,
-    fontSize: 15,
-    color: colors.text,
-  },
-  pwWrap: { position: 'relative' },
-  pwInput: { paddingRight: 74 },
-  pwToggle: {
-    position: 'absolute',
-    right: 6,
-    top: 6,
-    borderRadius: 13,
-    backgroundColor: colors.surface2,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  pwToggleText: {
-    fontFamily: fonts.bold,
-    fontSize: 12.5,
-    color: colors.accentDark,
-  },
-  error: {
-    fontFamily: fonts.bold,
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.danger,
-    marginTop: 12,
-  },
-  notice: {
-    fontFamily: fonts.bold,
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.success,
-    marginTop: 12,
-  },
-  submit: {
-    marginTop: 18,
-    borderRadius: radius.button,
-    backgroundColor: colors.accentSoft,
-    paddingVertical: 16,
-    alignItems: 'center',
-    ...shadows.button,
-  },
-  submitText: {
-    fontFamily: fonts.extrabold,
-    fontSize: 16,
-    color: colors.onAccent,
-  },
-  pressed: { opacity: 0.85 },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    marginVertical: 18,
-  },
-  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
-  dividerText: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.faint },
-  google: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 11,
-    borderRadius: radius.button,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    paddingVertical: 14,
-  },
-  googleBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  googleBadgeText: {
-    fontFamily: fonts.extrabold,
-    fontSize: 13,
-    color: colors.accentDark,
-  },
-  googleText: {
-    fontFamily: fonts.bold,
-    fontSize: 15,
-    color: colors.body,
-  },
-  terms: {
-    fontFamily: fonts.semibold,
-    fontSize: 12.5,
-    lineHeight: 19,
-    color: colors.faint,
-    textAlign: 'center',
-    marginTop: 18,
-  },
-});
+function makeStyles(c: ThemeColors, s: ThemeShadows) {
+  return StyleSheet.create({
+    container: { flex: 1 },
+    flex: { flex: 1 },
+    scroll: {
+      flexGrow: 1,
+      paddingHorizontal: 22,
+      paddingTop: 40 + (Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0),
+      paddingBottom: 40,
+    },
+    scrollInner: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 20,
+    },
+    logoRow: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+    logoBox: {
+      width: 22,
+      height: 22,
+      borderRadius: 9,
+    },
+    logoText: {
+      fontFamily: fonts.extrabold,
+      fontSize: 18,
+      letterSpacing: -0.2,
+      color: c.text,
+    },
+    card: {
+      width: '100%',
+      maxWidth: 456,
+      borderRadius: radius.panel,
+      paddingHorizontal: 24,
+      paddingTop: 24,
+      paddingBottom: 24,
+      backgroundColor: c.glassPanel,
+      overflow: 'hidden',
+      ...s.raised,
+    },
+    tabWrap: {
+      flexDirection: 'row',
+      backgroundColor: c.glassTab,
+      borderRadius: 20,
+      padding: 5,
+      gap: 4,
+    },
+    tab: {
+      flex: 1,
+      borderRadius: 15,
+      paddingVertical: 11,
+      alignItems: 'center',
+    },
+    tabActive: {
+      backgroundColor: c.surface,
+      ...s.card,
+    },
+    tabText: {
+      fontFamily: fonts.bold,
+      fontSize: 14,
+      color: c.muted,
+    },
+    tabTextActive: {
+      color: c.text,
+    },
+    title: {
+      fontFamily: fonts.extrabold,
+      fontSize: 22,
+      letterSpacing: -0.4,
+      color: c.text,
+      marginTop: 20,
+    },
+    subtitle: {
+      fontFamily: fonts.semibold,
+      fontSize: 13.5,
+      lineHeight: 20,
+      color: c.muted,
+      marginTop: 6,
+    },
+    fieldGroup: { gap: 14, marginTop: 20 },
+    field: { gap: 7 },
+    label: {
+      fontFamily: fonts.bold,
+      fontSize: 12.5,
+      letterSpacing: 0.3,
+      color: c.body,
+    },
+    input: {
+      borderRadius: radius.input,
+      borderWidth: 1.5,
+      borderColor: c.border,
+      backgroundColor: c.neutralFill,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontFamily: fonts.semibold,
+      fontSize: 15,
+      color: c.text,
+    },
+    pwWrap: { position: 'relative' },
+    pwInput: { paddingRight: 74 },
+    pwToggle: {
+      position: 'absolute',
+      right: 6,
+      top: 6,
+      borderRadius: 13,
+      backgroundColor: c.surface2,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    pwToggleText: {
+      fontFamily: fonts.bold,
+      fontSize: 12.5,
+      color: c.accentDark,
+    },
+    error: {
+      fontFamily: fonts.bold,
+      fontSize: 13,
+      lineHeight: 19,
+      color: c.danger,
+      marginTop: 12,
+    },
+    notice: {
+      fontFamily: fonts.bold,
+      fontSize: 13,
+      lineHeight: 19,
+      color: c.success,
+      marginTop: 12,
+    },
+    submit: {
+      marginTop: 18,
+      borderRadius: radius.button,
+      backgroundColor: c.accentSoft,
+      paddingVertical: 16,
+      alignItems: 'center',
+      ...s.button,
+    },
+    submitText: {
+      fontFamily: fonts.extrabold,
+      fontSize: 16,
+      color: c.onAccent,
+    },
+    pressed: { opacity: 0.85 },
+    divider: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      marginVertical: 18,
+    },
+    dividerLine: { flex: 1, height: 1, backgroundColor: c.border },
+    dividerText: { fontFamily: fonts.bold, fontSize: 12.5, color: c.faint },
+    google: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 11,
+      borderRadius: radius.button,
+      borderWidth: 1.5,
+      borderColor: c.border,
+      backgroundColor: c.surface,
+      paddingVertical: 14,
+    },
+    googleBadge: {
+      width: 22,
+      height: 22,
+      borderRadius: radius.pill,
+      backgroundColor: c.surface2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    googleBadgeText: {
+      fontFamily: fonts.extrabold,
+      fontSize: 13,
+      color: c.accentDark,
+    },
+    googleText: {
+      fontFamily: fonts.bold,
+      fontSize: 15,
+      color: c.body,
+    },
+    terms: {
+      fontFamily: fonts.semibold,
+      fontSize: 12.5,
+      lineHeight: 19,
+      color: c.faint,
+      textAlign: 'center',
+      marginTop: 18,
+    },
+  });
+}
