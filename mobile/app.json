@@ -51,7 +51,8 @@
           "microphonePermission": "Cho phép $(PRODUCT_NAME) dùng micro để nói chuyện trong phòng học.",
           "recordAudioAndroid": true
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -113,3 +113,43 @@ export async function logFocusSession(input: {
   });
   if (error) console.error('log focus_session failed', error);
 }
+
+// ---------- Room thật (P4 call) ----------
+
+// rooms — chỉ participant/host/pending đọc được (RLS), chứa timer + status để đồng bộ
+export type RoomDetail = {
+  id: string;
+  code: string;
+  name: string;
+  host_id: string;
+  room_type: string;
+  capacity: number;
+  duration_minutes: number;
+  break_minutes: number;
+  session_count: number;
+  timer_phase: 'focus' | 'break';
+  timer_round: number;
+  timer_running: boolean;
+  timer_done: boolean;
+  timer_remaining_seconds: number | null;
+  timer_updated_at: string;
+  status: 'lobby' | 'active' | 'expired';
+};
+
+export async function fetchRoomDetail(code: string): Promise<RoomDetail | null> {
+  const { data, error } = await supabase
+    .from('rooms')
+    .select(
+      'id, code, name, host_id, room_type, capacity, duration_minutes, break_minutes, session_count, timer_phase, timer_round, timer_running, timer_done, timer_remaining_seconds, timer_updated_at, status',
+    )
+    .eq('code', code)
+    .maybeSingle();
+  if (error) throw error;
+  return data as RoomDetail | null;
+}
+
+// Rời phòng — xoá row room_members của mình (host xử lý đóng/chuyển quyền ở web; mobile
+// bản đầu chỉ rời thẳng, phòng tự dọn qua heartbeat/cleanup 0024).
+export async function leaveRoom(userId: string, roomId: string): Promise<void> {
+  await supabase.from('room_members').delete().eq('room_id', roomId).eq('user_id', userId);
+}

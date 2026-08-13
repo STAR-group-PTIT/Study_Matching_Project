@@ -18,6 +18,8 @@ import {
   type PublicRoom,
   type RoomMember,
 } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
+import RoomCall from '@/components/RoomCall';
 import {
   useTheme,
   type ThemeColors,
@@ -39,13 +41,22 @@ export default function RoomDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
-  const [joined, setJoined] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // camera / mic permissions
   const [camPerm, requestCamPerm] = useCameraPermissions();
   const [micPerm, requestMicPerm] = useMicrophonePermissions();
   const [camOn, setCamOn] = useState(false);
   const [micOn, setMicOn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user.id ?? null));
+  }, []);
+
+  // Đã là member (mở lại phòng / từ lobby) thì vào thẳng call, không cần join
+  const selfRow = userId ? members.find((m) => m.user_id === userId) : undefined;
+  const selfStatus =
+    selfRow?.status === 'member' ? 'member' : selfRow?.status === 'pending' ? 'pending' : null;
 
   const loadMembers = useCallback(async (roomId: string) => {
     try {
@@ -77,12 +88,11 @@ export default function RoomDetailScreen() {
     try {
       const result = await joinRoomByCode(room.code);
       if (result.status === 'joined') {
-        setJoined(true);
         setMessage({ kind: 'ok', text: 'Bạn đã vào phòng.' });
         await loadMembers(room.id);
       } else if (result.status === 'pending') {
-        setJoined(true);
         setMessage({ kind: 'ok', text: 'Đã gửi yêu cầu, chờ host duyệt.' });
+        await loadMembers(room.id);
       } else if (result.status === 'full') {
         setMessage({ kind: 'error', text: 'Phòng đã đầy.' });
       } else if (result.status === 'already_in_another_room') {
@@ -141,6 +151,19 @@ export default function RoomDetailScreen() {
   const camDenied = !!camPerm && !camPerm.granted && !camPerm.canAskAgain;
   const micDenied = !!micPerm && !micPerm.granted && !micPerm.canAskAgain;
 
+  if (selfStatus === 'member' && userId) {
+    return (
+      <RoomCall
+        code={room.code}
+        roomId={room.id}
+        userId={userId}
+        initialCam={camOn}
+        initialMic={micOn}
+        onLeave={() => loadMembers(room.id)}
+      />
+    );
+  }
+
   return (
     <LinearGradient colors={[...colors.pageGradient]} style={styles.flex}>
       <FlatList
@@ -178,7 +201,7 @@ export default function RoomDetailScreen() {
               </Text>
             ) : null}
 
-            {!joined ? (
+            {selfStatus === null ? (
               <Pressable
                 style={({ pressed }) => [styles.joinButton, pressed && styles.pressed]}
                 onPress={handleJoin}
@@ -190,7 +213,13 @@ export default function RoomDetailScreen() {
                   <Text style={styles.joinText}>{full ? 'Phòng đã đầy' : 'Tham gia phòng'}</Text>
                 )}
               </Pressable>
-            ) : null}
+            ) : (
+              <View style={styles.pendingCard}>
+                <Text style={styles.pendingText}>
+                  {selfStatus === 'pending' ? 'Đang chờ host duyệt yêu cầu vào phòng…' : 'Bạn đang ở trong phòng.'}
+                </Text>
+              </View>
+            )}
 
             <Text style={styles.sectionTitle}>Thiết bị của bạn</Text>
             <View style={styles.deviceCard}>
@@ -282,7 +311,7 @@ export default function RoomDetailScreen() {
         )}
         ListEmptyComponent={
           <Text style={styles.emptyMembers}>
-            {joined ? 'Chưa có thành viên nào.' : 'Vào phòng để xem danh sách thành viên.'}
+            {selfStatus ? 'Chưa có thành viên nào.' : 'Vào phòng để xem danh sách thành viên.'}
           </Text>
         }
       />
@@ -349,6 +378,14 @@ function makeStyles(c: ThemeColors, s: ThemeShadows) {
     },
     joinText: { fontFamily: fonts.extrabold, fontSize: fontSize.md, color: c.onAccent },
     pressed: { opacity: 0.85 },
+    pendingCard: {
+      backgroundColor: c.glassCard,
+      borderRadius: radius.input,
+      padding: 14,
+      alignItems: 'center',
+      ...s.card,
+    },
+    pendingText: { fontFamily: fonts.semibold, fontSize: fontSize.sm, color: c.muted },
     sectionTitle: {
       fontFamily: fonts.extrabold,
       fontSize: fontSize.md,

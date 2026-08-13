@@ -3,8 +3,12 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts, Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { registerGlobals } from '@livekit/react-native';
 import { ThemeProvider, useTheme, fonts } from '@/theme';
 import { I18nProvider } from '@/lib/i18n';
+
+// Bắt buộc cho LiveKit — set up WebRTC globals trước khi mọi thứ dùng tới
+registerGlobals();
 
 SplashScreen.preventAutoHideAsync();
 
