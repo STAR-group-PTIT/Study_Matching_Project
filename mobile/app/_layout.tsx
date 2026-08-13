@@ -25,6 +25,7 @@ function RootNavigator() {
       >
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="lobby" options={{ title: 'Ghép ngẫu nhiên' }} />
         <Stack.Screen name="room/[id]" options={{ title: 'Phòng học', headerTransparent: true }} />
       </Stack>
     </>

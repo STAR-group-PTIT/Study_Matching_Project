@@ -226,9 +226,10 @@ export default function HomeScreen() {
     };
   }, []);
 
-  // P2: CTA còn là placeholder — P3 sẽ nối lobby ghép ngẫu nhiên (find_or_create_lobby + Realtime).
+  // P3: mở màn lobby ghép ngẫu nhiên (find_or_create_lobby + Realtime) — tự xử lý đăng nhập
+  // vì tabs đã guard auth từ trước.
   function startRandomMatch() {
-    Alert.alert('Ghép ngẫu nhiên', 'Tính năng ghép nhóm sẽ có trong bản tiếp theo.');
+    router.push('/lobby');
   }
 
   async function handleJoinRoom(room: PublicRoom) {
