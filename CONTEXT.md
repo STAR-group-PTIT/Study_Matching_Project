@@ -970,3 +970,25 @@ Tiếp branch `fix-view-all-rooms-redirect`. User gửi ảnh chụp phòng họ
 - Đã commit + push lên `fix-view-all-rooms-redirect` cùng phần 15 (2026-08-11).
 
 **Việc cần user làm:** chạy migration `0025_...` — **ĐÃ xong: `supabase db push` 2026-08-11** (sau khi user tự `supabase login` + `supabase link` trong `app/`; lần này CLI mới phải cài lại trong sandbox vì binary cũ không còn, và cần lưu ý link đúng thư mục `app/` — lần đầu user link nhầm từ repo root tạo `supabase/.temp` lạ, đã dọn). Cùng lần push này áp luôn 0021–0024 còn treo. Đã verify qua REST (200): `todos` có `priority`/`order_index`, `room_members` có `last_seen_at`, `profiles` có `theme`. User còn lại: tự test 3 mảng trên qua browser thật (panel to-do xoá/kéo-thả/đổi ưu tiên, kéo-thả hình nền khi login, dark mode text phụ + tab-switcher nhạc).
+
+## Mobile app (Expo `mobile/`) — Redesign phòng học thật + home giống web (2026-08-13)
+
+**Bối cảnh:** branch `Mobile-integration` (1 commit `1aa1db5`). App Expo SDK 57 hiện chỉ là bản workshop login → room list → màn phòng kiểu "join page" (device check + danh sách thành viên, CHƯA có video/LiveKit, chưa có i18n — text tiếng Việt cứng). User muốn làm lại thành app "học cùng nhau" đầy đủ: home giống web Dashboard (Pomodoro + card "Học cùng nhau"), video call thật (LiveKit), trang profile tuỳ chỉnh.
+
+**Đã chốt với user (phỏng vấn từng câu):**
+- Home: đồng hồ Pomodoro + card "Học cùng nhau" (CTA ghép ngẫu nhiên + preview phòng đang mở) + 2 tab Trang chủ / Phòng.
+- Video call THẬT qua LiveKit — chấp nhận **hy sinh máy cũ** (nợ kỹ thuật, ghi nhận), phải build native (EAS dev client), Expo Go hết dùng được.
+- Trong phòng: **grid là chính** — 2 chế độ xem: speaker-priority (người nói to, người khác dải dock) + grid đều (ô vuông bo tròn, tự xếp 1→2→4→6→9), self-view luôn nổi kiểu Meet; điều khiển cam/mic/đổi chế độ/rời phòng + chip timer Pomodoro đồng bộ (read-only) + số thành viên; auto-hide control bar. Chat/nhạc/quản lý host/todo/stats/bạn bè để sau.
+- Trang profile (màn push, không phải tab 3): avatar (gallery → resize → bucket `avatars`), tên hiển thị (validate 23505), copy `name#tag` (expo-clipboard), wallpaper chỉ gradient built-in, dark/light theme + accent hue, ngôn ngữ vi/en (i18n nhẹ), pomodoro defaults.
+- **Kiến trúc (câu hỏi cuối): user nghiêng về (b) "muốn control kiến trúc dài hạn" nhưng quyết định FOCUS làm mobile trước** — KHÔNG xây backend/API layer ở đợt này, vẫn gọi Supabase trực tiếp như web (RPC/views/edge functions có sẵn). Trigger xem lại khi: cần auth tuỳ biến/background job/rời Supabase/team cần TS logic tập trung → khi đó mới làm Node + Supabase làm DB.
+
+**Kế hoạch 6 phase:** P0 nền tảng call (ĐÃ XONG, dưới) → P1 theme context (dark/accent) + i18n nhẹ + 6 gradient wallpaper + AsyncStorage → P2 home mới `(tabs)/index.tsx` (Pomodoro compact đọc `profiles` defaults + ghi `focus_sessions` đúng rule web + card "Học cùng nhau") → P3 match lobby (dịch `quickMatch.ts`: `find_or_create_lobby` + Realtime `rooms`/`room_members`, màn lobby N/5 + đếm ngược) → P4 phòng call `room/[id].tsx` dựng lại (token từ edge `livekit-token` `{code}`, room name = code phòng, 2 chế độ grid/speaker, controls, timer chip) → P5 profile `app/profile.tsx` → P6 verify (tsc/lint/EAS dev build/test 2 máy).
+
+**P0 ĐÃ XONG (2026-08-13):**
+- Cài: `@livekit/react-native@^2.12.0` (+ peers khai minh: `@livekit/react-native-webrtc@^144.1.2`, `livekit-client@^2.19.0`), `expo-image-picker@~57.0.9`, `expo-image-manipulator@~57.0.9`, `expo-clipboard@~57.0.1` (qua `npx expo install` cho đúng SDK 57). **Lưu ý:** bản v2 dùng fork `@livekit/react-native-webrtc` (KHÔNG phải `react-native-webrtc` gốc) — fork không có Expo config plugin, nên quyền Android khai báo tay.
+- `app.json`: thêm `android.permissions` = CAMERA/RECORD_AUDIO/MODIFY_AUDIO_SETTINGS/ACCESS_NETWORK_STATE/INTERNET/WAKE_LOCK/BLUETOOTH_CONNECT; iOS dùng chung message mic/cam của `expo-camera` plugin có sẵn.
+- `.env.example` (file mới, không secret) + thêm `EXPO_PUBLIC_LIVEKIT_URL` vào `.env.local` (giá trị `wss://focusflow-dswnv1by.livekit.cloud` — cùng LiveKit Cloud với web). `lib/supabase.ts` đã đọc `EXPO_PUBLIC_SUPABASE_*` sẵn từ trước, không cần đổi.
+- `mobile/README.md`: ghi quy trình EAS dev client (Expo Go hết dùng từ khi có native module webrtc) + biến env + ghi chú quyền.
+- Verify: `tsc --noEmit` sạch, `expo lint` sạch, `expo config` đúng permissions/plugins, `expo-doctor` 20/20 pass. CHƯA commit — chờ user duyệt bước tiếp.
+
+**Việc cần user:** (1) xác nhận tiếp tục P1 (theme + i18n infra) — hoặc commit P0 trước; (2) khi tới P4 cần tài khoản EAS/Expo để build dev client (hoặc `expo run:android` máy có Android SDK).
