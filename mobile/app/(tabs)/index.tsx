@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   fetchProfilePomodoro,
@@ -15,6 +16,7 @@ import {
   type PublicRoom,
 } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
+import { useWallpaper, wallpaperColorsFor } from '@/lib/wallpapers';
 import {
   useTheme,
   type ThemeColors,
@@ -30,8 +32,10 @@ type Phase = 'focus' | 'break';
 const ROOMS_CACHE_KEY = 'ff-mobile-rooms-cache';
 
 export default function HomeScreen() {
-  const { colors, shadows } = useTheme();
+  const { colors, shadows, isDark } = useTheme();
   const styles = useMemo(() => makeStyles(colors, shadows), [colors, shadows]);
+  const { wallpaper } = useWallpaper();
+  const wpColors = wallpaperColorsFor(wallpaper, isDark);
 
   // ---------- Pomodoro (logic mirror web Dashboard.tsx) ----------
 
@@ -265,9 +269,10 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* ---------- Pomodoro ---------- */}
-      <View style={styles.pomodoroCard}>
+    <LinearGradient colors={wpColors} style={styles.gradient}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {/* ---------- Pomodoro ---------- */}
+        <View style={styles.pomodoroCard}>
         {!started ? (
           <>
             <Text style={styles.cardTitle}>Pomodoro</Text>
@@ -332,7 +337,8 @@ export default function HomeScreen() {
           <Text style={styles.seeAll}>Xem tất cả phòng →</Text>
         </Pressable>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </LinearGradient>
   );
 }
 
@@ -403,7 +409,8 @@ function PreviewRoomRow({ room, joining, onJoin }: { room: PublicRoom; joining: 
 
 function makeStyles(c: ThemeColors, s: ThemeShadows) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: c.pageBg },
+    gradient: { flex: 1 },
+    container: { flex: 1, backgroundColor: 'transparent' },
     content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
     pressed: { opacity: 0.9 },
     // Pomodoro

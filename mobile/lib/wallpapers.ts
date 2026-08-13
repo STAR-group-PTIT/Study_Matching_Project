@@ -4,6 +4,8 @@
 // linear 135deg cùng màu cho nhất quán với các loại còn lại.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useSyncExternalStore } from 'react';
+import { useTheme } from '@/theme';
 
 export type WallpaperGradient = {
   id: string;
@@ -71,4 +73,62 @@ export async function saveWallpaperId(id: string): Promise<void> {
   } catch {
     // lưu không được thì chỉ mất lựa chọn sau khi thoát app — không nghiêm trọng
   }
+}
+
+// Store dùng chung (module-level): nhiều màn (home, profile) cùng đọc 1 id —
+// nếu mỗi component tự useState thì đổi wallpaper ở profile không cập nhật home.
+const listeners = new Set<() => void>();
+let currentId: string | null = null;
+let hydrating: Promise<string | null> | null = null;
+
+function emit() {
+  listeners.forEach((l) => l());
+}
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function getSnapshot(): string | null {
+  return currentId;
+}
+
+// Đọc id đã lưu 1 lần (chạy chậm ở nền); không ghi đè lựa chọn vừa đổi khi đang hydrate.
+export function hydrateWallpaperId(): void {
+  if (!hydrating) {
+    hydrating = loadWallpaperId().then((stored) => {
+      if (stored && currentId === null) {
+        currentId = stored;
+        emit();
+      }
+      return stored;
+    });
+  }
+}
+
+// Hook dùng chung: trả gradient theo theme hiện tại (light/dark),
+// setWallpaper lưu ngay + cập nhật mọi component đang theo dõi (P5).
+export function useWallpaper(): {
+  wallpaper: WallpaperGradient;
+  setWallpaper: (id: string) => void;
+} {
+  const { isDark } = useTheme();
+  useEffect(hydrateWallpaperId, []);
+  const id = useSyncExternalStore(subscribe, getSnapshot);
+  const base = getWallpaper(id);
+  return { wallpaper: base, setWallpaper: setWallpaperId };
+}
+
+export function setWallpaperId(id: string): void {
+  currentId = id;
+  emit();
+  saveWallpaperId(id).catch(() => {});
+}
+
+// Màu gradient thực tế cho theme hiện tại — dùng khi vẽ nền màn hình.
+export function wallpaperColorsFor(wp: WallpaperGradient, isDark: boolean): [string, string, ...string[]] {
+  return (isDark ? wp.dark : wp.light) as [string, string, ...string[]];
 }

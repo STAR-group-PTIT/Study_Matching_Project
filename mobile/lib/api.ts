@@ -153,3 +153,78 @@ export async function fetchRoomDetail(code: string): Promise<RoomDetail | null> 
 export async function leaveRoom(userId: string, roomId: string): Promise<void> {
   await supabase.from('room_members').delete().eq('room_id', roomId).eq('user_id', userId);
 }
+
+// ---------- Profile (P5) ----------
+
+export type ProfileData = {
+  name: string;
+  tag: string;
+  avatar_url: string | null;
+  focus_minutes: number;
+  break_minutes: number;
+  session_count: number;
+  auto_start_next: boolean;
+};
+
+export async function fetchProfile(userId: string): Promise<ProfileData | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(
+      'name, tag, avatar_url, focus_minutes, break_minutes, session_count, auto_start_next',
+    )
+    .eq('id', userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as ProfileData | null;
+}
+
+// Sửa tên hiển thị — catch riêng 23505 (trùng index (lower(name), tag)) để báo rõ ràng.
+export async function updateProfileName(userId: string, name: string): Promise<void> {
+  const { error } = await supabase.from('profiles').update({ name }).eq('id', userId);
+  if (error) {
+    if (error.code === '23505') throw new Error('name_taken');
+    throw error;
+  }
+}
+
+export async function updateProfilePomodoro(
+  userId: string,
+  prefs: { focus_minutes: number; break_minutes: number; session_count: number; auto_start_next: boolean },
+): Promise<void> {
+  const { error } = await supabase.from('profiles').update(prefs).eq('id', userId);
+  if (error) throw error;
+}
+
+// Rút path bên trong bucket `avatars` từ public URL đã lưu — để xoá file cũ khi đổi ảnh.
+function pathFromAvatarUrl(url: string | null): string | null {
+  if (!url) return null;
+  const marker = '/avatars/';
+  const i = url.indexOf(marker);
+  return i === -1 ? null : decodeURIComponent(url.slice(i + marker.length).split('?')[0]);
+}
+
+// Upload avatar (uri đã được resize ở màn hình) lên bucket `avatars` (public), cập nhật
+// profiles.avatar_url, xoá file cũ — mirror ChangeAvatarModal web (0002/0021).
+export async function uploadAvatar(
+  userId: string,
+  uri: string,
+  currentAvatarUrl: string | null,
+): Promise<string> {
+  const res = await fetch(uri);
+  const blob = await res.blob();
+  const path = `${userId}/avatar-${Date.now()}.jpg`;
+  const { error: upErr } = await supabase.storage.from('avatars').upload(path, blob, {
+    contentType: 'image/jpeg',
+    upsert: false,
+  });
+  if (upErr) throw upErr;
+  const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path);
+  const { error: updErr } = await supabase
+    .from('profiles')
+    .update({ avatar_url: pub.publicUrl })
+    .eq('id', userId);
+  if (updErr) throw updErr;
+  const oldPath = pathFromAvatarUrl(currentAvatarUrl);
+  if (oldPath && oldPath !== path) void supabase.storage.from('avatars').remove([oldPath]);
+  return pub.publicUrl;
+}
