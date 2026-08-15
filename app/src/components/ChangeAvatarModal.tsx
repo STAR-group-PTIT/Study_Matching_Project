@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import type { ChangeEvent, DragEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
+import { buildStoragePath } from '../lib/storagePath'
 import { useAuthStore } from '../store/auth'
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
@@ -95,7 +96,7 @@ export default function ChangeAvatarModal({
     setError(null)
     try {
       const file = await resizeAvatar(pendingFile).catch(() => pendingFile)
-      const path = `${user.id}/${crypto.randomUUID()}-${file.name}`
+      const path = buildStoragePath(user.id, file.name)
       const { error: upErr } = await supabase.storage.from('avatars').upload(path, file)
       if (upErr) throw upErr
       const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)

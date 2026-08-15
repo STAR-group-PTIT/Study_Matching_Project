@@ -8,6 +8,7 @@ import { useThemeStore } from '../store/theme'
 import { parseYoutubeUrl, DEFAULT_YOUTUBE_URL } from '../lib/youtube'
 import { isVideoWallpaper, prepareWallpaperFile, WallpaperFileError, type PreparedWallpaper } from '../lib/wallpaper'
 import { loadStoredAutoFullscreenFocus, saveStoredAutoFullscreenFocus } from '../lib/focusFullscreen'
+import { buildStoragePath } from '../lib/storagePath'
 import ChangeAvatarModal from '../components/ChangeAvatarModal'
 import EditInfoModal from '../components/EditInfoModal'
 
@@ -72,6 +73,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
 
   const [wallpapers, setWallpapers] = useState<Wallpaper[]>([])
   const [tracks, setTracks] = useState<Track[]>([])
+  const [trackUploadError, setTrackUploadError] = useState<string | null>(null)
   const [profileName, setProfileName] = useState('')
   const [profileTag, setProfileTag] = useState('')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
@@ -395,10 +397,11 @@ export default function Settings({ onClose }: { onClose: () => void }) {
       return
     }
     const { file } = prepared
-    const path = `${user.id}/${crypto.randomUUID()}-${file.name}`
+    const path = buildStoragePath(user.id, file.name)
     const { error: upErr } = await supabase.storage.from('wallpapers').upload(path, file)
     if (upErr) {
       console.error('upload wallpaper failed', upErr)
+      alert(t('settings.wallpapers.uploadFailed'))
       return
     }
     const { data: row, error: insErr } = await supabase
@@ -408,6 +411,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
       .single()
     if (insErr || !row) {
       console.error('insert wallpaper row failed', insErr)
+      alert(t('settings.wallpapers.uploadFailed'))
       return
     }
     const { data: signed } = await supabase.storage.from('wallpapers').createSignedUrl(path, 3600)
@@ -445,15 +449,17 @@ export default function Settings({ onClose }: { onClose: () => void }) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file || !user) return
+    setTrackUploadError(null)
     if (file.size > MAX_TRACK_BYTES) {
-      alert(t('settings.music.tooLarge'))
+      setTrackUploadError(t('settings.music.tooLarge'))
       return
     }
     const durationSeconds = await readAudioDuration(file)
-    const path = `${user.id}/${crypto.randomUUID()}-${file.name}`
+    const path = buildStoragePath(user.id, file.name)
     const { error: upErr } = await supabase.storage.from('tracks').upload(path, file)
     if (upErr) {
       console.error('upload track failed', upErr)
+      setTrackUploadError(t('settings.music.uploadFailed'))
       return
     }
     const { data: row, error: insErr } = await supabase
@@ -463,6 +469,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
       .single()
     if (insErr || !row) {
       console.error('insert track row failed', insErr)
+      setTrackUploadError(t('settings.music.uploadFailed'))
       return
     }
     setTracks((ts) => [
@@ -761,6 +768,9 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                 {t('settings.music.upload')}
               </button>
               <input ref={trackInputRef} type="file" accept="audio/mpeg,audio/wav,audio/*" hidden onChange={handleTrackFile} />
+              {trackUploadError && (
+                <span className="text-[12.5px] font-bold text-[var(--ff-danger-text)]">{trackUploadError}</span>
+              )}
               <span className="text-[12.5px] font-semibold text-[var(--c-1kei7l4)]">
                 {t('settings.music.hint')}
               </span>

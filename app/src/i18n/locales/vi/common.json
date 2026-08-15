@@ -419,7 +419,8 @@
       "add": "Thêm ảnh",
       "hint": "JPG, PNG, WEBP, GIF (kể cả ảnh động) hoặc MP4, tối đa 5 MB mỗi ảnh / 15 MB mỗi video — ảnh tĩnh vượt quá 1920x1080 sẽ tự động thu nhỏ.",
       "tooLarge": "Ảnh tối đa 5 MB.",
-      "tooLargeVideo": "Video tối đa 15 MB."
+      "tooLargeVideo": "Video tối đa 15 MB.",
+      "uploadFailed": "Tải ảnh lên thất bại. Thử lại giúp mình nhé."
     },
     "music": {
       "title": "Nhạc của tôi",
@@ -428,6 +429,7 @@
       "upload": "Upload nhạc (MP3, WAV)",
       "hint": "Bấm vào tên bài để đổi tên. Bài đánh dấu \"Mặc định\" sẽ phát được ở mọi phòng, kể cả của người khác.",
       "tooLarge": "Nhạc tối đa 25 MB.",
+      "uploadFailed": "Tải nhạc lên thất bại. Thử lại giúp mình nhé.",
       "setDefault": "Đặt làm mặc định",
       "isDefault": "Mặc định",
       "unsetDefault": "Bỏ mặc định"

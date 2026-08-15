@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
+import { buildStoragePath } from '../lib/storagePath'
 import { useAuthStore, useRequireAuth } from '../store/auth'
 import { playChime } from '../lib/sound'
 import { parseYoutubeUrl, loadYoutubeApi, DEFAULT_YOUTUBE_URL, MUSIC_YOUTUBE_KEY, loadStoredYoutubeUrlOverride, type YTPlayer } from '../lib/youtube'
@@ -769,7 +770,7 @@ export default function Dashboard() {
         maxBytes: readWallpaperUploadLimit(),
         maxVideoBytes: readWallpaperUploadLimit(),
       })
-      const path = `${user.id}/${crypto.randomUUID()}-${prepared.name}`
+      const path = buildStoragePath(user.id, prepared.name)
       const { error: upErr } = await supabase.storage.from('wallpapers').upload(path, prepared)
       if (upErr) throw upErr
       const { data: row, error: insErr } = await supabase

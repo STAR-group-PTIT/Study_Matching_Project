@@ -419,7 +419,8 @@
       "add": "Add image",
       "hint": "JPG, PNG, WEBP, GIF (animated too), or MP4 — up to 5 MB per image / 15 MB per video. Static images over 1920x1080 are auto-resized.",
       "tooLarge": "Images can be up to 5 MB.",
-      "tooLargeVideo": "Videos can be up to 15 MB."
+      "tooLargeVideo": "Videos can be up to 15 MB.",
+      "uploadFailed": "Upload failed. Please try again."
     },
     "music": {
       "title": "My music",
@@ -428,6 +429,7 @@
       "upload": "Upload music (MP3, WAV)",
       "hint": "Click a track's name to rename it. Tracks marked \"Default\" can play in any room, even other people's.",
       "tooLarge": "Music files can be up to 25 MB.",
+      "uploadFailed": "Upload failed. Please try again.",
       "setDefault": "Set as default",
       "isDefault": "Default",
       "unsetDefault": "Unset default"
