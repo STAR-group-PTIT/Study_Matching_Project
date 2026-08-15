@@ -191,5 +191,12 @@ Nguồn thiết kế: [README.md](README.md) (handoff doc) + [design/](design/) 
 - xong 2026-08-11, `tsc --noEmit`/`oxlint` sạch, verify qua browser thật, xem CONTEXT.md "Giai đoạn 10 (phần 16)"
 - Không có migration mới, thuần UI/logic client trong Room.tsx — cùng branch `fix-view-all-rooms-redirect`
 
+## Giai đoạn 10 (phần 17) — Fix upload nhạc/hình nền/avatar chết im lặng khi tên file có dấu (ngoài kế hoạch gốc, 2026-08-15)
+- [x] Tìm ra nguyên nhân thật bug "thêm mp3 không hiện trong danh sách": storage key ghép thẳng `file.name` mà Supabase Storage chỉ nhận ký tự S3-safe → tên có dấu (tiếng Việt, `è` trong "Lumière"…) trả 400 `InvalidKey`, lại bị `console.error` nuốt nên UI không báo gì — kiểm chứng bằng curl thật vào project
+- [x] `lib/storagePath.ts` (mới) bỏ dấu + lọc ký tự cho key, áp cho cả 4 điểm upload (nhạc, hình nền Settings, hình nền kéo-thả Dashboard, avatar); tên hiển thị vẫn giữ nguyên bản có dấu
+- [x] Thêm báo lỗi ra UI cho luồng upload nhạc + hình nền ở Settings (2 key i18n mới vi/en), thêm 8 unit test cho hàm làm sạch tên file
+- xong 2026-08-15, `tsc`/`oxlint`/47 test/`vite build` sạch, xem CONTEXT.md "Giai đoạn 10 (phần 17)"
+- Không có migration mới. **User cần tự đăng nhập rồi upload lại file mp3 có dấu để xác nhận** (phần "Nhạc của tôi" nằm sau route guard, chưa test end-to-end được)
+
 ---
 Xem tiến độ & quyết định chi tiết trong [CONTEXT.md](CONTEXT.md).
