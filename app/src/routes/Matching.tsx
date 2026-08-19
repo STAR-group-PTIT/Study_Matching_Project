@@ -713,7 +713,7 @@ export default function Matching() {
                       }}
                       maxLength={6}
                       placeholder={t('matching.filters.joinCodePlaceholder')}
-                      className="w-full min-w-0 flex-1 rounded-[18px] border-[1.5px] border-[var(--c-1kei5c6)] px-4 py-[13px] font-sans text-[15px] font-bold tracking-[2px] text-[var(--c-3bsl4p)] uppercase outline-none focus:border-[var(--c-125fipz)] focus:bg-white"
+                      className="w-full min-w-0 flex-1 rounded-[18px] border-[1.5px] border-[var(--c-1kei5c6)] px-4 py-[13px] font-sans text-base font-bold tracking-[2px] text-[var(--c-3bsl4p)] uppercase outline-none focus:border-[var(--c-125fipz)] focus:bg-white"
                       style={{ background: 'var(--c-1h0taas)' }}
                     />
                     <button
@@ -731,7 +731,7 @@ export default function Matching() {
           </div>
         </div>
 
-        <Link to="/" className="text-[13.5px] font-bold text-[var(--c-1swujpp)] no-underline hover:text-[var(--c-ounphr)]">
+        <Link to="/" className="px-3 py-[12px] text-[13.5px] font-bold text-[var(--c-1swujpp)] no-underline hover:text-[var(--c-ounphr)]">
           {t('matching.backToStudy')}
         </Link>
       </div>
@@ -769,7 +769,7 @@ export default function Matching() {
                     value={roomName}
                     onChange={(e) => setRoomName(e.target.value)}
                     placeholder={t('matching.create.namePlaceholder')}
-                    className="w-full rounded-[18px] border-[1.5px] border-[var(--c-1kei5c6)] px-4 py-[13px] font-sans text-[15px] font-bold text-[var(--c-3bsl4p)] outline-none focus:border-[var(--c-125fipz)] focus:bg-white"
+                    className="w-full rounded-[18px] border-[1.5px] border-[var(--c-1kei5c6)] px-4 py-[13px] font-sans text-base font-bold text-[var(--c-3bsl4p)] outline-none focus:border-[var(--c-125fipz)] focus:bg-white"
                     style={{ background: 'var(--c-1h0taas)' }}
                   />
                 </div>

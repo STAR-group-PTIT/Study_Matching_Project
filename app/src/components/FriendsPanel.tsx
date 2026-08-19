@@ -242,7 +242,7 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
                     if (e.key === 'Enter') void handleSend()
                   }}
                   placeholder={t('friends.addPlaceholder')}
-                  className="min-w-0 flex-1 rounded-[16px] border-none px-4 py-3 font-sans text-sm font-semibold text-[var(--c-3bsl4p)] outline-none"
+                  className="min-w-0 flex-1 rounded-[16px] border-none px-4 py-3 font-sans text-base font-semibold text-[var(--c-3bsl4p)] outline-none"
                   style={{ background: 'var(--c-rucw5u)' }}
                 />
                 <button

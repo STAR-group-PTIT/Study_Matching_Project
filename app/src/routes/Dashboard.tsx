@@ -1609,7 +1609,7 @@ export default function Dashboard() {
           {!user && (
             <Link
               to="/auth"
-              className="rounded-[18px] max-md:px-3 max-md:py-[9px] max-md:text-[12px] px-4 py-[10px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)] no-underline"
+              className="rounded-[18px] max-md:px-3 max-md:py-[13px] max-md:text-[12px] px-4 py-[10px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)] no-underline"
               style={{
                 background: 'var(--ff-accent-soft)',
                 boxShadow: '0 6px 20px var(--c-fc5pjb)',
@@ -1631,7 +1631,7 @@ export default function Dashboard() {
                 setMode('focus')
                 setPanel(null)
               }}
-              className="rounded-[15px] border-none max-md:px-3 max-md:py-1.5 max-md:text-[12.5px] px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
+              className="rounded-[15px] border-none max-md:px-3 max-md:py-[13px] max-md:text-[12.5px] px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
               style={{
                 background: isFocus ? 'var(--c-6rf2rk)' : 'transparent',
                 color: isFocus ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
@@ -1641,7 +1641,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setMode('dashboard')}
-              className="rounded-[15px] border-none max-md:px-3 max-md:py-1.5 max-md:text-[12.5px] px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
+              className="rounded-[15px] border-none max-md:px-3 max-md:py-[13px] max-md:text-[12.5px] px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
               style={{
                 background: !isFocus ? 'var(--c-6rf2rk)' : 'transparent',
                 color: !isFocus ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
@@ -2223,7 +2223,7 @@ export default function Dashboard() {
 
           <button
             onClick={() => requireAuth(() => navigate('/matching'))}
-            className="w-full rounded-[13px] border-none py-[9px] text-center font-sans text-[12.5px] font-extrabold transition-colors duration-150 hover:!opacity-85"
+            className="w-full rounded-[13px] border-none py-[13px] text-center font-sans text-[13px] font-extrabold transition-colors duration-150 hover:!opacity-85"
             style={{ background: 'var(--c-6rf2rk)', color: 'var(--c-2vwdyb)' }}
           >
             {t('dashboard.studyPopup.seeAll')} →
@@ -2339,7 +2339,7 @@ export default function Dashboard() {
                 <Link
                   to="/matching"
                   onClick={() => setPanel(null)}
-                  className="text-center font-sans text-[13.5px] font-extrabold no-underline"
+                  className="px-3 py-[12px] text-center font-sans text-[13.5px] font-extrabold no-underline"
                   style={{ color: 'var(--c-2vwdyb)' }}
                 >
                   {t('dashboard.studyPopup.tabBrowse')} →
@@ -2352,7 +2352,7 @@ export default function Dashboard() {
 
       {/* taskbar */}
       <div
-        className="absolute bottom-[34px] left-1/2 flex max-w-[calc(100vw-24px)] items-center gap-1 overflow-x-auto rounded-[26px] p-[8px] md:max-w-none md:gap-2 md:p-[10px]"
+        className="absolute bottom-[34px] left-1/2 flex max-w-[calc(100vw-24px)] items-center gap-1 overflow-x-auto rounded-[26px] p-[8px] md:max-w-none md:gap-2 md:p-[10px] max-md:[mask-image:linear-gradient(to_right,#000_calc(100%-36px),transparent)]"
         style={{
           ...dashStyleBase,
           background: 'var(--c-6rf0kc)',
@@ -2365,7 +2365,7 @@ export default function Dashboard() {
         <button
           onClick={() => togglePanel('wp')}
           title={t('dashboard.taskbar.wallpaperTitle')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:px-5"
           style={{ background: panel === 'wp' ? 'var(--c-6rf2rk)' : 'var(--c-6reybe)' }}
         >
           <svg
@@ -2386,7 +2386,7 @@ export default function Dashboard() {
         <button
           onClick={() => togglePanel('music')}
           title={t('dashboard.taskbar.musicTitle')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:px-5"
           style={{
             background: panel === 'music' ? 'var(--c-6rf2rk)' : 'var(--c-6reybe)',
           }}
@@ -2409,7 +2409,7 @@ export default function Dashboard() {
         <button
           onClick={() => togglePanel('todo')}
           title={t('dashboard.taskbar.todoTitle')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:px-5"
           style={{ background: panel === 'todo' ? 'var(--c-6rf2rk)' : 'var(--c-6reybe)' }}
         >
           <svg
@@ -2445,7 +2445,7 @@ export default function Dashboard() {
           }
           title={t('dashboard.taskbar.friendsTitle')}
           aria-label={t('dashboard.taskbar.friendsTitle')}
-          className="relative flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
+          className="relative flex shrink-0 items-center rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
           style={{ background: 'var(--c-6reybe)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -2467,7 +2467,7 @@ export default function Dashboard() {
           onClick={() => setCameraOn((c) => !c)}
           title={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
           aria-label={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
-          className="relative flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
+          className="relative flex shrink-0 items-center rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
           style={{ background: 'var(--c-6reybe)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -2491,7 +2491,7 @@ export default function Dashboard() {
           }
           title={t('dashboard.taskbar.settingsTitle')}
           aria-label={t('dashboard.taskbar.settingsTitle')}
-          className="flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
+          className="flex shrink-0 items-center rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
           style={{ background: 'var(--c-6reybe)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -2503,7 +2503,7 @@ export default function Dashboard() {
           onClick={openStudyPanel}
           title={t('dashboard.taskbar.studyTogetherTitle')}
           aria-label={t('dashboard.taskbar.studyTogetherTitle')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
           style={{ background: panel === 'study' ? 'var(--c-ijr2wt)' : 'var(--c-6reybe)' }}
         >
           <svg
@@ -2530,7 +2530,7 @@ export default function Dashboard() {
             })
           }
           title={t('dashboard.taskbar.stats')}
-          className="flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-[12px] font-extrabold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
+          className="flex shrink-0 items-center rounded-[19px] border-none px-3 py-[13px] font-sans text-[12px] font-extrabold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
           style={{ background: 'var(--c-6reybe)' }}
         >
           {t('dashboard.taskbar.stats')}
@@ -2918,14 +2918,14 @@ export default function Dashboard() {
         <div className="mb-[10px] flex gap-[7px] rounded-[18px] p-[5px]" style={{ background: 'var(--c-rucw5u)' }}>
           <button
             onClick={() => setActiveTab('library')}
-            className="flex-1 rounded-xl border-none px-[6px] py-[8px] font-sans text-[12px] font-extrabold transition-all duration-[220ms]"
+            className="flex-1 rounded-xl border-none px-[6px] py-[13px] font-sans text-[12px] font-extrabold transition-all duration-[220ms]"
             style={{ background: activeTab === 'library' ? 'var(--ff-surface-solid)' : 'transparent', color: activeTab === 'library' ? 'var(--ff-text-primary)' : 'var(--c-1kei8bt)' }}
           >
             {t('dashboard.musicPopup.sourceLibrary')}
           </button>
           <button
             onClick={() => setActiveTab('youtube')}
-            className="flex-1 rounded-xl border-none px-[6px] py-[8px] font-sans text-[12px] font-extrabold transition-all duration-[220ms]"
+            className="flex-1 rounded-xl border-none px-[6px] py-[13px] font-sans text-[12px] font-extrabold transition-all duration-[220ms]"
             style={{ background: activeTab === 'youtube' ? 'var(--ff-surface-solid)' : 'transparent', color: activeTab === 'youtube' ? 'var(--ff-text-primary)' : 'var(--c-1kei8bt)' }}
           >
             {t('dashboard.musicPopup.sourceYoutube')}
@@ -2975,13 +2975,13 @@ export default function Dashboard() {
                   setYtError(false)
                 }}
                 placeholder={t('dashboard.musicPopup.youtubeInputPlaceholder')}
-                className="min-w-0 flex-1 rounded-[15px] border-none px-[13px] py-[9px] font-sans text-[13px] font-semibold text-[var(--c-3bsl4p)] outline-none"
+                className="min-w-0 flex-1 rounded-[15px] border-none px-[13px] py-[11px] font-sans text-base font-semibold text-[var(--c-3bsl4p)] outline-none"
                 style={{ background: 'var(--c-rucw5u)' }}
               />
               <button
                 onClick={applyYoutubeLink}
                 disabled={!ytInput.trim()}
-                className="shrink-0 rounded-[15px] border-none px-[14px] py-[9px] font-sans text-[12.5px] font-extrabold text-[var(--c-2k9xd7)] disabled:opacity-50"
+                className="shrink-0 rounded-[15px] border-none px-[14px] py-[12px] font-sans text-[13px] font-extrabold text-[var(--c-2k9xd7)] disabled:opacity-50"
                 style={{ background: 'var(--c-hclree)' }}
               >
                 {t('dashboard.musicPopup.youtubeUse')}
@@ -3206,11 +3206,11 @@ export default function Dashboard() {
               if (e.key === 'Enter') addTask()
             }}
             placeholder={t('dashboard.todoPanel.placeholder')}
-            className="flex-1 border-none bg-transparent py-[10px] font-sans text-sm font-semibold text-[var(--c-3bsl4p)] outline-none"
+            className="flex-1 border-none bg-transparent py-[10px] font-sans text-base font-semibold text-[var(--c-3bsl4p)] outline-none"
           />
           <button
             onClick={addTask}
-            className="rounded-2xl border-none px-[18px] py-[10px] font-sans text-sm font-extrabold text-[var(--c-2k9xd7)]"
+            className="rounded-2xl border-none px-[18px] py-[13px] font-sans text-sm font-extrabold text-[var(--c-2k9xd7)]"
             style={{ background: 'var(--c-hclrgz)' }}
           >
             {t('dashboard.todoPanel.add')}

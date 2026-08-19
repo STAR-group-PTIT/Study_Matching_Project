@@ -1542,10 +1542,9 @@ export default function Room() {
             {tiles.map((tile) => (
               <div
                 key={tile.id}
-                className="relative m-auto w-full max-w-full overflow-hidden rounded-[24px]"
+                className="relative m-auto w-full max-w-full overflow-hidden rounded-[24px] max-md:h-full md:aspect-[16/9]"
                 style={{
                   maxHeight: '100%',
-                  aspectRatio: '16 / 9',
                   border: tile.tileBorder,
                   boxShadow: tile.tileShadow,
                   background: 'repeating-linear-gradient(135deg, var(--c-1fpuez5) 0 12px, var(--c-1fy2eiv) 12px 24px)',
@@ -1693,7 +1692,7 @@ export default function Room() {
                 ? t('room.controls.camera')
                 : t('room.controls.cameraOff')
           }
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:enabled:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70 lg:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold transition-all duration-[220ms] hover:enabled:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70 lg:px-5"
           style={{ background: cam ? 'var(--c-ijr2si)' : 'var(--c-1izck5g)', color: cam ? 'var(--c-33k90l)' : 'var(--c-1kei8zx)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -1713,7 +1712,7 @@ export default function Room() {
                 ? t('room.controls.mic')
                 : t('room.controls.micOff')
           }
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold transition-all duration-[220ms] hover:enabled:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70 lg:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold transition-all duration-[220ms] hover:enabled:brightness-[1.03] disabled:cursor-not-allowed disabled:opacity-70 lg:px-5"
           style={{ background: mic ? 'var(--c-ijr2si)' : 'var(--c-1izck5g)', color: mic ? 'var(--c-33k90l)' : 'var(--c-1kei8zx)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -1726,7 +1725,7 @@ export default function Room() {
         <button
           onClick={() => openTab('chat')}
           title={t('room.controls.chat')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] lg:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] lg:px-5"
           style={{ background: chatOpen && effectiveTab === 'chat' ? 'var(--c-6rf2rk)' : 'var(--c-ijr2si)' }}
         >
           <span className="relative flex h-[18px] w-[18px] shrink-0 items-center justify-center">
@@ -1742,7 +1741,7 @@ export default function Room() {
         <button
           onClick={() => openTab('music')}
           title={t('room.controls.music')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] lg:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] lg:px-5"
           style={{ background: chatOpen && effectiveTab === 'music' ? 'var(--c-6rf2rk)' : 'var(--c-ijr2si)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -1755,7 +1754,7 @@ export default function Room() {
         <button
           onClick={() => openTab('members')}
           title={t('room.controls.members')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] lg:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-all duration-[220ms] hover:!bg-[var(--c-6rf2rk)] lg:px-5"
           style={{ background: chatOpen && effectiveTab === 'members' ? 'var(--c-6rf2rk)' : 'var(--c-ijr2si)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -1778,7 +1777,7 @@ export default function Room() {
         <button
           onClick={handleLeaveClick}
           title={t('room.controls.leave')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-extrabold text-[var(--c-5nx3vn)] transition-all duration-[220ms] hover:brightness-95 lg:px-[22px]"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-extrabold text-[var(--c-5nx3vn)] transition-all duration-[220ms] hover:brightness-95 lg:px-[22px]"
           style={{ background: 'var(--c-1zp96j)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
@@ -1815,7 +1814,7 @@ export default function Room() {
           </span>
           <button
             onClick={() => setChatOpen(false)}
-            className="border-none bg-transparent px-1 py-[6px] font-sans text-[13px] font-bold text-[var(--c-mfvyic)]"
+            className="border-none bg-transparent px-3 py-[12px] font-sans text-[13px] font-bold text-[var(--c-mfvyic)]"
           >
             {t('room.panel.collapse')}
           </button>
@@ -1848,11 +1847,11 @@ export default function Room() {
                   if (e.key === 'Enter') send()
                 }}
                 placeholder={t('room.panel.chatPlaceholder')}
-                className="min-w-0 flex-1 border-none bg-transparent py-[10px] font-sans text-[13.5px] font-semibold text-[var(--c-3bsl4p)] outline-none"
+                className="min-w-0 flex-1 border-none bg-transparent py-[11px] font-sans text-base font-semibold text-[var(--c-3bsl4p)] outline-none"
               />
               <button
                 onClick={send}
-                className="rounded-[15px] border-none px-4 py-[10px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)]"
+                className="rounded-[15px] border-none px-4 py-[13px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)]"
                 style={{ background: ACCENT_SOFT }}
               >
                 {t('room.panel.send')}
@@ -2126,7 +2125,7 @@ export default function Room() {
                     <button
                       key={key}
                       onClick={() => setAdmitReal(key)}
-                      className="flex-1 rounded-2xl border-none px-[6px] py-[10px] font-sans text-[13px] font-extrabold transition-all duration-[220ms]"
+                      className="flex-1 rounded-2xl border-none px-[6px] py-[13px] font-sans text-[13px] font-extrabold transition-all duration-[220ms]"
                       style={segStyle(admit === key)}
                     >
                       {key === 'auto' ? t('room.host.autoAdmit') : t('room.host.manualAdmit')}
@@ -2148,7 +2147,7 @@ export default function Room() {
                   {pending.length > 1 && (
                     <button
                       onClick={approveAll}
-                      className="border-none bg-transparent font-sans text-[12.5px] font-extrabold text-[var(--c-3bts4x)]"
+                      className="border-none bg-transparent px-3 py-[12px] font-sans text-[12.5px] font-extrabold text-[var(--c-3bts4x)]"
                     >
                       {t('room.host.approveAll')}
                     </button>
@@ -2183,7 +2182,7 @@ export default function Room() {
                       <button
                         onClick={() => approve(p)}
                         title={t('room.host.approveTitle')}
-                        className="rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-2vtjkg)] hover:brightness-[0.97]"
+                        className="rounded-[14px] border-none px-[13px] py-[13px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)] hover:brightness-[0.97]"
                         style={{ background: ACCENT_SOFT }}
                       >
                         {t('room.host.approve')}
@@ -2191,7 +2190,7 @@ export default function Room() {
                       <button
                         onClick={() => reject(p)}
                         title={t('room.host.rejectTitle')}
-                        className="rounded-[14px] border-none px-[11px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-1kei8bt)] hover:!text-[var(--c-5nx3vn)]"
+                        className="rounded-[14px] border-none px-[11px] py-[13px] font-sans text-[13px] font-extrabold text-[var(--c-1kei8bt)] hover:!text-[var(--c-5nx3vn)]"
                         style={{ background: 'var(--c-ijr2wt)' }}
                       >
                         {t('room.host.reject')}
@@ -2243,7 +2242,7 @@ export default function Room() {
                           <button
                             onClick={() => void handleSendFriendRequest(u.id)}
                             disabled={friendActionId === u.id}
-                            className="shrink-0 rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-2vtjkg)] hover:enabled:brightness-[0.97] disabled:opacity-50"
+                            className="shrink-0 rounded-[14px] border-none px-[13px] py-[13px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)] hover:enabled:brightness-[0.97] disabled:opacity-50"
                             style={{ background: ACCENT_SOFT }}
                           >
                             {t('room.members.addFriend')}
@@ -2268,7 +2267,7 @@ export default function Room() {
                           <button
                             onClick={() => void handleAcceptFriendRow(row.id)}
                             disabled={friendActionId === row.id}
-                            className="shrink-0 rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-2vtjkg)] hover:enabled:brightness-[0.97] disabled:opacity-50"
+                            className="shrink-0 rounded-[14px] border-none px-[13px] py-[13px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)] hover:enabled:brightness-[0.97] disabled:opacity-50"
                             style={{ background: ACCENT_SOFT }}
                           >
                             {t('room.members.acceptFriend')}
@@ -2279,7 +2278,7 @@ export default function Room() {
                     {isHost && !u.host && (
                       <button
                         onClick={() => kick(u)}
-                        className="shrink-0 rounded-[14px] border-none px-[13px] py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-5nx3vn)] hover:!bg-[var(--c-1zp96j)]"
+                        className="shrink-0 rounded-[14px] border-none px-[13px] py-[13px] font-sans text-[13px] font-extrabold text-[var(--c-5nx3vn)] hover:!bg-[var(--c-1zp96j)]"
                         style={{ background: 'var(--c-kmvgtt)' }}
                       >
                         {t('room.host.kick')}
