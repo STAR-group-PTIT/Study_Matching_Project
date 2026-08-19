@@ -2350,9 +2350,11 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* taskbar */}
+      {/* taskbar — mobile chỉ giữ 5 nút cốt lõi (Hình nền/Nhạc/To-do/Bạn bè/Cài đặt), vừa
+          khít không cần cuộn ngang như trước (8 nút + mask mờ dần); Camera/Thống kê/Ghép
+          chuyển sang cụm nút nổi góc dưới riêng cho mobile (xem cluster bên dưới). */}
       <div
-        className="absolute bottom-[34px] left-1/2 flex max-w-[calc(100vw-24px)] items-center gap-1 overflow-x-auto rounded-[26px] p-[8px] md:max-w-none md:gap-2 md:p-[10px] max-md:[mask-image:linear-gradient(to_right,#000_calc(100%-36px),transparent)]"
+        className="absolute bottom-[34px] left-1/2 flex max-w-[calc(100vw-24px)] items-center gap-1 overflow-x-auto rounded-[26px] p-[8px] md:max-w-none md:gap-2 md:p-[10px]"
         style={{
           ...dashStyleBase,
           background: 'var(--c-6rf0kc)',
@@ -2434,7 +2436,7 @@ export default function Dashboard() {
             {openCount}
           </span>
         </button>
-        {/* 3 nút này chỉ hiện trên mobile (md:hidden) — desktop dùng bản icon nổi góc phải
+        {/* 2 nút này chỉ hiện trên mobile (md:hidden) — desktop dùng bản icon nổi góc phải
             bên dưới (cùng tác vụ, tránh chồng taskbar trên màn nhỏ, xem comment ở từng icon). */}
         <button
           onClick={() =>
@@ -2464,25 +2466,6 @@ export default function Dashboard() {
           )}
         </button>
         <button
-          onClick={() => setCameraOn((c) => !c)}
-          title={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
-          aria-label={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
-          className="relative flex shrink-0 items-center rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
-          style={{ background: 'var(--c-6reybe)' }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="6" width="12" height="12" rx="2.5" />
-            <path d="M15 10.5l6-3.3v9.6l-6-3.3" />
-            {!cameraOn && <path d="M3 3l18 18" />}
-          </svg>
-          {cameraOn && (
-            <span
-              className="absolute right-[3px] bottom-[3px] h-[9px] w-[9px] rounded-full"
-              style={{ background: 'var(--c-t8fca9)', boxShadow: '0 0 0 2px var(--c-6rf20v)' }}
-            />
-          )}
-        </button>
-        <button
           onClick={() =>
             requireAuth(() => {
               setPanel(null)
@@ -2499,30 +2482,25 @@ export default function Dashboard() {
             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
           </svg>
         </button>
+      </div>
+
+      {/* Cụm nút nổi góc dưới phải — CHỈ mobile (desktop dùng bộ icon ngang góc phải riêng
+          bên dưới). Thay cho 3 nút vừa bỏ khỏi taskbar: thành cột nút tròn nhỏ frosted
+          (Thống kê / Camera / Phòng đang mở) + FAB "Ghép ngẫu nhiên" to hơn, màu accent,
+          ngồi đúng góc dưới phải trên trục taskbar — hành động quan trọng nhất của app nên
+          cho bấm thẳng vào lobby ghép (1 chạm), mọi nhánh lỗi của quick.start() đều hiện
+          overlay có nút Huỷ nên chạm nhầm cũng thoát được. Ẩn theo dashVisible/panel như
+          bộ icon desktop để không đè lên popup Wallpaper/Nhạc/To-do vốn chiếm đáy màn hình. */}
+      <div
+        className="absolute right-3 bottom-[34px] z-20 flex flex-col items-center gap-[8px] md:hidden"
+        style={{
+          opacity: dashVisible && panel === null ? 1 : 0,
+          pointerEvents: dashVisible && panel === null ? 'auto' : 'none',
+          transform: `translateY(${dashVisible ? '0px' : '26px'})`,
+          transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
+        }}
+      >
         <button
-          onClick={openStudyPanel}
-          title={t('dashboard.taskbar.studyTogetherTitle')}
-          aria-label={t('dashboard.taskbar.studyTogetherTitle')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
-          style={{ background: panel === 'study' ? 'var(--c-ijr2wt)' : 'var(--c-6reybe)' }}
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinecap="round"
-          >
-            <circle cx="9" cy="8.5" r="3.2" />
-            <path d="M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19" />
-            <path d="M16.4 5.6a3.2 3.2 0 010 5.8" />
-            <path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1" />
-          </svg>
-        </button>
-        <button
-          type="button"
           onClick={() =>
             requireAuth(() => {
               setPanel(null)
@@ -2530,10 +2508,65 @@ export default function Dashboard() {
             })
           }
           title={t('dashboard.taskbar.stats')}
-          className="flex shrink-0 items-center rounded-[19px] border-none px-3 py-[13px] font-sans text-[12px] font-extrabold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
-          style={{ background: 'var(--c-6reybe)' }}
+          aria-label={t('dashboard.taskbar.stats')}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)]"
+          style={{ background: 'var(--c-6rf0kc)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px var(--c-1k1wm30)' }}
         >
-          {t('dashboard.taskbar.stats')}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 20V11" />
+            <path d="M11 20V4" />
+            <path d="M18 20v-7" />
+          </svg>
+        </button>
+        <button
+          onClick={() => setCameraOn((c) => !c)}
+          title={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
+          aria-label={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
+          className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)]"
+          style={{ background: 'var(--c-6rf0kc)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px var(--c-1k1wm30)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="6" width="12" height="12" rx="2.5" />
+            <path d="M15 10.5l6-3.3v9.6l-6-3.3" />
+            {!cameraOn && <path d="M3 3l18 18" />}
+          </svg>
+          {cameraOn && (
+            <span
+              className="absolute right-[3px] bottom-[3px] h-[9px] w-[9px] rounded-full"
+              style={{ background: 'var(--c-t8fca9)', boxShadow: '0 0 0 2px var(--c-6rf20v)' }}
+            />
+          )}
+        </button>
+        <button
+          onClick={openStudyPanel}
+          title={t('dashboard.studyPopup.tabBrowse')}
+          aria-label={t('dashboard.studyPopup.tabBrowse')}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)]"
+          style={{ background: 'var(--c-6rf0kc)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px var(--c-1k1wm30)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3.5" y="3.5" width="7" height="7" rx="2" />
+            <rect x="13.5" y="3.5" width="7" height="7" rx="2" />
+            <rect x="3.5" y="13.5" width="7" height="7" rx="2" />
+            <rect x="13.5" y="13.5" width="7" height="7" rx="2" />
+          </svg>
+        </button>
+        <button
+          onClick={() => requireAuth(startGroupMatch)}
+          title={t('dashboard.studyPopup.tabRandom')}
+          aria-label={t('dashboard.studyPopup.tabRandom')}
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-none transition-transform duration-200 hover:-translate-y-0.5 active:scale-95"
+          style={{
+            background: 'linear-gradient(135deg, var(--c-cvfsr8), var(--c-ecaxup))',
+            boxShadow: '0 10px 24px var(--c-10f8f7j)',
+          }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="9" cy="8.5" r="3.2" />
+            <path d="M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19" />
+            <path d="M16.4 5.6a3.2 3.2 0 010 5.8" />
+            <path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1" />
+          </svg>
         </button>
       </div>
 
@@ -2618,7 +2651,7 @@ export default function Dashboard() {
           // Wallpaper/Music/To-do làm khung camera đang bật biến mất đột ngột, để lại chỗ trống
           // trông trống trải. Camera đang BẬT thì giữ hiển thị liên tục, chỉ ẩn theo `dashVisible`
           // (đúng lúc chuyển sang Focus mode — khi đó mọi thứ khác cũng ẩn theo, nhất quán).
-          className="absolute right-3 bottom-[90px] w-[214px] rounded-[24px] p-3 md:right-8"
+          className="absolute right-3 bottom-[244px] w-[214px] rounded-[24px] p-3 md:right-8 md:bottom-[90px]"
           style={{
             ...dashStyleBase,
             background: 'var(--c-6rf0gw)',

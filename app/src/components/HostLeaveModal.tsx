@@ -92,7 +92,7 @@ export default function HostLeaveModal({
                   <button
                     key={m.id}
                     onClick={() => onTransfer(m.id)}
-                    className="flex items-center gap-[10px] rounded-[18px] border-none px-[14px] py-[10px] text-left font-sans transition-colors duration-200 hover:!bg-[var(--c-18rtmp8)]"
+                    className="flex items-center gap-[10px] rounded-[18px] border-none px-[14px] py-[12px] text-left font-sans transition-colors duration-200 hover:!bg-[var(--c-18rtmp8)]"
                     style={{ background: 'var(--c-1h0taci)', boxShadow: 'inset 0 0 0 1.5px var(--c-dhk63a)' }}
                   >
                     <span

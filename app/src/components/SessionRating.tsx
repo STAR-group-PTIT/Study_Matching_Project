@@ -100,7 +100,7 @@ export default function SessionRating({
                     onClick={() => void like(m.id)}
                     disabled={rated || saving === m.id}
                     title={rated ? t('room.rating.liked') : t('room.rating.like')}
-                    className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-full border-none transition-transform duration-200 hover:enabled:-translate-y-0.5 disabled:cursor-default"
+                    className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full border-none transition-transform duration-200 hover:enabled:-translate-y-0.5 disabled:cursor-default"
                     style={
                       rated
                         ? { background: 'var(--c-vukw3w)', color: 'var(--c-pc4fdf)' }

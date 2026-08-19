@@ -529,7 +529,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className="rounded-[15px] border-none px-5 py-[10px] font-sans text-sm font-bold transition-all duration-[240ms]"
+              className="rounded-[15px] border-none px-5 py-[12px] font-sans text-sm font-bold transition-all duration-[240ms]"
               style={{
                 background: activeTab === tab ? 'var(--c-6rf2rk)' : 'transparent',
                 color: activeTab === tab ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
@@ -793,7 +793,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                 <div className="flex gap-2">
                   <button
                     onClick={() => applyPreset(25, 5)}
-                    className="rounded-[18px] border-[1.5px] px-5 py-[10px] font-sans text-sm font-bold transition-all duration-[220ms]"
+                    className="rounded-[18px] border-[1.5px] px-5 py-[12px] font-sans text-sm font-bold transition-all duration-[220ms]"
                     style={{
                       background: focus === 25 && brk === 5 ? 'var(--ff-accent-chip-active)' : 'var(--c-6rf17l)',
                       borderColor: focus === 25 && brk === 5 ? 'var(--ff-accent-border)' : 'var(--c-1kei5ag)',
@@ -804,7 +804,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                   </button>
                   <button
                     onClick={() => applyPreset(50, 10)}
-                    className="rounded-[18px] border-[1.5px] px-5 py-[10px] font-sans text-sm font-bold transition-all duration-[220ms]"
+                    className="rounded-[18px] border-[1.5px] px-5 py-[12px] font-sans text-sm font-bold transition-all duration-[220ms]"
                     style={{
                       background: focus === 50 && brk === 10 ? 'var(--ff-accent-chip-active)' : 'var(--c-6rf17l)',
                       borderColor: focus === 50 && brk === 10 ? 'var(--ff-accent-border)' : 'var(--c-1kei5ag)',
@@ -962,7 +962,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                     <button
                       key={lng}
                       onClick={() => void i18n.changeLanguage(lng)}
-                      className="rounded-2xl border-none px-4 py-[9px] font-sans text-[13px] font-bold transition-all duration-[240ms]"
+                      className="rounded-2xl border-none px-4 py-[12px] font-sans text-[13px] font-bold transition-all duration-[240ms]"
                       style={{
                         color: on ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
                         background: on ? 'var(--c-6rf2u5)' : 'transparent',
@@ -1021,7 +1021,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
                     <button
                       key={mode}
                       onClick={() => selectTheme(mode)}
-                      className="rounded-2xl border-none px-4 py-[9px] font-sans text-[13px] font-bold transition-all duration-[240ms]"
+                      className="rounded-2xl border-none px-4 py-[12px] font-sans text-[13px] font-bold transition-all duration-[240ms]"
                       style={{
                         color: on ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
                         background: on ? 'var(--c-6rf2u5)' : 'transparent',

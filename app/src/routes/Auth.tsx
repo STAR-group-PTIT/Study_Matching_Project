@@ -215,7 +215,7 @@ export default function Auth() {
                     <button
                       type="button"
                       onClick={() => setShowPw((v) => !v)}
-                      className="absolute right-2 rounded-[13px] border-none px-[14px] py-[11px] font-sans text-[13px] font-bold text-[var(--c-mfvyj7)]"
+                      className="absolute right-2 rounded-[13px] border-none px-[14px] py-[13px] font-sans text-[13px] font-bold text-[var(--c-mfvyj7)]"
                       style={{ background: 'var(--c-arr1mz)' }}
                     >
                       {showPw ? t('auth.password.hide') : t('auth.password.show')}
