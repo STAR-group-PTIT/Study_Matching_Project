@@ -144,14 +144,14 @@ export default function Auth() {
             >
               <button
                 onClick={() => switchTo('login')}
-                className="flex-1 rounded-2xl border-none py-[11px] font-sans text-sm font-bold transition-all duration-[280ms]"
+                className="flex-1 rounded-2xl border-none py-[13px] font-sans text-sm font-bold transition-all duration-[280ms]"
                 style={tabStyle(isLogin)}
               >
                 {t('auth.tabs.login')}
               </button>
               <button
                 onClick={() => switchTo('signup')}
-                className="flex-1 rounded-2xl border-none py-[11px] font-sans text-sm font-bold transition-all duration-[280ms]"
+                className="flex-1 rounded-2xl border-none py-[13px] font-sans text-sm font-bold transition-all duration-[280ms]"
                 style={tabStyle(!isLogin)}
               >
                 {t('auth.tabs.signup')}
@@ -181,7 +181,7 @@ export default function Auth() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder={t('auth.name.placeholder')}
-                      className="rounded-[18px] border-[1.5px] border-[var(--c-1kei5ag)] bg-[var(--c-ijr2wt)] px-4 py-[14px] font-sans text-[15px] font-semibold text-[var(--c-3bsl4p)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:font-semibold placeholder:text-[var(--c-1kei6x0)] focus:border-[var(--c-125fipz)] focus:shadow-[0_0_0_4px_var(--c-1bxn4lz)]"
+                      className="rounded-[18px] border-[1.5px] border-[var(--c-1kei5ag)] bg-[var(--c-ijr2wt)] px-4 py-[14px] font-sans text-base font-semibold text-[var(--c-3bsl4p)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:font-semibold placeholder:text-[var(--c-1kei6x0)] focus:border-[var(--c-125fipz)] focus:shadow-[0_0_0_4px_var(--c-1bxn4lz)]"
                     />
                   </label>
                 )}
@@ -195,7 +195,7 @@ export default function Auth() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder={t('auth.email.placeholder')}
-                    className="rounded-[18px] border-[1.5px] border-[var(--c-1kei5ag)] bg-[var(--c-ijr2wt)] px-4 py-[14px] font-sans text-[15px] font-semibold text-[var(--c-3bsl4p)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:font-semibold placeholder:text-[var(--c-1kei6x0)] focus:border-[var(--c-125fipz)] focus:shadow-[0_0_0_4px_var(--c-1bxn4lz)]"
+                    className="rounded-[18px] border-[1.5px] border-[var(--c-1kei5ag)] bg-[var(--c-ijr2wt)] px-4 py-[14px] font-sans text-base font-semibold text-[var(--c-3bsl4p)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:font-semibold placeholder:text-[var(--c-1kei6x0)] focus:border-[var(--c-125fipz)] focus:shadow-[0_0_0_4px_var(--c-1bxn4lz)]"
                   />
                 </label>
                 <label className="flex flex-col gap-[7px]">
@@ -210,12 +210,12 @@ export default function Auth() {
                       required
                       minLength={6}
                       placeholder={t('auth.password.placeholder')}
-                      className="flex-1 rounded-[18px] border-[1.5px] border-[var(--c-1kei5ag)] bg-[var(--c-ijr2wt)] py-[14px] pr-[82px] pl-4 font-sans text-[15px] font-semibold text-[var(--c-3bsl4p)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:font-semibold placeholder:text-[var(--c-1kei6x0)] focus:border-[var(--c-125fipz)] focus:shadow-[0_0_0_4px_var(--c-1bxn4lz)]"
+                      className="flex-1 rounded-[18px] border-[1.5px] border-[var(--c-1kei5ag)] bg-[var(--c-ijr2wt)] py-[14px] pr-[90px] pl-4 font-sans text-base font-semibold text-[var(--c-3bsl4p)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:font-semibold placeholder:text-[var(--c-1kei6x0)] focus:border-[var(--c-125fipz)] focus:shadow-[0_0_0_4px_var(--c-1bxn4lz)]"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPw((v) => !v)}
-                      className="absolute right-2 rounded-[13px] border-none px-3 py-2 font-sans text-[12.5px] font-bold text-[var(--c-mfvyj7)]"
+                      className="absolute right-2 rounded-[13px] border-none px-[14px] py-[13px] font-sans text-[13px] font-bold text-[var(--c-mfvyj7)]"
                       style={{ background: 'var(--c-arr1mz)' }}
                     >
                       {showPw ? t('auth.password.hide') : t('auth.password.show')}
@@ -228,7 +228,7 @@ export default function Auth() {
                 <div className="mt-[10px] flex justify-end">
                   <a
                     href="#"
-                    className="text-[13px] font-bold text-[var(--c-1swujpp)] no-underline hover:text-[var(--c-ounphr)]"
+                    className="px-3 py-[12px] text-[13px] font-bold text-[var(--c-1swujpp)] no-underline hover:text-[var(--c-ounphr)]"
                     onClick={(e) => e.preventDefault()}
                   >
                     {t('auth.forgotPassword')}

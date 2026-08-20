@@ -1609,7 +1609,7 @@ export default function Dashboard() {
           {!user && (
             <Link
               to="/auth"
-              className="rounded-[18px] max-md:px-3 max-md:py-[9px] max-md:text-[12px] px-4 py-[10px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)] no-underline"
+              className="rounded-[18px] max-md:px-3 max-md:py-[13px] max-md:text-[12px] px-4 py-[10px] font-sans text-[13px] font-extrabold text-[var(--c-2vtjkg)] no-underline"
               style={{
                 background: 'var(--ff-accent-soft)',
                 boxShadow: '0 6px 20px var(--c-fc5pjb)',
@@ -1631,7 +1631,7 @@ export default function Dashboard() {
                 setMode('focus')
                 setPanel(null)
               }}
-              className="rounded-[15px] border-none max-md:px-3 max-md:py-1.5 max-md:text-[12.5px] px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
+              className="rounded-[15px] border-none max-md:px-3 max-md:py-[13px] max-md:text-[12.5px] px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
               style={{
                 background: isFocus ? 'var(--c-6rf2rk)' : 'transparent',
                 color: isFocus ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
@@ -1641,7 +1641,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setMode('dashboard')}
-              className="rounded-[15px] border-none max-md:px-3 max-md:py-1.5 max-md:text-[12.5px] px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
+              className="rounded-[15px] border-none max-md:px-3 max-md:py-[13px] max-md:text-[12.5px] px-4 py-2 font-sans text-[13px] font-bold transition-all duration-[260ms]"
               style={{
                 background: !isFocus ? 'var(--c-6rf2rk)' : 'transparent',
                 color: !isFocus ? 'var(--c-2mhlk3)' : 'var(--c-1kei8bt)',
@@ -2223,7 +2223,7 @@ export default function Dashboard() {
 
           <button
             onClick={() => requireAuth(() => navigate('/matching'))}
-            className="w-full rounded-[13px] border-none py-[9px] text-center font-sans text-[12.5px] font-extrabold transition-colors duration-150 hover:!opacity-85"
+            className="w-full rounded-[13px] border-none py-[13px] text-center font-sans text-[13px] font-extrabold transition-colors duration-150 hover:!opacity-85"
             style={{ background: 'var(--c-6rf2rk)', color: 'var(--c-2vwdyb)' }}
           >
             {t('dashboard.studyPopup.seeAll')} →
@@ -2339,7 +2339,7 @@ export default function Dashboard() {
                 <Link
                   to="/matching"
                   onClick={() => setPanel(null)}
-                  className="text-center font-sans text-[13.5px] font-extrabold no-underline"
+                  className="px-3 py-[12px] text-center font-sans text-[13.5px] font-extrabold no-underline"
                   style={{ color: 'var(--c-2vwdyb)' }}
                 >
                   {t('dashboard.studyPopup.tabBrowse')} →
@@ -2350,7 +2350,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* taskbar */}
+      {/* taskbar — mobile chỉ giữ 5 nút cốt lõi (Hình nền/Nhạc/To-do/Bạn bè/Cài đặt), vừa
+          khít không cần cuộn ngang như trước (8 nút + mask mờ dần); Camera/Thống kê/Ghép
+          chuyển sang cụm nút nổi góc dưới riêng cho mobile (xem cluster bên dưới). */}
       <div
         className="absolute bottom-[34px] left-1/2 flex max-w-[calc(100vw-24px)] items-center gap-1 overflow-x-auto rounded-[26px] p-[8px] md:max-w-none md:gap-2 md:p-[10px]"
         style={{
@@ -2365,7 +2367,7 @@ export default function Dashboard() {
         <button
           onClick={() => togglePanel('wp')}
           title={t('dashboard.taskbar.wallpaperTitle')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:px-5"
           style={{ background: panel === 'wp' ? 'var(--c-6rf2rk)' : 'var(--c-6reybe)' }}
         >
           <svg
@@ -2386,7 +2388,7 @@ export default function Dashboard() {
         <button
           onClick={() => togglePanel('music')}
           title={t('dashboard.taskbar.musicTitle')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:px-5"
           style={{
             background: panel === 'music' ? 'var(--c-6rf2rk)' : 'var(--c-6reybe)',
           }}
@@ -2409,7 +2411,7 @@ export default function Dashboard() {
         <button
           onClick={() => togglePanel('todo')}
           title={t('dashboard.taskbar.todoTitle')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:px-5"
+          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:px-5"
           style={{ background: panel === 'todo' ? 'var(--c-6rf2rk)' : 'var(--c-6reybe)' }}
         >
           <svg
@@ -2434,7 +2436,7 @@ export default function Dashboard() {
             {openCount}
           </span>
         </button>
-        {/* 3 nút này chỉ hiện trên mobile (md:hidden) — desktop dùng bản icon nổi góc phải
+        {/* 2 nút này chỉ hiện trên mobile (md:hidden) — desktop dùng bản icon nổi góc phải
             bên dưới (cùng tác vụ, tránh chồng taskbar trên màn nhỏ, xem comment ở từng icon). */}
         <button
           onClick={() =>
@@ -2445,7 +2447,7 @@ export default function Dashboard() {
           }
           title={t('dashboard.taskbar.friendsTitle')}
           aria-label={t('dashboard.taskbar.friendsTitle')}
-          className="relative flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
+          className="relative flex shrink-0 items-center rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
           style={{ background: 'var(--c-6reybe)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -2464,11 +2466,64 @@ export default function Dashboard() {
           )}
         </button>
         <button
+          onClick={() =>
+            requireAuth(() => {
+              setPanel(null)
+              setSettingsOpen(true)
+            })
+          }
+          title={t('dashboard.taskbar.settingsTitle')}
+          aria-label={t('dashboard.taskbar.settingsTitle')}
+          className="flex shrink-0 items-center rounded-[19px] border-none px-3 py-[13px] font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
+          style={{ background: 'var(--c-6reybe)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Cụm nút nổi góc dưới phải — CHỈ mobile (desktop dùng bộ icon ngang góc phải riêng
+          bên dưới). Thay cho 3 nút vừa bỏ khỏi taskbar: thành cột nút tròn nhỏ frosted
+          (Thống kê / Camera / Phòng đang mở) + FAB "Ghép ngẫu nhiên" to hơn, màu accent,
+          ngồi đúng góc dưới phải trên trục taskbar — hành động quan trọng nhất của app nên
+          cho bấm thẳng vào lobby ghép (1 chạm), mọi nhánh lỗi của quick.start() đều hiện
+          overlay có nút Huỷ nên chạm nhầm cũng thoát được. Ẩn theo dashVisible/panel như
+          bộ icon desktop để không đè lên popup Wallpaper/Nhạc/To-do vốn chiếm đáy màn hình. */}
+      <div
+        className="absolute right-3 bottom-[34px] z-20 flex flex-col items-center gap-[8px] md:hidden"
+        style={{
+          opacity: dashVisible && panel === null ? 1 : 0,
+          pointerEvents: dashVisible && panel === null ? 'auto' : 'none',
+          transform: `translateY(${dashVisible ? '0px' : '26px'})`,
+          transition: 'opacity 520ms ease, transform 520ms cubic-bezier(0.22,1,0.36,1)',
+        }}
+      >
+        <button
+          onClick={() =>
+            requireAuth(() => {
+              setPanel(null)
+              setStatsOpen(true)
+            })
+          }
+          title={t('dashboard.taskbar.stats')}
+          aria-label={t('dashboard.taskbar.stats')}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)]"
+          style={{ background: 'var(--c-6rf0kc)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px var(--c-1k1wm30)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 20V11" />
+            <path d="M11 20V4" />
+            <path d="M18 20v-7" />
+          </svg>
+        </button>
+        <button
           onClick={() => setCameraOn((c) => !c)}
           title={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
           aria-label={t(cameraOn ? 'dashboard.rightColumn.turnOffCamera' : 'dashboard.rightColumn.turnOnCamera')}
-          className="relative flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
-          style={{ background: 'var(--c-6reybe)' }}
+          className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)]"
+          style={{ background: 'var(--c-6rf0kc)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px var(--c-1k1wm30)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="6" width="12" height="12" rx="2.5" />
@@ -2483,57 +2538,35 @@ export default function Dashboard() {
           )}
         </button>
         <button
-          onClick={() =>
-            requireAuth(() => {
-              setPanel(null)
-              setSettingsOpen(true)
-            })
-          }
-          title={t('dashboard.taskbar.settingsTitle')}
-          aria-label={t('dashboard.taskbar.settingsTitle')}
-          className="flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
-          style={{ background: 'var(--c-6reybe)' }}
+          onClick={openStudyPanel}
+          title={t('dashboard.studyPopup.tabBrowse')}
+          aria-label={t('dashboard.studyPopup.tabBrowse')}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)]"
+          style={{ background: 'var(--c-6rf0kc)', backdropFilter: 'blur(18px)', boxShadow: '0 14px 34px var(--c-1k1wm30)' }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3.5" y="3.5" width="7" height="7" rx="2" />
+            <rect x="13.5" y="3.5" width="7" height="7" rx="2" />
+            <rect x="3.5" y="13.5" width="7" height="7" rx="2" />
+            <rect x="13.5" y="13.5" width="7" height="7" rx="2" />
           </svg>
         </button>
         <button
-          onClick={openStudyPanel}
-          title={t('dashboard.taskbar.studyTogetherTitle')}
-          aria-label={t('dashboard.taskbar.studyTogetherTitle')}
-          className="flex shrink-0 items-center gap-[9px] rounded-[19px] border-none px-3 py-3 font-sans text-sm font-bold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
-          style={{ background: panel === 'study' ? 'var(--c-ijr2wt)' : 'var(--c-6reybe)' }}
+          onClick={() => requireAuth(startGroupMatch)}
+          title={t('dashboard.studyPopup.tabRandom')}
+          aria-label={t('dashboard.studyPopup.tabRandom')}
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-none transition-transform duration-200 hover:-translate-y-0.5 active:scale-95"
+          style={{
+            background: 'linear-gradient(135deg, var(--c-cvfsr8), var(--c-ecaxup))',
+            boxShadow: '0 10px 24px var(--c-10f8f7j)',
+          }}
         >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.9"
-            strokeLinecap="round"
-          >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="9" cy="8.5" r="3.2" />
             <path d="M3 19c.9-3 3.3-4.4 6-4.4S14.1 16 15 19" />
             <path d="M16.4 5.6a3.2 3.2 0 010 5.8" />
             <path d="M18.6 14.9c1.4.8 2.3 2.2 2.6 4.1" />
           </svg>
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            requireAuth(() => {
-              setPanel(null)
-              setStatsOpen(true)
-            })
-          }
-          title={t('dashboard.taskbar.stats')}
-          className="flex shrink-0 items-center rounded-[19px] border-none px-3 py-3 font-sans text-[12px] font-extrabold text-[var(--c-33k90l)] transition-colors duration-[240ms] hover:!bg-[var(--c-ijr2wt)] md:hidden"
-          style={{ background: 'var(--c-6reybe)' }}
-        >
-          {t('dashboard.taskbar.stats')}
         </button>
       </div>
 
@@ -2618,7 +2651,7 @@ export default function Dashboard() {
           // Wallpaper/Music/To-do làm khung camera đang bật biến mất đột ngột, để lại chỗ trống
           // trông trống trải. Camera đang BẬT thì giữ hiển thị liên tục, chỉ ẩn theo `dashVisible`
           // (đúng lúc chuyển sang Focus mode — khi đó mọi thứ khác cũng ẩn theo, nhất quán).
-          className="absolute right-3 bottom-[90px] w-[214px] rounded-[24px] p-3 md:right-8"
+          className="absolute right-3 bottom-[244px] w-[214px] rounded-[24px] p-3 md:right-8 md:bottom-[90px]"
           style={{
             ...dashStyleBase,
             background: 'var(--c-6rf0gw)',
@@ -2918,14 +2951,14 @@ export default function Dashboard() {
         <div className="mb-[10px] flex gap-[7px] rounded-[18px] p-[5px]" style={{ background: 'var(--c-rucw5u)' }}>
           <button
             onClick={() => setActiveTab('library')}
-            className="flex-1 rounded-xl border-none px-[6px] py-[8px] font-sans text-[12px] font-extrabold transition-all duration-[220ms]"
+            className="flex-1 rounded-xl border-none px-[6px] py-[13px] font-sans text-[12px] font-extrabold transition-all duration-[220ms]"
             style={{ background: activeTab === 'library' ? 'var(--ff-surface-solid)' : 'transparent', color: activeTab === 'library' ? 'var(--ff-text-primary)' : 'var(--c-1kei8bt)' }}
           >
             {t('dashboard.musicPopup.sourceLibrary')}
           </button>
           <button
             onClick={() => setActiveTab('youtube')}
-            className="flex-1 rounded-xl border-none px-[6px] py-[8px] font-sans text-[12px] font-extrabold transition-all duration-[220ms]"
+            className="flex-1 rounded-xl border-none px-[6px] py-[13px] font-sans text-[12px] font-extrabold transition-all duration-[220ms]"
             style={{ background: activeTab === 'youtube' ? 'var(--ff-surface-solid)' : 'transparent', color: activeTab === 'youtube' ? 'var(--ff-text-primary)' : 'var(--c-1kei8bt)' }}
           >
             {t('dashboard.musicPopup.sourceYoutube')}
@@ -2975,13 +3008,13 @@ export default function Dashboard() {
                   setYtError(false)
                 }}
                 placeholder={t('dashboard.musicPopup.youtubeInputPlaceholder')}
-                className="min-w-0 flex-1 rounded-[15px] border-none px-[13px] py-[9px] font-sans text-[13px] font-semibold text-[var(--c-3bsl4p)] outline-none"
+                className="min-w-0 flex-1 rounded-[15px] border-none px-[13px] py-[11px] font-sans text-base font-semibold text-[var(--c-3bsl4p)] outline-none"
                 style={{ background: 'var(--c-rucw5u)' }}
               />
               <button
                 onClick={applyYoutubeLink}
                 disabled={!ytInput.trim()}
-                className="shrink-0 rounded-[15px] border-none px-[14px] py-[9px] font-sans text-[12.5px] font-extrabold text-[var(--c-2k9xd7)] disabled:opacity-50"
+                className="shrink-0 rounded-[15px] border-none px-[14px] py-[12px] font-sans text-[13px] font-extrabold text-[var(--c-2k9xd7)] disabled:opacity-50"
                 style={{ background: 'var(--c-hclree)' }}
               >
                 {t('dashboard.musicPopup.youtubeUse')}
@@ -3206,11 +3239,11 @@ export default function Dashboard() {
               if (e.key === 'Enter') addTask()
             }}
             placeholder={t('dashboard.todoPanel.placeholder')}
-            className="flex-1 border-none bg-transparent py-[10px] font-sans text-sm font-semibold text-[var(--c-3bsl4p)] outline-none"
+            className="flex-1 border-none bg-transparent py-[10px] font-sans text-base font-semibold text-[var(--c-3bsl4p)] outline-none"
           />
           <button
             onClick={addTask}
-            className="rounded-2xl border-none px-[18px] py-[10px] font-sans text-sm font-extrabold text-[var(--c-2k9xd7)]"
+            className="rounded-2xl border-none px-[18px] py-[13px] font-sans text-sm font-extrabold text-[var(--c-2k9xd7)]"
             style={{ background: 'var(--c-hclrgz)' }}
           >
             {t('dashboard.todoPanel.add')}

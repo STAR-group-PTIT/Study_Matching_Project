@@ -193,7 +193,7 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
                 onClick={onClose}
                 title={t('friends.close')}
                 aria-label={t('friends.close')}
-                className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-white"
+                className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-white"
                 style={{ background: 'var(--c-ijr2v3)' }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -242,7 +242,7 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
                     if (e.key === 'Enter') void handleSend()
                   }}
                   placeholder={t('friends.addPlaceholder')}
-                  className="min-w-0 flex-1 rounded-[16px] border-none px-4 py-3 font-sans text-sm font-semibold text-[var(--c-3bsl4p)] outline-none"
+                  className="min-w-0 flex-1 rounded-[16px] border-none px-4 py-3 font-sans text-base font-semibold text-[var(--c-3bsl4p)] outline-none"
                   style={{ background: 'var(--c-rucw5u)' }}
                 />
                 <button
@@ -333,14 +333,14 @@ export default function FriendsPanel({ onClose }: { onClose: () => void }) {
                       <div className="flex gap-[7px]">
                         <button
                           onClick={() => void handleRemove(r.id)}
-                          className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-bold text-[var(--c-5nx3vn)]"
+                          className="rounded-[14px] border-none px-4 py-[13px] font-sans text-[12.5px] font-bold text-[var(--c-5nx3vn)]"
                           style={{ background: 'var(--c-11c6fho)' }}
                         >
                           {t('friends.decline')}
                         </button>
                         <button
                           onClick={() => void handleAccept(r.id)}
-                          className="rounded-[14px] border-none px-4 py-2 font-sans text-[12.5px] font-extrabold text-[var(--c-2vtjkg)]"
+                          className="rounded-[14px] border-none px-4 py-[13px] font-sans text-[12.5px] font-extrabold text-[var(--c-2vtjkg)]"
                           style={{ background: 'var(--ff-accent-soft)' }}
                         >
                           {t('friends.accept')}

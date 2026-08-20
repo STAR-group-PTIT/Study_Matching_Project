@@ -61,7 +61,7 @@ export default function EditInfoModal({
           <h3 className="m-0 text-[18px] font-extrabold text-[var(--c-3bsl4p)]">{t('settings.editInfoModal.title')}</h3>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-[var(--c-rucw5u)]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-none text-[var(--c-48t3yk)] transition-colors duration-200 hover:!bg-[var(--c-rucw5u)]"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
               <path d="M6 6l12 12M18 6L6 18" />
@@ -85,7 +85,7 @@ export default function EditInfoModal({
             placeholder={t('settings.editInfoModal.namePlaceholder')}
             maxLength={MAX_NAME_LENGTH}
             autoFocus
-            className="rounded-[16px] border-none px-4 py-3 font-sans text-sm font-bold text-[var(--c-3bsl4p)] outline-none"
+            className="rounded-[16px] border-none px-4 py-3 font-sans text-base font-bold text-[var(--c-3bsl4p)] outline-none"
             style={{ background: 'var(--c-rucw5u)' }}
           />
         </label>

@@ -168,7 +168,7 @@ export default function DeviceCheck({
             onClick={onToggleCam}
             disabled={camLocked}
             title={camLocked ? t('room.deviceCheck.locked') : undefined}
-            className="flex items-center gap-[8px] rounded-[19px] border-none px-5 py-[11px] font-sans text-[13.5px] font-extrabold transition-colors duration-[220ms] disabled:cursor-not-allowed disabled:opacity-70"
+            className="flex items-center gap-[8px] rounded-[19px] border-none px-5 py-[13px] font-sans text-[13.5px] font-extrabold transition-colors duration-[220ms] disabled:cursor-not-allowed disabled:opacity-70"
             style={
               cameraOn
                 ? { background: 'var(--c-9q3jqe)', color: 'var(--c-3bts4x)' }
@@ -186,7 +186,7 @@ export default function DeviceCheck({
             onClick={onToggleMic}
             disabled={micLocked}
             title={micLocked ? t('room.deviceCheck.locked') : undefined}
-            className="flex items-center gap-[8px] rounded-[19px] border-none px-5 py-[11px] font-sans text-[13.5px] font-extrabold transition-colors duration-[220ms] disabled:cursor-not-allowed disabled:opacity-70"
+            className="flex items-center gap-[8px] rounded-[19px] border-none px-5 py-[13px] font-sans text-[13.5px] font-extrabold transition-colors duration-[220ms] disabled:cursor-not-allowed disabled:opacity-70"
             style={
               micOn
                 ? { background: 'var(--c-9q3jqe)', color: 'var(--c-3bts4x)' }
